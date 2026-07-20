@@ -3,16 +3,18 @@
 ## ✅ Sudah Selesai (Scaffolding & Auth)
 
 - [x] Setup Laravel 13 + Inertia v3 + React 19 + TypeScript
-- [x] Configurasi Fortify (Login, Register, Password Reset, Email Verification, 2FA, Passkeys)
-- [x] Halaman Auth (login, register, forgot/reset password, verify email, confirm password, 2FA challenge)
+- [x] Konfigurasi Fortify (Login, Password Reset, Email Verification, 2FA, Passkeys)
+- [x] Halaman Auth (login, forgot/reset password, verify email, confirm password, 2FA challenge)
 - [x] Halaman Settings (Profile, Security, Appearance)
 - [x] Layout components (sidebar, header, auth layouts)
 - [x] UI primitives (shadcn/ui — button, card, dialog, input, badge, etc.)
 - [x] Wayfinder route generation
 - [x] User model dengan Fortify traits (2FA, Passkey/WebAuthn)
 - [x] Migrations: users, sessions, password_reset_tokens, cache, jobs, passkeys, 2FA columns
-- [x] Tests: auth flows (login, register, password reset, email verification, 2FA, profile, security)
+- [x] Tests: auth flows (login, password reset, email verification, 2FA, profile, security)
 - [x] ESLint + Prettier + Pint code style configuration
+- [x] Hapus fitur Register (aplikasi internal — tidak perlu registrasi publik)
+- [x] Redesain Welcome Page dengan tema POS modern (warna brand: #4F6B6A / #CFC0A4)
 
 ---
 
@@ -234,7 +236,7 @@
 
 | Fase | Total Task | Selesai | Belum |
 |------|-----------|---------|-------|
-| Scaffolding & Auth | 10 | **10** | 0 |
+| Scaffolding & Auth | 12 | **12** | 0 |
 | Fase 1 — MVP | ~80 | **0** | ~80 |
 | Fase 2 | ~15 | **0** | ~15 |
 | Fase 3 | ~20 | **0** | ~20 |
