@@ -1,6 +1,6 @@
 import { Head, Link, usePage } from '@inertiajs/react';
-import { dashboard, login } from '@/routes';
 import { Button } from '@/components/ui/button';
+import { dashboard, login } from '@/routes';
 
 const CREAM = '#F6F2E9';
 const PRIMARY = '#4F6B6A';

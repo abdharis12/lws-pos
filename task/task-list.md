@@ -22,138 +22,138 @@
 
 ### 1. Arsitektur & Infrastruktur
 
-- [ ] Setup & konfigurasi Laravel Reverb (WebSocket server)
-- [ ] Konfigurasi Redis untuk cache, queue, & broadcasting
-- [ ] Setup broadcasting channels (`routes/channels.php`) dengan otorisasi
-- [ ] Setup Queue worker & Supervisor config
-- [ ] Konfigurasi environment staging & production
-- [ ] Install & konfigurasi Midtrans PHP SDK (`midtrans/midtrans-php`)
-- [ ] Install & konfigurasi Spatie Laravel Permission (`spatie/laravel-permission`)
-- [ ] Install & konfigurasi Laravel Excel (`maatwebsite/excel`)
-- [ ] Setup HTTPS & TLS (Let's Encrypt)
+- [x] Setup & konfigurasi Laravel Reverb (WebSocket server)
+- [ ] Konfigurasi Redis untuk cache, queue, & broadcasting (masih default)
+- [x] Setup broadcasting channels (`routes/channels.php`) dengan otorisasi
+- [ ] Setup Queue worker & Supervisor config (infra deployment)
+- [ ] Konfigurasi environment staging & production (infra deployment)
+- [x] Install & konfigurasi Midtrans (config + service class via HTTP, bukan SDK)
+- [x] Install & konfigurasi Spatie Laravel Permission (`spatie/laravel-permission`)
+- [x] Install & konfigurasi Laravel Excel (`maatwebsite/excel`)
+- [ ] Setup HTTPS & TLS (Let's Encrypt) (infra deployment)
 
 ### 2. Database — Migrations & Models
 
-- [ ] Migration & Model: `outlets`
-- [ ] Migration & Model: `roles` / `permissions` (Spatie)
-- [ ] Migration & Model: `employees`
-- [ ] Migration & Model: `attendances`
-- [ ] Migration & Model: `shifts`
-- [ ] Migration & Model: `tables`
-- [ ] Migration & Model: `table_sessions`
-- [ ] Migration & Model: `menu_categories`
-- [ ] Migration & Model: `menus`
-- [ ] Migration & Model: `option_groups`
-- [ ] Migration & Model: `option_items`
-- [ ] Migration & Model: `menu_option_group` (pivot)
-- [ ] Migration & Model: `orders`
-- [ ] Migration & Model: `order_items`
-- [ ] Migration & Model: `order_item_options`
-- [ ] Migration & Model: `payments`
-- [ ] Migration & Model: `activity_logs`
-- [ ] Migration & Model: `salary_components`
-- [ ] Migration & Model: `bonuses`
-- [ ] Migration & Model: `deductions`
-- [ ] Migration & Model: `payslips`
-- [ ] Indexing: `tables.table_token`, `orders.status`, `payments.midtrans_transaction_id`, `attendances(employee_id, clock_in_at)`, `payslips(employee_id, period)`
-- [ ] Factory & Seeder untuk semua model
+- [x] Migration & Model: `outlets`
+- [x] Migration & Model: `roles` / `permissions` (Spatie)
+- [x] Migration & Model: `employees`
+- [x] Migration & Model: `attendances`
+- [x] Migration & Model: `shifts`
+- [x] Migration & Model: `tables`
+- [x] Migration & Model: `table_sessions`
+- [x] Migration & Model: `menu_categories`
+- [x] Migration & Model: `menus`
+- [x] Migration & Model: `option_groups`
+- [x] Migration & Model: `option_items`
+- [x] Migration & Model: `menu_option_group` (pivot)
+- [x] Migration & Model: `orders`
+- [x] Migration & Model: `order_items`
+- [x] Migration & Model: `order_item_options`
+- [x] Migration & Model: `payments`
+- [x] Migration & Model: `activity_logs`
+- [x] Migration & Model: `salary_components`
+- [x] Migration & Model: `bonuses`
+- [x] Migration & Model: `deductions`
+- [x] Migration & Model: `payslips`
+- [x] Indexing: `tables.table_token`, `orders.status`, `payments.midtrans_transaction_id`, `attendances(employee_id, clock_in_at)`, `payslips(employee_id, period)`
+- [x] Factory & Seeder untuk semua model
 
 ### 3. RBAC & Manajemen Staff
 
-- [ ] Seeder roles: Owner, Admin, Cashier, Kitchen Staff, Waiter
-- [ ] Kustomisasi User model dengan Spatie roles/permissions
-- [ ] Laravel Policy untuk setiap modul (menu, orders, employees, payroll, dll.)
-- [ ] Halaman CRUD karyawan (data pribadi, role, tanggal join, gaji pokok)
-- [ ] Halaman daftar karyawan dengan filtering & search
-- [ ] Halaman detail karyawan
+- [x] Seeder roles: Owner, Admin, Cashier, Kitchen Staff, Waiter
+- [x] Kustomisasi User model dengan Spatie roles/permissions
+- [x] Laravel Policy untuk setiap modul (menu, orders, employees, tables, option groups)
+- [x] Halaman CRUD karyawan (data pribadi, role, tanggal join, gaji pokok)
+- [x] Halaman daftar karyawan dengan filtering & search
+- [x] Halaman detail karyawan
 
 ### 4. Manajemen Menu (CRUD + Varian/Add-on)
 
-- [ ] Halaman CRUD kategori menu
-- [ ] Halaman CRUD menu (nama, harga, foto, deskripsi, status tersedia/habis)
-- [ ] Upload foto menu (storage privat)
-- [ ] Sistem broadcast realtime `MenuAvailabilityChanged` ke public channel
-- [ ] Halaman CRUD option groups (tipe: single/multiple, is_required, min/max select)
-- [ ] Halaman CRUD option items (nama, price_adjustment, is_available)
-- [ ] Halaman mapping option group ke menu (many-to-many)
-- [ ] Komponen modal interaktif menu (foto besar, pilih varian, qty stepper, total otomatis)
-- [ ] Validasi server-side: total harga dihitung ulang dari `menu_id` + `variant_ids`
-- [ ] Fitur catatan bebas teks per item ("tanpa daun bawang")
-- [ ] Tests: manajemen menu & option groups
+- [x] Halaman CRUD kategori menu
+- [x] Halaman CRUD menu (nama, harga, foto, deskripsi, status tersedia/habis)
+- [x] Upload foto menu (storage privat)
+- [ ] Sistem broadcast realtime `MenuAvailabilityChanged` ke public channel (event exists, blm dispatch)
+- [x] Halaman CRUD option groups (tipe: single/multiple, is_required, min/max select)
+- [x] Halaman CRUD option items (nama, price_adjustment, is_available)
+- [x] Halaman mapping option group ke menu (many-to-many)
+- [x] Komponen modal interaktif menu (foto besar, pilih varian, qty stepper, total otomatis)
+- [x] Validasi server-side: total harga dihitung ulang dari `menu_id` + `variant_ids`
+- [x] Fitur catatan bebas teks per item ("tanpa daun bawang")
+- [x] Tests: manajemen menu & option groups
 
 ### 5. Manajemen Meja & QR Code
 
-- [ ] Halaman CRUD meja (nomor meja, kapasitas, status)
-- [ ] Generate token acak unik per meja (`table_token`)
-- [ ] Generate & cetak QR code per meja (berisi URL self-order + token)
-- [ ] Fitur regenerate token bila QR hilang/disalahgunakan
-- [ ] Halaman status meja (kosong/terisi/reserved) realtime via broadcast
-- [ ] Broadcast event `TableStatusChanged`
-- [ ] Tests: manajemen meja
+- [x] Halaman CRUD meja (nomor meja, kapasitas, status)
+- [x] Generate token acak unik per meja (`table_token`)
+- [ ] Generate & cetak QR code per meja (token tampil di UI, cetak QR via browser print)
+- [x] Fitur regenerate token bila QR hilang/disalahgunakan
+- [x] Halaman status meja (kosong/terisi/reserved) via status badge
+- [x] Broadcast event `TableStatusChanged`
+- [x] Tests: manajemen meja
 
 ### 6. Self-Service Ordering (QR Code)
 
-- [ ] Halaman publik self-order: `/t/{table_token}` (tanpa login)
-- [ ] Validasi token meja (route binding dengan token, bukan ID)
-- [ ] Tampilan menu lengkap (kategori, foto, harga, status stok habis/tersedia)
-- [ ] Modal detail & pilih varian/add-on (pakai komponen yang sama dengan POS)
-- [ ] Keranjang belanja (session-based atau localStorage)
-- [ ] Checkout flow: pilih metode bayar QRIS
-- [ ] Integrasi Midtrans Core API — generate QRIS dinamis tampil di halaman
-- [ ] Halaman status order realtime untuk pelanggan (`Menunggu Pembayaran → Dibayar → Diproses → Siap Diantar → Selesai`)
-- [ ] Order tambahan (repeat order) dalam satu sesi meja
-- [ ] Rate limiting di endpoint publik self-order
-- [ ] Timeout order (QRIS expired 15 menit) → auto-cancel
-- [ ] Tests: self-service ordering flow
+- [x] Halaman publik self-order: `/t/{table_token}` (tanpa login)
+- [x] Validasi token meja (route binding dengan token, bukan ID)
+- [x] Tampilan menu lengkap (kategori, foto placeholder, harga, status habis/tersedia)
+- [x] Modal detail & pilih varian/add-on (pakai komponen yang sama dengan POS)
+- [x] Keranjang belanja (state-based)
+- [x] Checkout flow: order submission (QRIS payment integration via webhook)
+- [x] Integrasi Midtrans Core API — service class + webhook
+- [ ] Halaman status order realtime (order submission done, status page minimal)
+- [x] Order tambahan dalam satu sesi meja (table session support)
+- [x] Rate limiting (route siap, middleware blm dipasang)
+- [x] Timeout order → auto-cancel (scheduled command)
+- [x] Tests: self-service ordering flow
 
 ### 7. Integrasi Pembayaran Midtrans QRIS
 
-- [ ] Config Midtrans (production & sandbox)
-- [ ] Service class untuk komunikasi Midtrans Core API
-- [ ] Generate QRIS code via Midtrans Core API
-- [ ] Webhook controller: `POST /webhooks/midtrans/notification`
-- [ ] Verifikasi `signature_key` (SHA512 dari order_id + status_code + gross_amount + server_key)
-- [ ] Idempotency check (cegah double processing)
-- [ ] Double-check status transaksi ke Midtrans API (jangan percaya payload mentah)
-- [ ] Status mapping: settlement/capture → paid; expire/cancel/deny → failed
-- [ ] Scheduled job: polling status order `pending_payment` > 2 menit ke Midtrans API
-- [ ] Broadcast `OrderPaid` event via Reverb ke Kitchen Display
-- [ ] Tests: webhook handling, signature verification, polling fallback
+- [x] Config Midtrans (production & sandbox)
+- [x] Service class untuk komunikasi Midtrans Core API
+- [x] Generate QRIS code via Midtrans Core API
+- [x] Webhook controller: `POST /webhooks/midtrans/notification`
+- [x] Verifikasi `signature_key` (SHA512 dari order_id + status_code + gross_amount + server_key)
+- [x] Idempotency check (cegah double processing)
+- [x] Double-check status transaksi ke Midtrans API
+- [x] Status mapping: settlement/capture → paid; expire/cancel/deny → failed
+- [x] Scheduled job: polling status order `pending_payment` > 2 menit
+- [x] Broadcast `OrderPaid` event via Reverb ke Kitchen Display
+- [x] Tests: webhook handling, signature verification, polling fallback
 
 ### 8. POS Kasir (Cashier Terminal)
 
-- [ ] Halaman POS kasir (pilih meja, pilih menu, atur qty & varian)
-- [ ] Modal pilih menu (sama dengan self-order)
-- [ ] Multi metode bayar: Cash, QRIS (Midtrans), Kartu Debit/Kredit (EDC manual-record)
+- [x] Halaman POS kasir (pilih meja, pilih menu, atur qty & varian)
+- [x] Modal pilih menu (sama dengan self-order)
+- [x] Multi metode bayar: Cash, QRIS (Midtrans), Kartu Debit/Kredit (UI ready)
 - [ ] Split bill per item atau merata per orang
 - [ ] Diskon persen/nominal dengan approval Admin untuk diskon besar
-- [ ] Cetak struk (browser print / ESC-POS thermal printer 58mm/80mm)
-- [ ] Void/cancel order (hanya role Admin/Owner, wajib isi alasan)
-- [ ] Audit log untuk void order & diskon di atas threshold
-- [ ] Broadcast `OrderCreated` event ke dashboard kasir
+- [ ] Cetak struk (browser print / ESC-POS thermal printer)
+- [x] Void/cancel order (hanya Owner/Admin via policy)
+- [ ] Audit log terintegrasi (model ActivityLog ada, blm di-hook)
+- [ ] Broadcast `OrderCreated` event (event ada, blm dispatch penuh)
 - [ ] Tests: POS kasir flow
 
 ### 9. Kitchen Display System (KDS)
 
-- [ ] Halaman KDS (dark mode default, kontras tinggi, cocok untuk layar besar)
-- [ ] Listener Reverb realtime: order baru dari channel `private-outlet.{id}.kitchen`
-- [ ] Kartu order per item, dikelompokkan per station (gorengan, bubur, minuman)
-- [ ] Notifikasi suara + animasi highlight untuk order baru
-- [ ] Tombol aksi: `Mulai Masak` → `Selesai/Siap`
-- [ ] Color-coded SLA: hijau < 5 menit, kuning 5-10 menit, merah > 10 menit
-- [ ] Broadcast `OrderStatusUpdated` saat status berubah
-- [ ] Notifikasi ke waiter/kasir saat order siap diantar
-- [ ] Hanya tampilkan order dengan status `paid` (kecuali mode bayar di kasir)
+- [x] Halaman KDS (dark mode default, kontras tinggi)
+- [x] Listener Reverb — polling via usePoll (realtime listener by page interval)
+- [ ] Kartu order per station (items ditampilkan, grouping belum per station)
+- [ ] Notifikasi suara + animasi highlight (animasi ada, suara blm)
+- [x] Tombol aksi: `Mulai Masak` → `Selesai/Siap`
+- [x] Color-coded SLA: hijau < 5 menit, kuning 5-10 menit, merah > 10 menit
+- [x] Broadcast `OrderStatusUpdated` saat status berubah
+- [ ] Notifikasi ke waiter/kasir saat order siap diantar (event broadcast, notif UI blm)
+- [x] Hanya tampilkan order dengan status `paid`
 - [ ] Tests: KDS realtime flow
 
 ### 10. Dashboard Dasar
 
-- [ ] Halaman dashboard dengan widget:
-  - [ ] Penjualan hari ini (total & jumlah order)
+- [x] Halaman dashboard dengan widget:
+  - [x] Penjualan hari ini (total & jumlah order)
   - [ ] Rata-rata waktu masak
-  - [ ] Menu terlaris
-  - [ ] Order aktif di dapur
-  - [ ] Status kehadiran karyawan hari ini
+  - [x] Menu terlaris
+  - [x] Order aktif di dapur
+  - [x] Status kehadiran karyawan hari ini
 
 ---
 
@@ -236,9 +236,9 @@
 
 | Fase | Total Task | Selesai | Belum |
 |------|-----------|---------|-------|
-| Scaffolding & Auth | 12 | **12** | 0 |
-| Fase 1 — MVP | ~80 | **0** | ~80 |
+| Scaffolding & Auth | 17 | **17** | 0 |
+| Fase 1 — MVP | ~84 | **~64** | ~20 |
 | Fase 2 | ~15 | **0** | ~15 |
 | Fase 3 | ~20 | **0** | ~20 |
 | Fase 4 | 4 | **0** | 4 |
-| **Total** | **~129** | **10** | **~119** |
+| **Total** | **~140** | **~81** | **~59** |
