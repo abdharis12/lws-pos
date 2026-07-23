@@ -99,6 +99,7 @@ test('self-order shows table info', function () {
 
 test('guest can create order from self-order', function () {
     $this->post(route('self-order.orders.store', $this->table->table_token), [
+        'customer_name' => 'Budi',
         'items' => [
             [
                 'menu_id' => $this->menu->id,
@@ -110,7 +111,8 @@ test('guest can create order from self-order', function () {
 
     $this->assertDatabaseHas('orders', [
         'order_type' => 'dine_in_qr',
-        'status' => 'pending_payment',
+        'status' => 'pending',
+        'customer_name' => 'Budi',
         'subtotal' => 50000.00,
         'total' => 50000.00,
     ]);
@@ -118,6 +120,7 @@ test('guest can create order from self-order', function () {
 
 test('self-order creates table session if none active', function () {
     $this->post(route('self-order.orders.store', $this->table->table_token), [
+        'customer_name' => 'Budi',
         'items' => [
             ['menu_id' => $this->menu->id, 'qty' => 1],
         ],
@@ -136,6 +139,7 @@ test('self-order reuses existing active session', function () {
     ]);
 
     $this->post(route('self-order.orders.store', $this->table->table_token), [
+        'customer_name' => 'Budi',
         'items' => [
             ['menu_id' => $this->menu->id, 'qty' => 1],
         ],
@@ -148,6 +152,7 @@ test('self-order reuses existing active session', function () {
 
 test('self-order creates order with correct price calculation', function () {
     $this->post(route('self-order.orders.store', $this->table->table_token), [
+        'customer_name' => 'Budi',
         'items' => [
             ['menu_id' => $this->menu->id, 'qty' => 3, 'notes' => 'Extra pedas'],
         ],
@@ -167,19 +172,30 @@ test('self-order creates order with correct price calculation', function () {
     ]);
 });
 
+test('self-order validation requires customer_name', function () {
+    $this->post(route('self-order.orders.store', $this->table->table_token), [
+        'items' => [
+            ['menu_id' => $this->menu->id, 'qty' => 1],
+        ],
+    ])->assertSessionHasErrors('customer_name');
+});
+
 test('self-order validation requires items array', function () {
-    $this->post(route('self-order.orders.store', $this->table->table_token), [])
-        ->assertSessionHasErrors('items');
+    $this->post(route('self-order.orders.store', $this->table->table_token), [
+        'customer_name' => 'Budi',
+    ])->assertSessionHasErrors('items');
 });
 
 test('self-order validation requires at least one item', function () {
     $this->post(route('self-order.orders.store', $this->table->table_token), [
+        'customer_name' => 'Budi',
         'items' => [],
     ])->assertSessionHasErrors('items');
 });
 
 test('self-order validation requires valid menu_id', function () {
     $this->post(route('self-order.orders.store', $this->table->table_token), [
+        'customer_name' => 'Budi',
         'items' => [
             ['menu_id' => 99999, 'qty' => 1],
         ],
@@ -188,6 +204,7 @@ test('self-order validation requires valid menu_id', function () {
 
 test('self-order validation requires positive qty', function () {
     $this->post(route('self-order.orders.store', $this->table->table_token), [
+        'customer_name' => 'Budi',
         'items' => [
             ['menu_id' => $this->menu->id, 'qty' => 0],
         ],
@@ -196,6 +213,7 @@ test('self-order validation requires positive qty', function () {
 
 test('self-order can include option items', function () {
     $this->post(route('self-order.orders.store', $this->table->table_token), [
+        'customer_name' => 'Budi',
         'items' => [
             [
                 'menu_id' => $this->menu->id,
@@ -216,6 +234,7 @@ test('self-order can include option items', function () {
 
 test('self-order validation requires valid option_item_id', function () {
     $this->post(route('self-order.orders.store', $this->table->table_token), [
+        'customer_name' => 'Budi',
         'items' => [
             [
                 'menu_id' => $this->menu->id,
@@ -228,6 +247,7 @@ test('self-order validation requires valid option_item_id', function () {
 
 test('self-order fails with invalid table token', function () {
     $this->post(route('self-order.orders.store', 'invalid-token'), [
+        'customer_name' => 'Budi',
         'items' => [
             ['menu_id' => $this->menu->id, 'qty' => 1],
         ],

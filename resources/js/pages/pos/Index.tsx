@@ -1,4 +1,4 @@
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, router } from '@inertiajs/react';
 import { useState, useMemo } from 'react';
 import { Plus, Minus, X, ShoppingCart, Search, Wallet, QrCode, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -52,6 +52,28 @@ interface ActiveSession {
     status: string;
 }
 
+interface OrderItemOption {
+    option_item: { id: number; name: string; price_adjustment: string };
+}
+
+interface PendingOrder {
+    id: number;
+    customer_name: string | null;
+    subtotal: string;
+    total: string;
+    created_at: string;
+    table_session: { table: { code: string } } | null;
+    items: {
+        id: number;
+        qty: number;
+        base_price: string;
+        total_price: string;
+        notes: string | null;
+        options: OrderItemOption[];
+        menu: { id: number; name: string; price: string };
+    }[];
+}
+
 interface CartItem {
     menu: MenuItem;
     qty: number;
@@ -63,6 +85,7 @@ interface Props {
     categories: Category[];
     tables: TableData[];
     activeSessions: ActiveSession[];
+    pendingOrders: PendingOrder[];
 }
 
 function MenuCard({ menu, onSelect }: { menu: MenuItem; onSelect: () => void }) {
@@ -88,6 +111,9 @@ function CartPanel({
     onUpdateQty,
     onRemove,
     onOrder,
+    onConfirmPay,
+    pendingOrderId,
+    confirmPayProcessing,
     tableSelected = true,
 }: {
     items: CartItem[];
@@ -95,6 +121,9 @@ function CartPanel({
     onUpdateQty: (index: number, qty: number) => void;
     onRemove: (index: number) => void;
     onOrder: (method?: string) => void;
+    onConfirmPay?: () => void;
+    pendingOrderId?: number | null;
+    confirmPayProcessing?: boolean;
     tableSelected?: boolean;
 }) {
     const total = useMemo(() => {
@@ -104,12 +133,15 @@ function CartPanel({
         }, 0);
     }, [items]);
 
+    const isConfirmMode = !!pendingOrderId;
+
     return (
         <div className="flex h-full flex-col">
             <div className="border-b p-4">
                 <div className="flex items-center gap-2">
                     <ShoppingCart className="size-5" />
                     <span className="font-semibold">Pesanan</span>
+                    {isConfirmMode && <Badge variant="secondary">Konfirmasi</Badge>}
                     {items.length > 0 && (
                         <Badge variant="secondary">{items.reduce((s, i) => s + i.qty, 0)}</Badge>
                     )}
@@ -160,16 +192,24 @@ function CartPanel({
                     <span>Rp {total.toLocaleString('id-ID')}</span>
                 </div>
                 <div className="flex flex-col gap-2">
-                    <Button onClick={() => onOrder('cash')} disabled={items.length === 0 || processing || !tableSelected} className="w-full" size="lg">
-                        <Wallet className="mr-2 size-4" /> Bayar Cash
-                    </Button>
-                    <Button onClick={() => onOrder('qris')} disabled={items.length === 0 || processing || !tableSelected} variant="secondary" className="w-full" size="lg">
-                        <QrCode className="mr-2 size-4" /> Bayar QRIS
-                    </Button>
-                    <Button onClick={() => onOrder()} disabled={items.length === 0 || processing || !tableSelected} variant="outline" className="w-full">
-                        Simpan
-                    </Button>
-                    {!tableSelected && items.length > 0 && (
+                    {isConfirmMode ? (
+                        <Button onClick={onConfirmPay} disabled={items.length === 0 || confirmPayProcessing} className="w-full" size="lg">
+                            {confirmPayProcessing ? 'Memproses...' : 'Konfirmasi & Bayar'}
+                        </Button>
+                    ) : (
+                        <>
+                            <Button onClick={() => onOrder('cash')} disabled={items.length === 0 || processing || !tableSelected} className="w-full" size="lg">
+                                <Wallet className="mr-2 size-4" /> Bayar Cash
+                            </Button>
+                            <Button onClick={() => onOrder('qris')} disabled={items.length === 0 || processing || !tableSelected} variant="secondary" className="w-full" size="lg">
+                                <QrCode className="mr-2 size-4" /> Bayar QRIS
+                            </Button>
+                            <Button onClick={() => onOrder()} disabled={items.length === 0 || processing || !tableSelected} variant="outline" className="w-full">
+                                Simpan
+                            </Button>
+                        </>
+                    )}
+                    {!isConfirmMode && !tableSelected && items.length > 0 && (
                         <p className="text-xs text-center mt-1" style={{ color: '#b8860b' }}>
                             Pilih meja terlebih dahulu
                         </p>
@@ -180,7 +220,7 @@ function CartPanel({
     );
 }
 
-export default function PosIndex({ categories, tables }: Props) {
+export default function PosIndex({ categories, tables, pendingOrders }: Props) {
     const [selectedTableId, setSelectedTableId] = useState<number | null>(null);
     const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(
         () => categories.length > 0 ? categories[0].id : null
@@ -193,6 +233,9 @@ export default function PosIndex({ categories, tables }: Props) {
     const [itemDialogQty, setItemDialogQty] = useState(1);
     const [itemDialogNotes, setItemDialogNotes] = useState('');
     const [itemDialogOptions, setItemDialogOptions] = useState<Record<number, number[]>>({});
+    const [selectedPendingOrderId, setSelectedPendingOrderId] = useState<number | null>(null);
+    const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+    const [confirmPayProcessing, setConfirmPayProcessing] = useState(false);
 
     const { data, setData, post, processing } = useForm({
         table_id: null as number | null,
@@ -283,8 +326,49 @@ export default function PosIndex({ categories, tables }: Props) {
             onSuccess: () => {
                 setCartItems([]);
                 setSelectedTableId(null);
+                setSelectedPendingOrderId(null);
                 setCartOpen(false);
             },
+        });
+    }
+
+    function handleSelectPendingOrder(order: PendingOrder) {
+        setSelectedTableId(order.table_session?.table ? null : null);
+        setSelectedPendingOrderId(order.id);
+        const items: CartItem[] = order.items.map(item => ({
+            menu: { ...item.menu, photo_path: null, option_groups: [], is_available: true },
+            qty: item.qty,
+            notes: item.notes || '',
+            selectedOptions: item.options.map(o => ({
+                itemId: o.option_item.id,
+                name: o.option_item.name,
+                adjustment: Number(o.option_item.price_adjustment),
+            })),
+        }));
+        setCartItems(items);
+    }
+
+    function handleConfirmPay(paymentMethod: string) {
+        if (!selectedPendingOrderId || cartItems.length === 0) return;
+        setConfirmPayProcessing(true);
+        router.put(`/pos/orders/${selectedPendingOrderId}/confirm-pay`, {
+            items: cartItems.map(item => ({
+                menu_id: item.menu.id,
+                qty: item.qty,
+                notes: item.notes || null,
+                option_ids: item.selectedOptions.map(o => o.itemId),
+            })),
+            payment_method: paymentMethod,
+        }, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setConfirmPayProcessing(false);
+                setPaymentDialogOpen(false);
+                setCartItems([]);
+                setSelectedPendingOrderId(null);
+                setSelectedTableId(null);
+            },
+            onError: () => setConfirmPayProcessing(false),
         });
     }
 
@@ -298,7 +382,39 @@ export default function PosIndex({ categories, tables }: Props) {
         <>
             <Head title="POS Kasir" />
             <div className="flex h-screen overflow-hidden bg-background">
-                <aside className="hidden w-80 flex-shrink-0 flex-col border-r bg-muted/20 p-4 lg:flex">
+                <aside className="hidden w-80 flex-shrink-0 flex-col border-r bg-muted/20 p-4 lg:flex lg:overflow-y-auto">
+                    {pendingOrders.length > 0 && (
+                        <div className="mb-4">
+                            <h2 className="text-lg font-semibold">Pesanan Baru</h2>
+                            <p className="text-xs text-muted-foreground">Menunggu konfirmasi</p>
+                            <div className="mt-2 space-y-2">
+                                {pendingOrders.map(order => (
+                                    <button
+                                        key={order.id}
+                                        onClick={() => handleSelectPendingOrder(order)}
+                                        className={cn(
+                                            'w-full rounded-lg border p-3 text-left transition-all',
+                                            selectedPendingOrderId === order.id
+                                                ? 'border-[#4F6B6A] bg-[#4F6B6A]/5 ring-1 ring-[#4F6B6A]'
+                                                : 'hover:border-muted-foreground/30'
+                                        )}
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-sm font-semibold">
+                                                {order.table_session?.table?.code ?? '—'}
+                                            </span>
+                                            <span className="text-xs text-muted-foreground">
+                                                Rp {Number(order.total).toLocaleString('id-ID')}
+                                            </span>
+                                        </div>
+                                        <p className="mt-0.5 text-xs text-muted-foreground">
+                                            {order.customer_name || 'Tanpa nama'}
+                                        </p>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                     <div className="mb-4">
                         <h2 className="text-lg font-semibold">Meja</h2>
                         <p className="text-xs text-muted-foreground">Pilih meja untuk order</p>
@@ -395,10 +511,13 @@ export default function PosIndex({ categories, tables }: Props) {
                     <CartPanel
                         items={cartItems}
                         processing={processing}
+                        pendingOrderId={selectedPendingOrderId}
+                        confirmPayProcessing={confirmPayProcessing}
                         tableSelected={selectedTableId !== null}
                         onUpdateQty={(i, q) => setCartItems(prev => q < 1 ? prev : prev.map((item, idx) => idx === i ? { ...item, qty: q } : item))}
                         onRemove={i => setCartItems(prev => prev.filter((_, idx) => idx !== i))}
                         onOrder={handleOrder}
+                        onConfirmPay={() => setPaymentDialogOpen(true)}
                     />
                 </aside>
 
@@ -423,10 +542,13 @@ export default function PosIndex({ categories, tables }: Props) {
                             <CartPanel
                                 items={cartItems}
                                 processing={processing}
+                                pendingOrderId={selectedPendingOrderId}
+                                confirmPayProcessing={confirmPayProcessing}
                                 tableSelected={selectedTableId !== null}
                                 onUpdateQty={(i, q) => setCartItems(prev => q < 1 ? prev : prev.map((item, idx) => idx === i ? { ...item, qty: q } : item))}
                                 onRemove={i => setCartItems(prev => prev.filter((_, idx) => idx !== i))}
                                 onOrder={handleOrder}
+                                onConfirmPay={() => setPaymentDialogOpen(true)}
                             />
                         </div>
                     </SheetContent>
@@ -503,6 +625,41 @@ export default function PosIndex({ categories, tables }: Props) {
                                 </Button>
                             </div>
                         )}
+                    </DialogContent>
+                </Dialog>
+
+                <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
+                    <DialogContent className="sm:max-w-sm">
+                        <DialogHeader>
+                            <DialogTitle>Pilih Metode Pembayaran</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-3">
+                            <Button
+                                onClick={() => handleConfirmPay('cash')}
+                                className="w-full"
+                                size="lg"
+                                disabled={confirmPayProcessing}
+                            >
+                                <Wallet className="mr-2 size-4" /> Bayar Cash
+                            </Button>
+                            <Button
+                                onClick={() => handleConfirmPay('qris')}
+                                variant="secondary"
+                                className="w-full"
+                                size="lg"
+                                disabled={confirmPayProcessing}
+                            >
+                                <QrCode className="mr-2 size-4" /> Bayar QRIS
+                            </Button>
+                            <Button
+                                onClick={() => setPaymentDialogOpen(false)}
+                                variant="outline"
+                                className="w-full"
+                                disabled={confirmPayProcessing}
+                            >
+                                Batal
+                            </Button>
+                        </div>
                     </DialogContent>
                 </Dialog>
             </div>

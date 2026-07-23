@@ -72,6 +72,7 @@ export default function SelfOrderMenu({
   const [qty, setQty] = useState(1)
   const [notes, setNotes] = useState('')
   const [selOptions, setSelOptions] = useState<Record<number, number | number[]>>({})
+  const [customerName, setCustomerName] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [placed, setPlaced] = useState(false)
 
@@ -184,6 +185,7 @@ export default function SelfOrderMenu({
     router.post(
       `/t/${tableToken}/orders`,
       {
+        customer_name: customerName,
         items: cart.map(i => ({
           menu_id: i.menuId,
           qty: i.quantity,
@@ -261,6 +263,17 @@ export default function SelfOrderMenu({
               </span>
             )}
           </button>
+        </div>
+
+        <div className="mt-3">
+          <input
+            type="text"
+            value={customerName}
+            onChange={e => setCustomerName(e.target.value)}
+            placeholder="Nama kamu..."
+            className="w-full rounded-xl border border-[#CFC0A4] bg-white px-4 py-2.5 text-sm text-gray-800 placeholder-gray-400 outline-none transition-all focus:border-[#4F6B6A] focus:ring-1 focus:ring-[#4F6B6A]"
+            disabled={placed}
+          />
         </div>
 
         {categories.length > 0 && (
@@ -511,7 +524,7 @@ export default function SelfOrderMenu({
                 <Button
                   className="w-full bg-[#4F6B6A] py-6 text-base hover:bg-[#3d5554]"
                   onClick={submitOrder}
-                  disabled={submitting}
+                  disabled={submitting || !customerName.trim()}
                 >
                   {submitting ? 'Mengirim...' : 'Pesan Sekarang'}
                 </Button>

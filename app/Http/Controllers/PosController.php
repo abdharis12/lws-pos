@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Meja;
 use App\Models\Menu;
 use App\Models\MenuCategory;
+use App\Models\OptionItem;
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Outlet;
 use App\Models\TableSession;
 use Illuminate\Http\RedirectResponse;
@@ -33,10 +35,17 @@ class PosController extends Controller
             ->with(['table', 'orders' => fn ($q) => $q->with('items')])
             ->get();
 
+        $pendingOrders = Order::where('status', 'pending')
+            ->where('order_type', 'dine_in_qr')
+            ->with(['tableSession.table', 'items.menu', 'items.options.optionItem'])
+            ->orderByDesc('created_at')
+            ->get();
+
         return Inertia::render('pos/Index', [
             'categories' => $categories,
             'tables' => $tables,
             'activeSessions' => $activeSessions,
+            'pendingOrders' => $pendingOrders,
         ]);
     }
 
@@ -108,5 +117,83 @@ class PosController extends Controller
         }
 
         return redirect()->route('pos.index')->with('success', 'Pesanan berhasil dibuat.');
+    }
+
+    public function confirmPay(Request $request, Order $order): RedirectResponse
+    {
+        abort_if($order->status !== 'pending', 403);
+
+        $validated = $request->validate([
+            'items' => 'required|array|min:1',
+            'items.*.id' => 'nullable|exists:order_items,id',
+            'items.*.menu_id' => 'required|exists:menus,id',
+            'items.*.qty' => 'required|integer|min:1',
+            'items.*.notes' => 'nullable|string|max:500',
+            'items.*.option_ids' => 'nullable|array',
+            'items.*.option_ids.*' => 'exists:option_items,id',
+            'payment_method' => 'required|in:cash,qris,debit,credit',
+        ]);
+
+        $existingItemIds = $order->items()->pluck('id')->toArray();
+        $keptItemIds = [];
+
+        $newSubtotal = 0;
+
+        foreach ($validated['items'] as $itemData) {
+            $menu = Menu::findOrFail($itemData['menu_id']);
+            $itemTotal = $menu->price * $itemData['qty'];
+            $optionTotal = 0;
+
+            if (! empty($itemData['option_ids'])) {
+                $adjustments = OptionItem::whereIn('id', $itemData['option_ids'])
+                    ->pluck('price_adjustment')
+                    ->sum();
+                $optionTotal = $adjustments * $itemData['qty'];
+            }
+
+            $itemTotal += $optionTotal;
+            $newSubtotal += $itemTotal;
+
+            if (! empty($itemData['id']) && in_array($itemData['id'], $existingItemIds)) {
+                $keptItemIds[] = $itemData['id'];
+                $orderItem = OrderItem::find($itemData['id']);
+                $orderItem->update([
+                    'qty' => $itemData['qty'],
+                    'total_price' => $itemTotal,
+                    'notes' => $itemData['notes'] ?? null,
+                ]);
+            } else {
+                $orderItem = $order->items()->create([
+                    'menu_id' => $menu->id,
+                    'qty' => $itemData['qty'],
+                    'base_price' => $menu->price,
+                    'total_price' => $itemTotal,
+                    'notes' => $itemData['notes'] ?? null,
+                ]);
+            }
+        }
+
+        $itemsToDelete = array_diff($existingItemIds, $keptItemIds);
+        if (! empty($itemsToDelete)) {
+            OrderItem::whereIn('id', $itemsToDelete)->delete();
+        }
+
+        $order->update([
+            'status' => 'paid',
+            'subtotal' => $newSubtotal,
+            'total' => $newSubtotal,
+        ]);
+
+        $order->payment()->create([
+            'method' => $validated['payment_method'],
+            'gross_amount' => $newSubtotal,
+            'status' => 'settlement',
+        ]);
+
+        if ($order->tableSession?->table) {
+            $order->tableSession->table->update(['status' => 'occupied']);
+        }
+
+        return redirect()->route('pos.index')->with('success', 'Pesanan berhasil dikonfirmasi dan dibayar.');
     }
 }

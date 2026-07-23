@@ -76,6 +76,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('pos', [PosController::class, 'index'])->name('pos.index');
     Route::post('pos/orders', [PosController::class, 'store'])->name('pos.orders.store');
+    Route::put('pos/orders/{order}/confirm-pay', [PosController::class, 'confirmPay'])->name('pos.orders.confirm-pay');
 
     Route::get('kitchen', [KitchenDisplayController::class, 'index'])->name('kitchen.index');
     Route::patch('orders/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.update-status');

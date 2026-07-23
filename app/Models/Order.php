@@ -14,7 +14,7 @@ class Order extends Model
 
     protected $fillable = [
         'table_session_id', 'created_by', 'order_type', 'status',
-        'subtotal', 'tax', 'discount', 'total', 'notes',
+        'subtotal', 'tax', 'discount', 'total', 'notes', 'customer_name',
     ];
 
     protected function casts(): array

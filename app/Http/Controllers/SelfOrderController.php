@@ -41,6 +41,7 @@ class SelfOrderController extends Controller
         $table = Meja::where('table_token', $tableToken)->firstOrFail();
 
         $validated = $request->validate([
+            'customer_name' => 'required|string|max:100',
             'items' => 'required|array|min:1',
             'items.*.menu_id' => 'required|exists:menus,id',
             'items.*.qty' => 'required|integer|min:1',
@@ -89,7 +90,8 @@ class SelfOrderController extends Controller
 
         $order = $session->orders()->create([
             'order_type' => 'dine_in_qr',
-            'status' => 'pending_payment',
+            'status' => 'pending',
+            'customer_name' => $validated['customer_name'],
             'subtotal' => $subtotal,
             'tax' => 0,
             'discount' => 0,
