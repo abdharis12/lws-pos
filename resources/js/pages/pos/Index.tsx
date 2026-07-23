@@ -190,6 +190,7 @@ export default function PosIndex({ categories, tables }: Props) {
     const { post, processing } = useForm({});
 
     const selectedCategory = categories.find(c => c.id === selectedCategoryId);
+    const cartCount = cartItems.reduce((s, i) => s + i.qty, 0);
 
     const filteredMenus = useMemo(() => {
         if (!selectedCategory) return [];

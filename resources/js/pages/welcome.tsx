@@ -1,12 +1,12 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { dashboard, login } from '@/routes';
+import { Hero } from '@/components/template/hero';
 
 const CREAM = '#F6F2E9';
 const PRIMARY = '#4F6B6A';
 const INK = '#25332F';
 const SAND = '#CFC0A4';
-const EMBER = '#BE5B31';
 
 const features = [
     {
@@ -173,126 +173,7 @@ export default function Welcome() {
                             backgroundImage: `radial-gradient(ellipse 60% 50% at 85% 10%, rgba(79,107,106,0.12), transparent 60%)`,
                         }}
                     >
-                        <div className="mx-auto grid max-w-7xl items-center gap-16 lg:grid-cols-[1.1fr_0.9fr]">
-                            {/* Text */}
-                            <div>
-                                <div
-                                    className="mb-7 inline-flex items-center gap-2 rounded-full px-4 py-1.5 font-mono-tix text-xs font-medium uppercase tracking-wider"
-                                    style={{ backgroundColor: SAND, color: '#2d3d3c' }}
-                                >
-                                    <span className="flex size-1.5 rounded-full" style={{ backgroundColor: PRIMARY }} />
-                                    Point of Sale untuk Restoran
-                                </div>
-
-                                <h1 className="font-display mb-6 text-[2.75rem] font-semibold leading-[1.05] tracking-tight md:text-6xl">
-                                    Dari meja pelanggan
-                                    <br />
-                                    ke dapur, <span style={{ color: PRIMARY }}>tanpa jeda.</span>
-                                </h1>
-
-                                <p className="mb-10 max-w-lg text-lg leading-relaxed" style={{ color: '#4a5754' }}>
-                                    Sistem POS all-in-one untuk LW's by Bubur Kang LW — self-order lewat QR,
-                                    Kitchen Display System realtime, pembayaran QRIS terintegrasi, sampai
-                                    manajemen karyawan dan laporan keuangan. Satu platform, semua terhubung.
-                                </p>
-
-                                <div className="flex flex-wrap items-center gap-4">
-                                    {auth.user ? (
-                                        <Link href={dashboard()}>
-                                            <Button size="lg" className="rounded-full font-semibold text-white shadow-md" style={{ backgroundColor: PRIMARY }}>
-                                                Buka Dashboard
-                                            </Button>
-                                        </Link>
-                                    ) : (
-                                        <Link href={login()}>
-                                            <Button size="lg" className="rounded-full font-semibold text-white shadow-md" style={{ backgroundColor: PRIMARY }}>
-                                                Masuk ke POS
-                                            </Button>
-                                        </Link>
-                                    )}
-                                </div>
-
-                                {/* Stats */}
-                                <div className="mt-14 grid grid-cols-3 gap-6 border-t pt-8" style={{ borderColor: 'rgba(37,51,47,0.12)' }}>
-                                    {stats.map((s) => (
-                                        <div key={s.label}>
-                                            <div className="font-display text-3xl font-semibold" style={{ color: PRIMARY }}>{s.value}</div>
-                                            <div className="mt-1 font-mono-tix text-[11px] uppercase tracking-wide" style={{ color: '#6b7a76' }}>
-                                                {s.label}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Receipt ticket visual */}
-                            <div className="relative mx-auto w-full max-w-sm">
-                                {/* steam wisps */}
-                                <div className="pointer-events-none absolute -top-6 left-10 flex gap-3">
-                                    <svg className="steam-wisp size-4" viewBox="0 0 24 24" fill="none" stroke={PRIMARY} strokeWidth="2" strokeLinecap="round">
-                                        <path d="M6 20c2-3-2-5 0-9" />
-                                    </svg>
-                                    <svg className="steam-wisp size-4" viewBox="0 0 24 24" fill="none" stroke={PRIMARY} strokeWidth="2" strokeLinecap="round">
-                                        <path d="M6 20c2-3-2-5 0-9" />
-                                    </svg>
-                                    <svg className="steam-wisp size-4" viewBox="0 0 24 24" fill="none" stroke={PRIMARY} strokeWidth="2" strokeLinecap="round">
-                                        <path d="M6 20c2-3-2-5 0-9" />
-                                    </svg>
-                                </div>
-
-                                <div className="ticket-perf rounded-2xl border shadow-xl" style={{ backgroundColor: '#fff', borderColor: 'rgba(37,51,47,0.1)' }}>
-                                    {/* ticket header */}
-                                    <div className="flex items-center justify-between px-6 pt-6 pb-5">
-                                        <div>
-                                            <div className="font-display text-base font-semibold">LW's Order</div>
-                                            <div className="font-mono-tix text-[11px]" style={{ color: '#8a968f' }}>Meja 07 · #A1042</div>
-                                        </div>
-                                        <div className="flex items-center gap-1.5 rounded-full px-2.5 py-1" style={{ backgroundColor: 'rgba(79,107,106,0.1)' }}>
-                                            <span className="size-1.5 animate-pulse rounded-full" style={{ backgroundColor: PRIMARY }} />
-                                            <span className="font-mono-tix text-[10px] font-semibold uppercase tracking-wide" style={{ color: PRIMARY }}>Live</span>
-                                        </div>
-                                    </div>
-
-                                    <div className="ticket-dashline" />
-
-                                    {/* line items */}
-                                    <div className="space-y-3 px-6 pt-9 pb-5 font-mono-tix text-[13px]">
-                                        <div className="flex justify-between">
-                                            <span>1x Bubur Ayam Spesial</span>
-                                            <span>18.000</span>
-                                        </div>
-                                        <div className="flex justify-between" style={{ color: '#8a968f' }}>
-                                            <span className="pl-3">+ Cakwe, Kerupuk</span>
-                                            <span>—</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span>1x Es Teh Manis</span>
-                                            <span>6.000</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span>2x Kerupuk Tambahan</span>
-                                            <span>4.000</span>
-                                        </div>
-                                    </div>
-
-                                    <div className="mx-6 border-t border-dashed" style={{ borderColor: 'rgba(37,51,47,0.2)' }} />
-
-                                    {/* footer */}
-                                    <div className="flex items-center justify-between px-6 py-5">
-                                        <div className="font-mono-tix">
-                                            <div className="text-[10px] uppercase tracking-wide" style={{ color: '#8a968f' }}>Total</div>
-                                            <div className="text-lg font-semibold">Rp 28.000</div>
-                                        </div>
-                                        <span
-                                            className="rounded-full px-3 py-1.5 font-mono-tix text-[11px] font-semibold uppercase tracking-wide text-white"
-                                            style={{ backgroundColor: EMBER }}
-                                        >
-                                            Lunas
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                    <Hero />
                     </section>
 
                     {/* ORDER FLOW */}
