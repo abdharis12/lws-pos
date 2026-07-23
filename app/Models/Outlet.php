@@ -10,11 +10,19 @@ class Outlet extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'address', 'phone', 'code', 'is_active'];
+    protected $fillable = [
+        'name', 'address', 'phone', 'code', 'is_active',
+        'latitude', 'longitude', 'geofence_radius_meters',
+    ];
 
     protected function casts(): array
     {
-        return ['is_active' => 'boolean'];
+        return [
+            'is_active' => 'boolean',
+            'latitude' => 'decimal:7',
+            'longitude' => 'decimal:7',
+            'geofence_radius_meters' => 'integer',
+        ];
     }
 
     public function employees(): HasMany

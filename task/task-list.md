@@ -157,35 +157,35 @@
 
 ---
 
-## 📋 Fase 2
+## 📋 Fase 2 ✅
 
-### 11. Modul Absensi Karyawan
+### 11. Modul Absensi Karyawan ✅
 
-- [ ] Halaman clock-in/clock-out (khusus device outlet)
-- [ ] Opsional: geofencing radius outlet untuk absensi dari HP pribadi
-- [ ] Foto selfie saat absen (storage privat)
-- [ ] Rekap otomatis: jam masuk, jam keluar, total jam kerja, keterlambatan
-- [ ] Manajemen shift (pagi/siang/malam)
-- [ ] Penjadwalan shift mingguan oleh Admin
-- [ ] Broadcast event absensi (untuk dashboard realtime)
-- [ ] Tests: absensi & shift
+- [x] Halaman clock-in/clock-out (khusus device outlet)
+- [x] Opsional: geofencing radius outlet untuk absensi dari HP pribadi
+- [x] Foto selfie saat absen (storage privat)
+- [x] Rekap otomatis: jam masuk, jam keluar, total jam kerja, keterlambatan
+- [x] Manajemen shift (pagi/siang/malam)
+- [x] Penjadwalan shift mingguan oleh Admin
+- [x] Broadcast event absensi (untuk dashboard realtime)
+- [x] Tests: absensi & shift
 
-### 12. Laporan Penjualan
+### 12. Laporan Penjualan ✅
 
-- [ ] Laporan penjualan harian/mingguan/bulanan
-- [ ] Grafik jam sibuk (heatmap per jam/hari)
-- [ ] Laporan menu & varian terlaris (termasuk kombinasi topping/add-on)
-- [ ] Rekonsiliasi pembayaran QRIS vs pencatatan sistem (deteksi anomali)
-- [ ] Ekspor CSV/Excel/PDF
-- [ ] Laporan kehadiran karyawan per periode
-- [ ] Laporan jam lembur per karyawan per periode
-- [ ] Tests: laporan & ekspor
+- [x] Laporan penjualan harian/mingguan/bulanan
+- [x] Grafik jam sibuk (heatmap per jam/hari)
+- [x] Laporan menu & varian terlaris (termasuk kombinasi topping/add-on)
+- [x] Rekonsiliasi pembayaran QRIS vs pencatatan sistem (deteksi anomali)
+- [x] Ekspor CSV/Excel/PDF
+- [x] Laporan kehadiran karyawan per periode
+- [x] Laporan jam lembur per karyawan per periode
+- [x] Tests: laporan & ekspor
 
-### 13. Dashboard Owner
+### 13. Dashboard Owner ✅
 
-- [ ] Widget gabungan: penjualan hari ini, laba kotor estimasi, labor cost, status kehadiran, order aktif
-- [ ] Grafik perbandingan periode
-- [ ] Real-time update via Reverb
+- [x] Widget gabungan: penjualan hari ini, laba kotor estimasi, labor cost, status kehadiran, order aktif
+- [x] Grafik perbandingan periode
+- [x] Real-time update via Reverb
 
 ---
 
@@ -238,7 +238,7 @@
 |------|-----------|---------|-------|
 | Scaffolding & Auth | 17 | **17** | 0 |
 | Fase 1 — MVP | ~84 | **~64** | ~20 |
-| Fase 2 | ~15 | **0** | ~15 |
+| Fase 2 | ~19 | **19** | 0 |
 | Fase 3 | ~20 | **0** | ~20 |
 | Fase 4 | 4 | **0** | 4 |
-| **Total** | **~140** | **~81** | **~59** |
+| **Total** | **~144** | **~100** | **~44** |

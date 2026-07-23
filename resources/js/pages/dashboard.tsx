@@ -1,8 +1,11 @@
 import { Head } from '@inertiajs/react';
 import { DollarSign, ShoppingCart, TrendingUp, ChefHat, Users, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { dashboard } from '@/routes';
+
+const PRIMARY = '#4F6B6A';
+const DARK = '#233433';
+const SAND = '#CFC0A4';
 
 interface TopMenu {
     id: number;
@@ -35,6 +38,39 @@ interface Props {
     todayAttendances?: EmployeeAttendance[];
 }
 
+function StatCard({
+    title,
+    value,
+    subtitle,
+    icon: Icon,
+}: {
+    title: string;
+    value: string | number;
+    subtitle: string;
+    icon: typeof DollarSign;
+}) {
+    return (
+        <div className="group relative overflow-hidden rounded-2xl border bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md" style={{ borderColor: 'rgba(37,51,47,0.08)' }}>
+            <div className="flex items-start justify-between">
+                <div className="space-y-1">
+                    <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#5c6a66' }}>
+                        {title}
+                    </p>
+                    <p className="font-display text-2xl font-bold tracking-tight" style={{ color: DARK }}>
+                        {value}
+                    </p>
+                    <p className="text-xs" style={{ color: '#8a968f' }}>
+                        {subtitle}
+                    </p>
+                </div>
+                <div className="flex size-10 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110" style={{ backgroundColor: PRIMARY, color: '#FAF8F5' }}>
+                    <Icon className="size-5" />
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export default function Dashboard({
     todaySales = 0,
     todayOrdersCount = 0,
@@ -46,196 +82,181 @@ export default function Dashboard({
         <>
             <Head title="Dashboard" />
 
-            <div className="flex h-full flex-1 flex-col gap-6 overflow-x-auto p-4">
+            <div className="flex h-full flex-1 flex-col gap-6 overflow-x-auto p-4 md:p-6">
                 <div>
-                    <h1 className="text-2xl font-semibold">Dashboard</h1>
-                    <p className="mt-1 text-sm text-muted-foreground">Ringkasan operasional restoran</p>
+                    <h1 className="font-display text-2xl font-semibold md:text-3xl" style={{ color: DARK }}>
+                        Dashboard
+                    </h1>
+                    <p className="mt-1 text-sm" style={{ color: '#5c6a66' }}>
+                        Ringkasan operasional restoran
+                    </p>
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between pb-2">
-                            <CardTitle className="text-sm font-medium">Penjualan Hari Ini</CardTitle>
-                            <DollarSign className="size-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">
-                                Rp {Number(todaySales).toLocaleString('id-ID')}
-                            </div>
-                            <p className="text-xs text-muted-foreground">Total pendapatan hari ini</p>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between pb-2">
-                            <CardTitle className="text-sm font-medium">Order Hari Ini</CardTitle>
-                            <ShoppingCart className="size-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{todayOrdersCount}</div>
-                            <p className="text-xs text-muted-foreground">Jumlah order hari ini</p>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between pb-2">
-                            <CardTitle className="text-sm font-medium">Menu Terlaris</CardTitle>
-                            <TrendingUp className="size-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            {topMenus.length > 0 ? (
-                                <div className="text-2xl font-bold">{topMenus[0].name}</div>
-                            ) : (
-                                <div className="text-2xl font-bold text-muted-foreground">-</div>
-                            )}
-                            <p className="text-xs text-muted-foreground">
-                                {topMenus.length > 0
-                                    ? `${topMenus[0].total_qty} terjual hari ini`
-                                    : 'Belum ada data'}
-                            </p>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between pb-2">
-                            <CardTitle className="text-sm font-medium">Karyawan Hadir</CardTitle>
-                            <Users className="size-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">
-                                {todayAttendances.filter((a) => a.clock_in).length}
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                                Dari {todayAttendances.length} karyawan
-                            </p>
-                        </CardContent>
-                    </Card>
+                    <StatCard
+                        title="Penjualan Hari Ini"
+                        value={`Rp ${Number(todaySales).toLocaleString('id-ID')}`}
+                        subtitle="Total pendapatan hari ini"
+                        icon={DollarSign}
+                    />
+                    <StatCard
+                        title="Order Hari Ini"
+                        value={todayOrdersCount}
+                        subtitle="Jumlah order hari ini"
+                        icon={ShoppingCart}
+                    />
+                    <StatCard
+                        title="Menu Terlaris"
+                        value={topMenus.length > 0 ? topMenus[0].name : '-'}
+                        subtitle={topMenus.length > 0 ? `${topMenus[0].total_qty} terjual hari ini` : 'Belum ada data'}
+                        icon={TrendingUp}
+                    />
+                    <StatCard
+                        title="Karyawan Hadir"
+                        value={todayAttendances.filter((a) => a.clock_in).length}
+                        subtitle={`Dari ${todayAttendances.length} karyawan`}
+                        icon={Users}
+                    />
                 </div>
 
                 <div className="grid gap-6 lg:grid-cols-2">
-                    <Card>
-                        <CardHeader className="flex flex-row items-center gap-2">
-                            <ChefHat className="size-5 text-muted-foreground" />
-                            <CardTitle>Order Aktif di Dapur</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            {activeOrders.length === 0 ? (
-                                <p className="py-4 text-center text-sm text-muted-foreground">
-                                    Tidak ada order aktif.
-                                </p>
-                            ) : (
-                                <div className="space-y-3">
-                                    {activeOrders.map((order) => (
-                                        <div
-                                            key={order.id}
-                                            className="flex items-center justify-between rounded-lg border p-3"
-                                        >
-                                            <div>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-medium">
-                                                        Meja {order.table_code}
-                                                    </span>
-                                                    <Badge variant="outline">
-                                                        {order.items_count} item
-                                                    </Badge>
-                                                </div>
-                                                <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-                                                    <Clock className="size-3" />
-                                                    {order.created_at}
-                                                </p>
-                                            </div>
-                                            <Badge
-                                                variant={
-                                                    order.status === 'pending'
-                                                        ? 'secondary'
-                                                        : 'default'
-                                                }
-                                            >
-                                                {order.status === 'pending'
-                                                    ? 'Menunggu'
-                                                    : 'Diproses'}
-                                            </Badge>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader className="flex flex-row items-center gap-2">
-                            <TrendingUp className="size-5 text-muted-foreground" />
-                            <CardTitle>Menu Terlaris Hari Ini</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            {topMenus.length === 0 ? (
-                                <p className="py-4 text-center text-sm text-muted-foreground">
-                                    Belum ada data penjualan.
-                                </p>
-                            ) : (
-                                <div className="space-y-2">
-                                    {topMenus.map((menu, i) => (
-                                        <div
-                                            key={menu.id}
-                                            className="flex items-center justify-between rounded-lg border p-3"
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <span className="flex size-7 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
-                                                    {i + 1}
-                                                </span>
-                                                <span className="font-medium">{menu.name}</span>
-                                            </div>
-                                            <div className="text-right">
-                                                <p className="text-sm font-semibold">
-                                                    {menu.total_qty}
-                                                </p>
-                                                <p className="text-xs text-muted-foreground">
-                                                    Rp {Number(menu.total_revenue).toLocaleString('id-ID')}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                </div>
-
-                <Card>
-                    <CardHeader className="flex flex-row items-center gap-2">
-                        <Users className="size-5 text-muted-foreground" />
-                        <CardTitle>Kehadiran Karyawan Hari Ini</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                        {todayAttendances.length === 0 ? (
-                            <p className="px-6 py-4 text-center text-sm text-muted-foreground">
-                                Belum ada data kehadiran.
+                    <div className="rounded-2xl border bg-white p-6 shadow-sm" style={{ borderColor: 'rgba(37,51,47,0.08)' }}>
+                        <div className="mb-4 flex items-center gap-2">
+                            <ChefHat className="size-5" style={{ color: PRIMARY }} />
+                            <h2 className="font-display text-lg font-semibold" style={{ color: DARK }}>
+                                Order Aktif di Dapur
+                            </h2>
+                        </div>
+                        {activeOrders.length === 0 ? (
+                            <p className="py-4 text-center text-sm" style={{ color: '#8a968f' }}>
+                                Tidak ada order aktif.
                             </p>
                         ) : (
+                            <div className="space-y-3">
+                                {activeOrders.map((order) => (
+                                    <div
+                                        key={order.id}
+                                        className="flex items-center justify-between rounded-lg border p-3 transition-colors hover:bg-[#F6F2E9]/50"
+                                        style={{ borderColor: 'rgba(37,51,47,0.08)' }}
+                                    >
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-medium" style={{ color: DARK }}>
+                                                    Meja {order.table_code}
+                                                </span>
+                                                <Badge
+                                                    variant="outline"
+                                                    className="text-[11px]"
+                                                    style={{ borderColor: SAND, color: PRIMARY }}
+                                                >
+                                                    {order.items_count} item
+                                                </Badge>
+                                            </div>
+                                            <p className="mt-1 flex items-center gap-1 text-xs" style={{ color: '#8a968f' }}>
+                                                <Clock className="size-3" />
+                                                {order.created_at}
+                                            </p>
+                                        </div>
+                                        <Badge
+                                            className="font-semibold"
+                                            style={{
+                                                backgroundColor: order.status === 'pending' ? 'rgba(207,192,164,0.2)' : PRIMARY,
+                                                color: order.status === 'pending' ? SAND : '#FAF8F5',
+                                                border: 'none',
+                                            }}
+                                        >
+                                            {order.status === 'pending' ? 'Menunggu' : 'Diproses'}
+                                        </Badge>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="rounded-2xl border bg-white p-6 shadow-sm" style={{ borderColor: 'rgba(37,51,47,0.08)' }}>
+                        <div className="mb-4 flex items-center gap-2">
+                            <TrendingUp className="size-5" style={{ color: PRIMARY }} />
+                            <h2 className="font-display text-lg font-semibold" style={{ color: DARK }}>
+                                Menu Terlaris Hari Ini
+                            </h2>
+                        </div>
+                        {topMenus.length === 0 ? (
+                            <p className="py-4 text-center text-sm" style={{ color: '#8a968f' }}>
+                                Belum ada data penjualan.
+                            </p>
+                        ) : (
+                            <div className="space-y-2">
+                                {topMenus.map((menu, i) => (
+                                    <div
+                                        key={menu.id}
+                                        className="flex items-center justify-between rounded-lg border p-3 transition-colors hover:bg-[#F6F2E9]/50"
+                                        style={{ borderColor: 'rgba(37,51,47,0.08)' }}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <span className="flex size-7 items-center justify-center rounded-full text-sm font-semibold" style={{ backgroundColor: 'rgba(79,107,106,0.12)', color: PRIMARY }}>
+                                                {i + 1}
+                                            </span>
+                                            <span className="font-medium" style={{ color: DARK }}>
+                                                {menu.name}
+                                            </span>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-sm font-semibold" style={{ color: DARK }}>
+                                                {menu.total_qty}
+                                            </p>
+                                            <p className="text-xs" style={{ color: '#8a968f' }}>
+                                                Rp {Number(menu.total_revenue).toLocaleString('id-ID')}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                <div className="rounded-2xl border bg-white shadow-sm" style={{ borderColor: 'rgba(37,51,47,0.08)' }}>
+                    <div className="flex items-center gap-2 border-b px-6 py-4" style={{ borderColor: 'rgba(37,51,47,0.08)' }}>
+                        <Users className="size-5" style={{ color: PRIMARY }} />
+                        <h2 className="font-display text-lg font-semibold" style={{ color: DARK }}>
+                            Kehadiran Karyawan Hari Ini
+                        </h2>
+                    </div>
+                    {todayAttendances.length === 0 ? (
+                        <p className="px-6 py-4 text-center text-sm" style={{ color: '#8a968f' }}>
+                            Belum ada data kehadiran.
+                        </p>
+                    ) : (
+                        <div className="overflow-x-auto">
                             <table className="w-full text-sm">
                                 <thead>
-                                    <tr className="border-b text-left text-muted-foreground">
-                                        <th className="px-6 py-3 font-medium">Nama</th>
-                                        <th className="px-6 py-3 font-medium">Posisi</th>
-                                        <th className="px-6 py-3 font-medium">Jam Masuk</th>
-                                        <th className="px-6 py-3 font-medium">Status</th>
+                                    <tr className="border-b text-left text-xs font-semibold uppercase tracking-wider" style={{ borderColor: 'rgba(37,51,47,0.08)', color: '#5c6a66' }}>
+                                        <th className="px-6 py-3 font-semibold">Nama</th>
+                                        <th className="px-6 py-3 font-semibold">Posisi</th>
+                                        <th className="px-6 py-3 font-semibold">Jam Masuk</th>
+                                        <th className="px-6 py-3 font-semibold">Status</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {todayAttendances.map((att) => (
-                                        <tr key={att.id} className="border-b last:border-0">
-                                            <td className="px-6 py-3 font-medium">{att.name}</td>
-                                            <td className="px-6 py-3 text-muted-foreground">
+                                        <tr key={att.id} className="border-b last:border-0 transition-colors hover:bg-[#F6F2E9]/30" style={{ borderColor: 'rgba(37,51,47,0.06)' }}>
+                                            <td className="px-6 py-3 font-medium" style={{ color: DARK }}>
+                                                {att.name}
+                                            </td>
+                                            <td className="px-6 py-3" style={{ color: '#5c6a66' }}>
                                                 {att.position}
                                             </td>
-                                            <td className="px-6 py-3">
+                                            <td className="px-6 py-3" style={{ color: '#5c6a66' }}>
                                                 {att.clock_in || '-'}
                                             </td>
                                             <td className="px-6 py-3">
                                                 <Badge
-                                                    variant={
-                                                        att.clock_in ? 'default' : 'secondary'
-                                                    }
+                                                    className="font-semibold"
+                                                    style={{
+                                                        backgroundColor: att.clock_in ? 'rgba(79,107,106,0.12)' : 'rgba(207,192,164,0.2)',
+                                                        color: att.clock_in ? PRIMARY : SAND,
+                                                        border: 'none',
+                                                    }}
                                                 >
                                                     {att.clock_in ? 'Hadir' : 'Belum Absen'}
                                                 </Badge>
@@ -244,9 +265,9 @@ export default function Dashboard({
                                     ))}
                                 </tbody>
                             </table>
-                        )}
-                    </CardContent>
-                </Card>
+                        </div>
+                    )}
+                </div>
             </div>
         </>
     );

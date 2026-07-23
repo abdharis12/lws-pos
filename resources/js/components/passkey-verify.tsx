@@ -45,9 +45,13 @@ export default function PasskeyVerify({
                 <Button
                     type="button"
                     variant="outline"
-                    className="w-full"
+                    className="w-full hover:bg-[#4F6B6A] hover:text-[#FAF8F5]"
                     onClick={verify}
                     disabled={isLoading}
+                    style={{
+                        borderColor: 'rgba(207, 192, 164, 0.4)',
+                        color: '#CFC0A4',
+                    }}
                 >
                     {isLoading ? <Spinner /> : <KeyRound className="h-4 w-4" />}
                     {isLoading
@@ -61,10 +65,10 @@ export default function PasskeyVerify({
 
             <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
-                    <Separator className="w-full" />
+                    <Separator className="w-full" style={{ backgroundColor: 'rgba(207, 192, 164, 0.3)' }} />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">
+                    <span className="px-2" style={{ backgroundColor: '#233433', color: '#CFC0A4' }}>
                         {separator ?? 'Or continue with email'}
                     </span>
                 </div>

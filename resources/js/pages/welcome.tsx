@@ -2,6 +2,7 @@ import { Head, Link, usePage } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { dashboard, login } from '@/routes';
 import { Hero } from '@/components/template/hero';
+import { MenuSection } from '@/components/template/menu';
 
 const CREAM = '#F6F2E9';
 const PRIMARY = '#4F6B6A';
@@ -33,24 +34,6 @@ const features = [
         icon: (
             <svg className="size-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
-            </svg>
-        ),
-    },
-    {
-        title: 'Manajemen Karyawan',
-        description: 'Absensi digital, shift, role & akses. Rekap jam kerja otomatis untuk payroll.',
-        icon: (
-            <svg className="size-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
-            </svg>
-        ),
-    },
-    {
-        title: 'Laporan & Dashboard',
-        description: 'Pantau penjualan, menu terlaris, jam sibuk, dan kinerja outlet secara real-time.',
-        icon: (
-            <svg className="size-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
             </svg>
         ),
     },
@@ -167,14 +150,10 @@ export default function Welcome() {
 
                 <main className="flex-1">
                     {/* HERO */}
-                    <section
-                        className="relative overflow-hidden px-6 pt-16 pb-20 md:pt-24 md:pb-28"
-                        style={{
-                            backgroundImage: `radial-gradient(ellipse 60% 50% at 85% 10%, rgba(79,107,106,0.12), transparent 60%)`,
-                        }}
-                    >
-                    <Hero />
-                    </section>
+                    <Hero
+                        onOpenReservation={() => {}}
+                        onExploreMenu={() => document.getElementById('menu')?.scrollIntoView({ behavior: 'smooth' })}
+                    />
 
                     {/* ORDER FLOW */}
                     <section className="border-t px-6 py-16" style={{ borderColor: 'rgba(37,51,47,0.08)' }}>
@@ -188,21 +167,36 @@ export default function Welcome() {
                                 </h2>
                             </div>
 
+                            {/* CONTAINER UTAMA */}
                             <div className="relative grid gap-8 md:grid-cols-4">
+
+                                {/* Garis Horizontal untuk Desktop/Tablet */}
                                 <div
                                     className="absolute top-5 right-0 left-0 hidden h-px md:block"
                                     style={{ backgroundImage: 'repeating-linear-gradient(to right, rgba(37,51,47,0.25) 0 8px, transparent 8px 16px)' }}
                                 />
+
+                                {/* Garis Vertikal untuk Mobile (Menghubungkan antar lingkaran nomor) */}
+                                <div
+                                    className="absolute top-5 bottom-5 left-5 w-px -translate-x-1/2 md:hidden"
+                                    style={{ backgroundImage: 'repeating-linear-gradient(to bottom, rgba(37,51,47,0.25) 0 8px, transparent 8px 16px)' }}
+                                />
+
                                 {steps.map((step, i) => (
-                                    <div key={step.label} className="relative">
+                                    <div key={step.label} className="relative flex items-start gap-4 md:block">
+                                        {/* Lingkaran Nomor */}
                                         <div
-                                            className="relative z-10 mb-4 flex size-10 items-center justify-center rounded-full font-mono-tix text-sm font-semibold text-white"
+                                            className="relative z-10 flex size-10 shrink-0 items-center justify-center rounded-full font-mono-tix text-sm font-semibold text-white shadow-sm md:mb-4"
                                             style={{ backgroundColor: PRIMARY }}
                                         >
                                             {String(i + 1).padStart(2, '0')}
                                         </div>
-                                        <h3 className="font-display text-lg font-semibold">{step.label}</h3>
-                                        <p className="mt-1 text-sm leading-relaxed" style={{ color: '#5c6a66' }}>{step.detail}</p>
+
+                                        {/* Teks Deskripsi */}
+                                        <div className="pt-1.5 md:pt-0">
+                                            <h3 className="font-display text-base font-semibold md:text-lg">{step.label}</h3>
+                                            <p className="mt-1 text-sm leading-relaxed" style={{ color: '#5c6a66' }}>{step.detail}</p>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
@@ -224,56 +218,35 @@ export default function Welcome() {
                                 </p>
                             </div>
 
-                            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                                {features.map((feature) => (
-                                    <div
-                                        key={feature.title}
-                                        className="group relative overflow-hidden rounded-2xl border p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
-                                        style={{ backgroundColor: '#fff', borderColor: 'rgba(37,51,47,0.08)' }}
-                                    >
+                            <div className="flex items-center gap-4 overflow-x-auto pt-2 pb-4 scrollbar-none">
+                                <div className="flex w-max gap-6">
+                                    {features.map((feature) => (
                                         <div
-                                            className="mb-5 inline-flex rounded-xl p-3 text-white transition-transform duration-300 group-hover:scale-105"
-                                            style={{ backgroundColor: PRIMARY }}
+                                            key={feature.title}
+                                            /* Menggunakan w-[320px] atau md:w-[380px] agar ukuran kartu fix dan lebih besar */
+                                            className="group relative w-[320px] md:w-[380px] flex-shrink-0 overflow-hidden rounded-2xl border p-8 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+                                            style={{ backgroundColor: '#fff', borderColor: 'rgba(37,51,47,0.08)' }}
                                         >
-                                            {feature.icon}
+                                            <div
+                                                className="mb-6 inline-flex rounded-2xl p-4 text-white transition-transform duration-300 group-hover:scale-110"
+                                                style={{ backgroundColor: PRIMARY }}
+                                            >
+                                                {feature.icon}
+                                            </div>
+                                            <h3 className="font-display mb-3 text-xl font-bold">{feature.title}</h3>
+                                            <p className="text-base leading-relaxed" style={{ color: '#5c6a66' }}>
+                                                {feature.description}
+                                            </p>
                                         </div>
-                                        <h3 className="font-display mb-2 text-lg font-semibold">{feature.title}</h3>
-                                        <p className="text-sm leading-relaxed" style={{ color: '#5c6a66' }}>
-                                            {feature.description}
-                                        </p>
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     </section>
 
                     {/* CTA */}
-                    <section className="relative overflow-hidden px-6 py-20" style={{ backgroundColor: PRIMARY }}>
-                        <div
-                            className="pointer-events-none absolute inset-0 opacity-[0.06]"
-                            style={{ backgroundImage: 'radial-gradient(circle at 20% 20%, #fff 0, transparent 45%), radial-gradient(circle at 80% 70%, #fff 0, transparent 45%)' }}
-                        />
-                        <div className="relative mx-auto max-w-3xl text-center">
-                            <h2 className="font-display mb-4 text-3xl font-semibold text-white md:text-4xl">
-                                Siap kelola restoran lebih cerdas?
-                            </h2>
-                            <p className="mx-auto mb-9 max-w-xl text-white/80">
-                                Platform POS modern yang membantu meningkatkan efisiensi operasional hingga 40%.
-                            </p>
-                            {auth.user ? (
-                                <Link href={dashboard()}>
-                                    <Button size="lg" className="rounded-full font-semibold shadow-md" style={{ backgroundColor: SAND, color: '#2d3d3c' }}>
-                                        Buka Dashboard
-                                    </Button>
-                                </Link>
-                            ) : (
-                                <Link href={login()}>
-                                    <Button size="lg" className="rounded-full font-semibold shadow-md" style={{ backgroundColor: SAND, color: '#2d3d3c' }}>
-                                        Masuk ke POS
-                                    </Button>
-                                </Link>
-                            )}
-                        </div>
+                    <section>
+                        <MenuSection />
                     </section>
                 </main>
 

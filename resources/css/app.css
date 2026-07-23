@@ -13,6 +13,8 @@
         'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
         'Noto Color Emoji';
 
+    --font-display: 'Fraunces', ui-serif, Georgia, serif;
+
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);
     --radius-sm: calc(var(--radius) - 4px);
@@ -87,14 +89,14 @@
     --chart-4: oklch(0.828 0.189 84.429);
     --chart-5: oklch(0.769 0.188 70.08);
     --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.87 0 0);
+    --sidebar: #233433;
+    --sidebar-foreground: #FAF8F5;
+    --sidebar-primary: #CFC0A4;
+    --sidebar-primary-foreground: #233433;
+    --sidebar-accent: #4F6B6A;
+    --sidebar-accent-foreground: #FAF8F5;
+    --sidebar-border: rgba(207, 192, 164, 0.2);
+    --sidebar-ring: #CFC0A4;
 }
 
 .dark {

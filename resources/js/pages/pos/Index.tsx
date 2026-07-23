@@ -1,6 +1,6 @@
 import { Head, useForm } from '@inertiajs/react';
 import { useState, useMemo } from 'react';
-import { Plus, Minus, X, ShoppingCart, Search, Wallet, QrCode } from 'lucide-react';
+import { Plus, Minus, X, ShoppingCart, Search, Wallet, QrCode, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -88,12 +88,14 @@ function CartPanel({
     onUpdateQty,
     onRemove,
     onOrder,
+    tableSelected = true,
 }: {
     items: CartItem[];
     processing: boolean;
     onUpdateQty: (index: number, qty: number) => void;
     onRemove: (index: number) => void;
     onOrder: (method?: string) => void;
+    tableSelected?: boolean;
 }) {
     const total = useMemo(() => {
         return items.reduce((sum, item) => {
@@ -158,15 +160,20 @@ function CartPanel({
                     <span>Rp {total.toLocaleString('id-ID')}</span>
                 </div>
                 <div className="flex flex-col gap-2">
-                    <Button onClick={() => onOrder('cash')} disabled={items.length === 0 || processing} className="w-full" size="lg">
+                    <Button onClick={() => onOrder('cash')} disabled={items.length === 0 || processing || !tableSelected} className="w-full" size="lg">
                         <Wallet className="mr-2 size-4" /> Bayar Cash
                     </Button>
-                    <Button onClick={() => onOrder('qris')} disabled={items.length === 0 || processing} variant="secondary" className="w-full" size="lg">
+                    <Button onClick={() => onOrder('qris')} disabled={items.length === 0 || processing || !tableSelected} variant="secondary" className="w-full" size="lg">
                         <QrCode className="mr-2 size-4" /> Bayar QRIS
                     </Button>
-                    <Button onClick={() => onOrder()} disabled={items.length === 0 || processing} variant="outline" className="w-full">
+                    <Button onClick={() => onOrder()} disabled={items.length === 0 || processing || !tableSelected} variant="outline" className="w-full">
                         Simpan
                     </Button>
+                    {!tableSelected && items.length > 0 && (
+                        <p className="text-xs text-center mt-1" style={{ color: '#b8860b' }}>
+                            Pilih meja terlebih dahulu
+                        </p>
+                    )}
                 </div>
             </div>
         </div>
@@ -187,7 +194,11 @@ export default function PosIndex({ categories, tables }: Props) {
     const [itemDialogNotes, setItemDialogNotes] = useState('');
     const [itemDialogOptions, setItemDialogOptions] = useState<Record<number, number[]>>({});
 
-    const { post, processing } = useForm({});
+    const { data, setData, post, processing } = useForm({
+        table_id: null as number | null,
+        items: [] as { menu_id: number; qty: number; notes: string | null; option_ids: number[] }[],
+        payment_method: null as string | null,
+    });
 
     const selectedCategory = categories.find(c => c.id === selectedCategoryId);
     const cartCount = cartItems.reduce((s, i) => s + i.qty, 0);
@@ -256,17 +267,18 @@ export default function PosIndex({ categories, tables }: Props) {
 
     function handleOrder(paymentMethod?: string) {
         if (cartItems.length === 0) return;
+        if (!selectedTableId) return;
+        setData({
+            table_id: selectedTableId,
+            items: cartItems.map(item => ({
+                menu_id: item.menu.id,
+                qty: item.qty,
+                notes: item.notes || null,
+                option_ids: item.selectedOptions.map(o => o.itemId),
+            })),
+            payment_method: paymentMethod || null,
+        });
         post('/pos/orders', {
-            data: {
-                table_id: selectedTableId,
-                items: cartItems.map(item => ({
-                    menu_id: item.menu.id,
-                    qty: item.qty,
-                    notes: item.notes || null,
-                    option_ids: item.selectedOptions.map(o => o.itemId),
-                })),
-                payment_method: paymentMethod || null,
-            },
             preserveScroll: true,
             onSuccess: () => {
                 setCartItems([]);
@@ -297,13 +309,18 @@ export default function PosIndex({ categories, tables }: Props) {
                                 key={table.id}
                                 onClick={() => setSelectedTableId(table.id === selectedTableId ? null : table.id)}
                                 className={cn(
-                                    'flex flex-col items-center rounded-lg p-3 text-sm font-medium text-white transition-all',
+                                    'relative flex flex-col items-center rounded-lg p-3 text-sm font-medium text-white transition-all',
                                     tableColors[table.status] || 'bg-gray-400',
-                                    selectedTableId === table.id && 'ring-2 ring-white ring-offset-2 ring-offset-background'
+                                    selectedTableId === table.id && 'ring-2 ring-[#CFC0A4] ring-offset-2 ring-offset-background scale-105'
                                 )}
                             >
                                 <span className="text-lg font-bold">{table.code}</span>
                                 <span className="mt-0.5 text-[10px] opacity-80">{table.capacity} org</span>
+                                {selectedTableId === table.id && (
+                                    <span className="absolute -top-1 -right-1 flex size-5 items-center justify-center rounded-full bg-[#CFC0A4] text-[#233433]">
+                                        <Check className="size-3" />
+                                    </span>
+                                )}
                             </button>
                         ))}
                     </div>
@@ -316,12 +333,17 @@ export default function PosIndex({ categories, tables }: Props) {
                                 key={table.id}
                                 onClick={() => setSelectedTableId(table.id === selectedTableId ? null : table.id)}
                                 className={cn(
-                                    'flex-shrink-0 rounded-lg px-4 py-2 text-xs font-medium text-white',
+                                    'relative flex-shrink-0 rounded-lg px-4 py-2 text-xs font-medium text-white',
                                     tableColors[table.status] || 'bg-gray-400',
-                                    selectedTableId === table.id && 'ring-2 ring-white ring-offset-2'
+                                    selectedTableId === table.id && 'ring-2 ring-[#CFC0A4] ring-offset-2 scale-105'
                                 )}
                             >
                                 {table.code}
+                                {selectedTableId === table.id && (
+                                    <span className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-[#CFC0A4] text-[#233433]">
+                                        <Check className="size-2.5" />
+                                    </span>
+                                )}
                             </button>
                         ))}
                     </div>
@@ -373,6 +395,7 @@ export default function PosIndex({ categories, tables }: Props) {
                     <CartPanel
                         items={cartItems}
                         processing={processing}
+                        tableSelected={selectedTableId !== null}
                         onUpdateQty={(i, q) => setCartItems(prev => q < 1 ? prev : prev.map((item, idx) => idx === i ? { ...item, qty: q } : item))}
                         onRemove={i => setCartItems(prev => prev.filter((_, idx) => idx !== i))}
                         onOrder={handleOrder}
@@ -400,6 +423,7 @@ export default function PosIndex({ categories, tables }: Props) {
                             <CartPanel
                                 items={cartItems}
                                 processing={processing}
+                                tableSelected={selectedTableId !== null}
                                 onUpdateQty={(i, q) => setCartItems(prev => q < 1 ? prev : prev.map((item, idx) => idx === i ? { ...item, qty: q } : item))}
                                 onRemove={i => setCartItems(prev => prev.filter((_, idx) => idx !== i))}
                                 onOrder={handleOrder}

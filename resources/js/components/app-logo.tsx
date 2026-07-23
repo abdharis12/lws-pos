@@ -1,20 +1,13 @@
-import { usePage } from '@inertiajs/react';
-
-import AppLogoIcon from '@/components/app-logo-icon';
-
 export default function AppLogo() {
-    const { name } = usePage().props;
-
     return (
-        <>
-            <div className="flex aspect-square size-8 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground">
-                <AppLogoIcon className="size-5 fill-current text-white dark:text-black" />
-            </div>
-            <div className="ml-1 grid flex-1 text-left text-sm">
-                <span className="mb-0.5 truncate leading-tight font-semibold">
-                    {name}
+        <div className="flex items-center gap-2">
+            <img src="/img/lws-logo.png" alt="LW's by Bubur Kang LW" className="h-8 w-auto" />
+            <span className="flex flex-col">
+                <span className="font-display text-sm font-semibold leading-tight text-[#FAF8F5]">LW's</span>
+                <span style={{ fontFamily: "'JetBrains Mono', ui-monospace, monospace", color: '#CFC0A4', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    by Bubur Kang LW
                 </span>
-            </div>
-        </>
+            </span>
+        </div>
     );
 }
