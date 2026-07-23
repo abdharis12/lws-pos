@@ -1,7 +1,8 @@
 import { Head, router } from '@inertiajs/react';
 import { useForm } from '@inertiajs/react';
-import { Plus, RefreshCw, Trash2, QrCode } from 'lucide-react';
-import { useState } from 'react';
+import { Download, Plus, RefreshCw, Trash2 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import QRCode from 'qrcode';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -33,6 +34,92 @@ interface TableData {
 
 interface Props {
     tables: TableData[];
+}
+
+function TableCard({
+    table,
+    onEdit,
+    onDelete,
+    onRegenerateToken,
+}: {
+    table: TableData;
+    onEdit: (t: TableData) => void;
+    onDelete: (id: number) => void;
+    onRegenerateToken: (id: number) => void;
+}) {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+
+    useEffect(() => {
+        if (canvasRef.current) {
+            QRCode.toCanvas(
+                canvasRef.current,
+                `${window.location.origin}/t/${table.table_token}`,
+                { width: 140, margin: 1, color: { dark: '#233433', light: '#FFFFFF' } },
+            );
+        }
+    }, [table.table_token]);
+
+    function downloadQR() {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const link = document.createElement('a');
+        link.download = `meja-${table.code}-qr.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+    }
+
+    const statusColors: Record<string, 'default' | 'secondary' | 'outline'> = {
+        available: 'default',
+        occupied: 'secondary',
+        reserved: 'outline',
+    };
+
+    const statusLabels: Record<string, string> = {
+        available: 'Tersedia',
+        occupied: 'Terisi',
+        reserved: 'Reserved',
+    };
+
+    return (
+        <Card>
+            <CardHeader className="pb-2">
+                <div className="flex items-start justify-between">
+                    <div>
+                        <CardTitle className="text-lg">{table.code}</CardTitle>
+                        <span className="text-xs text-muted-foreground">
+                            {table.capacity} orang
+                        </span>
+                    </div>
+                    <Badge variant={statusColors[table.status]}>
+                        {statusLabels[table.status]}
+                    </Badge>
+                </div>
+            </CardHeader>
+            <CardContent>
+                <div className="mb-3 flex items-center justify-center rounded-lg border bg-muted/30 p-3">
+                    <canvas ref={canvasRef} className="size-[140px]" />
+                </div>
+                <div className="flex items-center justify-between gap-1">
+                    <Button variant="ghost" size="sm" onClick={downloadQR}>
+                        <Download className="mr-1 size-3" />
+                        QR
+                    </Button>
+                    <div className="flex gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => onRegenerateToken(table.id)}>
+                            <RefreshCw className="mr-1 size-3" />
+                            Token
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => onEdit(table)}>
+                            <Plus className="size-4 rotate-45" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => onDelete(table.id)}>
+                            <Trash2 className="size-4 text-destructive" />
+                        </Button>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    );
 }
 
 export default function TablesIndex({ tables }: Props) {
@@ -171,45 +258,13 @@ export default function TablesIndex({ tables }: Props) {
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {tables.map((table) => (
-                    <Card key={table.id}>
-                        <CardHeader className="pb-2">
-                            <div className="flex items-start justify-between">
-                                <div>
-                                    <CardTitle className="text-lg">{table.code}</CardTitle>
-                                    <span className="text-xs text-muted-foreground">
-                                        {table.capacity} orang
-                                    </span>
-                                </div>
-                                <Badge variant={statusColors[table.status]}>
-                                    {statusLabels[table.status]}
-                                </Badge>
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="mb-3 flex items-center justify-center rounded-lg border bg-muted/30 p-3">
-                                <QrCode className="mr-2 size-4" />
-                                <span className="truncate text-xs text-muted-foreground">
-                                    {window.location.origin}/t/{table.table_token}
-                                </span>
-                            </div>
-                            <div className="flex justify-end gap-1">
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => regenerateToken(table.id)}
-                                >
-                                    <RefreshCw className="mr-1 size-3" />
-                                    Token
-                                </Button>
-                                <Button variant="ghost" size="icon" onClick={() => openEdit(table)}>
-                                    <Plus className="size-4 rotate-45" />
-                                </Button>
-                                <Button variant="ghost" size="icon" onClick={() => handleDelete(table.id)}>
-                                    <Trash2 className="size-4 text-destructive" />
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
+                    <TableCard
+                        key={table.id}
+                        table={table}
+                        onEdit={openEdit}
+                        onDelete={handleDelete}
+                        onRegenerateToken={regenerateToken}
+                    />
                 ))}
                 {tables.length === 0 && (
                     <p className="col-span-full py-8 text-center text-muted-foreground">
