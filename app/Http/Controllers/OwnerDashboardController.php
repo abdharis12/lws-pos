@@ -68,6 +68,11 @@ class OwnerDashboardController extends Controller
             ->limit(5)
             ->get();
 
+        $avgCookingTime = Order::whereIn('status', ['ready', 'completed'])
+            ->whereNotNull('updated_at')
+            ->get(['created_at', 'updated_at'])
+            ->avg(fn (Order $o) => $o->created_at->diffInMinutes($o->updated_at));
+
         $paymentSummary = Payment::whereDate('created_at', $today)
             ->select('method', DB::raw('COUNT(*) as count'), DB::raw('SUM(gross_amount) as total'))
             ->groupBy('method')
@@ -86,6 +91,7 @@ class OwnerDashboardController extends Controller
         });
 
         return Inertia::render('owner/Dashboard', [
+            'avgCookingTime' => $avgCookingTime ? round((float) $avgCookingTime) : null,
             'todaySales' => $todaySales,
             'todayOrdersCount' => $todayOrdersCount,
             'yesterdaySales' => $yesterdaySales,

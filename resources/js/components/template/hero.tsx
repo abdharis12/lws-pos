@@ -20,12 +20,22 @@ export const Hero: React.FC<HeroProps> = ({ onOpenReservation, onExploreMenu }) 
                     rel="stylesheet"
                 />
             </Head>
-            {/* Background Subtle Pattern */}
-            <div className="absolute inset-0 opacity-5 pointer-events-none flex justify-center items-center">
+            {/* Background Subtle Pattern — Geometric Frame */}
+            <div className="absolute inset-0 opacity-[0.04] pointer-events-none flex justify-center items-center">
                 <svg width="100%" height="100%" viewBox="0 0 1000 1000" fill="none">
-                    <circle cx="500" cy="500" r="450" stroke="#CFC0A4" strokeWidth="2" strokeDasharray="10 15" />
-                    <circle cx="500" cy="500" r="350" stroke="#CFC0A4" strokeWidth="1" />
-                    <path d="M 100 500 Q 500 100 900 500" stroke="#CFC0A4" strokeWidth="2" />
+                    {/* Outer frame */}
+                    <rect x="60" y="60" width="880" height="880" rx="8" stroke="#CFC0A4" strokeWidth="2" />
+                    <rect x="80" y="80" width="840" height="840" rx="6" stroke="#CFC0A4" strokeWidth="1" strokeDasharray="8 12" />
+                    {/* Inner diamond */}
+                    <rect x="250" y="250" width="500" height="500" rx="4" stroke="#CFC0A4" strokeWidth="1.5" transform="rotate(45 500 500)" />
+                    {/* Crosshair lines */}
+                    <line x1="100" y1="500" x2="900" y2="500" stroke="#CFC0A4" strokeWidth="1" strokeDasharray="4 8" />
+                    <line x1="500" y1="100" x2="500" y2="900" stroke="#CFC0A4" strokeWidth="1" strokeDasharray="4 8" />
+                    {/* Corner accents */}
+                    <path d="M 60 160 L 60 60 L 160 60" stroke="#CFC0A4" strokeWidth="2" />
+                    <path d="M 840 60 L 940 60 L 940 160" stroke="#CFC0A4" strokeWidth="2" />
+                    <path d="M 940 840 L 940 940 L 840 940" stroke="#CFC0A4" strokeWidth="2" />
+                    <path d="M 160 940 L 60 940 L 60 840" stroke="#CFC0A4" strokeWidth="2" />
                 </svg>
             </div>
 

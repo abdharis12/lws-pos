@@ -81,6 +81,18 @@ export default function KitchenIndex({ orders }: Props) {
     const fresh = new Set([...ids].filter(id => !prevIds.current.has(id)))
     if (fresh.size > 0) {
       setNewIds(fresh)
+      try {
+        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
+        const osc = ctx.createOscillator()
+        const gain = ctx.createGain()
+        osc.connect(gain)
+        gain.connect(ctx.destination)
+        osc.frequency.value = 800
+        osc.type = 'sine'
+        gain.gain.value = 0.3
+        osc.start()
+        osc.stop(ctx.currentTime + 0.3)
+      } catch {}
       const t = setTimeout(() => setNewIds(new Set()), 4000)
       prevIds.current = ids
       return () => clearTimeout(t)

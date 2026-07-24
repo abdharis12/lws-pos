@@ -1,6 +1,6 @@
 import { Head, router } from '@inertiajs/react';
 import { useForm } from '@inertiajs/react';
-import { Download, Plus, RefreshCw, Trash2 } from 'lucide-react';
+import { Download, Plus, Printer, RefreshCw, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import QRCode from 'qrcode';
 import InputError from '@/components/input-error';
@@ -68,6 +68,31 @@ function TableCard({
         link.click();
     }
 
+    function printQR() {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const win = window.open('', '_blank');
+        if (!win) return;
+        win.document.write(`
+            <html>
+            <head><title>QR Meja ${table.code}</title>
+            <style>
+                body { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; font-family: sans-serif; }
+                img { max-width: 90vw; }
+                p { margin-top: 16px; font-size: 14px; color: #666; }
+                @media print { @page { margin: 0; } body { min-height: 100vh; } }
+            </style>
+            </head>
+            <body>
+                <img src="${canvas.toDataURL('image/png')}" alt="QR Meja ${table.code}" />
+                <p>${window.location.origin}/t/${table.table_token}</p>
+                <script>window.print();window.close();</script>
+            </body>
+            </html>
+        `);
+        win.document.close();
+    }
+
     const statusColors: Record<string, 'default' | 'secondary' | 'outline'> = {
         available: 'default',
         occupied: 'secondary',
@@ -101,8 +126,10 @@ function TableCard({
                 </div>
                 <div className="flex items-center justify-between gap-1">
                     <Button variant="ghost" size="sm" onClick={downloadQR}>
-                        <Download className="mr-1 size-3" />
-                        QR
+                        <Download className="size-3" />
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={printQR}>
+                        <Printer className="size-3" />
                     </Button>
                     <div className="flex gap-1">
                         <Button variant="ghost" size="sm" onClick={() => onRegenerateToken(table.id)}>

@@ -77,13 +77,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('pos', [PosController::class, 'index'])->name('pos.index');
     Route::post('pos/orders', [PosController::class, 'store'])->name('pos.orders.store');
     Route::put('pos/orders/{order}/confirm-pay', [PosController::class, 'confirmPay'])->name('pos.orders.confirm-pay');
+    Route::post('pos/orders/qris-init', [PosController::class, 'initiateQris'])->name('pos.orders.qris-init');
+    Route::get('pos/orders/{order}/qris-status', [PosController::class, 'qrisStatus'])->name('pos.orders.qris-status');
+    Route::post('pos/verify-approval', [PosController::class, 'verifyApproval'])->name('pos.verify-approval');
 
     Route::get('kitchen', [KitchenDisplayController::class, 'index'])->name('kitchen.index');
     Route::patch('orders/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.update-status');
 });
 
 Route::get('t/{tableToken}', [SelfOrderController::class, 'show'])->name('self-order.show');
-Route::post('t/{tableToken}/orders', [SelfOrderController::class, 'store'])->name('self-order.orders.store');
+Route::get('t/{tableToken}/orders/{order}/status', [SelfOrderController::class, 'orderStatus'])->name('self-order.status');
+Route::post('t/{tableToken}/orders', [SelfOrderController::class, 'store'])
+    ->middleware('throttle:5,1')
+    ->name('self-order.orders.store');
 
 Route::post('webhooks/midtrans/notification', [MidtransWebhookController::class, 'notification'])
     ->withoutMiddleware([VerifyCsrfToken::class])

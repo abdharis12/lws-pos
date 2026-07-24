@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\MenuAvailabilityChanged;
+use App\Models\ActivityLog;
 use App\Models\Menu;
 use App\Models\MenuCategory;
 use App\Models\OptionGroup;
@@ -76,6 +78,17 @@ class MenuController extends Controller
             $menu->optionGroups()->sync($validated['option_group_ids']);
         }
 
+        MenuAvailabilityChanged::dispatch($menu, $menu->is_available);
+
+        ActivityLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'menu.created',
+            'subject_type' => Menu::class,
+            'subject_id' => $menu->id,
+            'description' => "Menu {$menu->name} ditambahkan seharga Rp{$menu->price}",
+            'metadata' => $validated,
+        ]);
+
         return redirect()->route('admin.menus.index')->with('success', 'Menu berhasil ditambahkan.');
     }
 
@@ -134,21 +147,52 @@ class MenuController extends Controller
             $menu->optionGroups()->sync($validated['option_group_ids']);
         }
 
+        MenuAvailabilityChanged::dispatch($menu, $menu->is_available);
+
+        ActivityLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'menu.updated',
+            'subject_type' => Menu::class,
+            'subject_id' => $menu->id,
+            'description' => "Menu {$menu->name} diperbarui",
+            'metadata' => $validated,
+        ]);
+
         return redirect()->route('admin.menus.index')->with('success', 'Menu berhasil diperbarui.');
     }
 
-    public function destroy(Menu $menu): RedirectResponse
+    public function destroy(Request $request, Menu $menu): RedirectResponse
     {
         $this->authorize('delete', $menu);
+        MenuAvailabilityChanged::dispatch($menu, false);
+
+        ActivityLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'menu.deleted',
+            'subject_type' => Menu::class,
+            'subject_id' => $menu->id,
+            'description' => "Menu {$menu->name} dihapus",
+        ]);
+
         $menu->delete();
 
         return redirect()->route('admin.menus.index')->with('success', 'Menu berhasil dihapus.');
     }
 
-    public function toggleAvailability(Menu $menu): RedirectResponse
+    public function toggleAvailability(Request $request, Menu $menu): RedirectResponse
     {
         $this->authorize('toggleAvailability', $menu);
-        $menu->update(['is_available' => ! $menu->is_available]);
+        $newAvailability = ! $menu->is_available;
+        $menu->update(['is_available' => $newAvailability]);
+        MenuAvailabilityChanged::dispatch($menu->fresh(), $newAvailability);
+
+        ActivityLog::create([
+            'user_id' => $request->user()->id,
+            'action' => $newAvailability ? 'menu.enabled' : 'menu.disabled',
+            'subject_type' => Menu::class,
+            'subject_id' => $menu->id,
+            'description' => ($newAvailability ? 'Mengaktifkan' : 'Menonaktifkan')." menu {$menu->name}",
+        ]);
 
         return redirect()->back()->with('success', 'Status ketersediaan menu berhasil diubah.');
     }

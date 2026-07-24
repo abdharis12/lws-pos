@@ -97,7 +97,7 @@ export default function MenusShow({ menu }: Props) {
                                 <p className="font-medium">{menu.category.name}</p>
                             </div>
                             <div>
-                                <span className="text-sm text-muted-foreground">Deskripsi</span>
+                                <span className="text-sm text-muted-foreground">Bahan Utama</span>
                                 <p className="font-medium">{menu.description || '-'}</p>
                             </div>
                         </CardContent>

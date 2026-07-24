@@ -1,8 +1,10 @@
+import React, { useState } from 'react';
 import { Head, Link, usePage } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { dashboard, login } from '@/routes';
 import { Hero } from '@/components/template/hero';
 import { MenuSection } from '@/components/template/menu';
+import { ReservationModal } from '@/components/template/reservation';
 
 const CREAM = '#F6F2E9';
 const PRIMARY = '#4F6B6A';
@@ -63,6 +65,7 @@ const stats = [
 
 export default function Welcome() {
     const { auth } = usePage().props;
+    const [isReservationOpen, setIsReservationOpen] = useState(false);
 
     return (
         <>
@@ -109,7 +112,6 @@ export default function Welcome() {
                     transform: translateY(-50%);
                     border-top: 2px dashed rgba(37,51,47,0.2);
                 }
-                .font-display { font-family: 'Fraunces', ui-serif, Georgia, serif; }
                 .font-mono-tix { font-family: 'JetBrains Mono', ui-monospace, monospace; }
             `}</style>
 
@@ -151,17 +153,24 @@ export default function Welcome() {
                 <main className="flex-1">
                     {/* HERO */}
                     <Hero
-                        onOpenReservation={() => {}}
+                        onOpenReservation={() => setIsReservationOpen(true)}
                         onExploreMenu={() => document.getElementById('menu')?.scrollIntoView({ behavior: 'smooth' })}
+                    />
+
+                    <ReservationModal
+                        isOpen={isReservationOpen}
+                        onClose={() => setIsReservationOpen(false)}
                     />
 
                     {/* ORDER FLOW */}
                     <section className="border-t px-6 py-16" style={{ borderColor: 'rgba(37,51,47,0.08)' }}>
                         <div className="mx-auto max-w-7xl">
                             <div className="mb-12 max-w-xl">
-                                <span className="font-mono-tix text-xs font-semibold uppercase tracking-wider" style={{ color: PRIMARY }}>
-                                    Alur Pemesanan
-                                </span>
+                                <div className="inline-flex items-center gap-2 text-[#4F6B6A] font-serif-classic italic text-sm">
+                                    <span className="w-8 h-[1px] bg-[#CFC0A4]"></span>
+                                        <span>Alur Pemesanan</span>
+                                    <span className="w-8 h-[1px] bg-[#CFC0A4]"></span>
+                                </div>
                                 <h2 className="font-display mt-3 text-2xl font-semibold md:text-3xl">
                                     Empat langkah, tanpa antri kasir
                                 </h2>
@@ -207,9 +216,12 @@ export default function Welcome() {
                     <section className="border-t px-6 py-16 md:py-20" style={{ borderColor: 'rgba(37,51,47,0.08)' }}>
                         <div className="mx-auto max-w-7xl">
                             <div className="mx-auto mb-14 max-w-2xl text-center">
-                                <span className="font-mono-tix text-xs font-semibold uppercase tracking-wider" style={{ color: PRIMARY }}>
-                                    Semua dalam satu sistem
-                                </span>
+                                <div className="inline-flex items-center gap-2 text-[#4F6B6A] font-serif-classic italic text-sm">
+                                    <span className="w-8 h-[1px] bg-[#CFC0A4]"></span>
+                                        <span>Semua dalam satu platform</span>
+                                    <span className="w-8 h-[1px] bg-[#CFC0A4]"></span>
+                                </div>
+                                
                                 <h2 className="font-display mt-3 mb-4 text-3xl font-semibold md:text-4xl">
                                     Dari dapur hingga laporan keuangan
                                 </h2>

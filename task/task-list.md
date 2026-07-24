@@ -23,7 +23,7 @@
 ### 1. Arsitektur & Infrastruktur
 
 - [x] Setup & konfigurasi Laravel Reverb (WebSocket server)
-- [ ] Konfigurasi Redis untuk cache, queue, & broadcasting (masih default)
+- [x] Konfigurasi Redis untuk cache, queue, & broadcasting
 - [x] Setup broadcasting channels (`routes/channels.php`) dengan otorisasi
 - [ ] Setup Queue worker & Supervisor config (infra deployment)
 - [ ] Konfigurasi environment staging & production (infra deployment)
@@ -72,7 +72,7 @@
 - [x] Halaman CRUD kategori menu
 - [x] Halaman CRUD menu (nama, harga, foto, deskripsi, status tersedia/habis)
 - [x] Upload foto menu (storage privat)
-- [ ] Sistem broadcast realtime `MenuAvailabilityChanged` ke public channel (event exists, blm dispatch)
+- [x] Sistem broadcast realtime `MenuAvailabilityChanged` ke public channel
 - [x] Halaman CRUD option groups (tipe: single/multiple, is_required, min/max select)
 - [x] Halaman CRUD option items (nama, price_adjustment, is_available)
 - [x] Halaman mapping option group ke menu (many-to-many)
@@ -85,7 +85,7 @@
 
 - [x] Halaman CRUD meja (nomor meja, kapasitas, status)
 - [x] Generate token acak unik per meja (`table_token`)
-- [ ] Generate & cetak QR code per meja (token tampil di UI, cetak QR via browser print)
+- [x] Generate & cetak QR code per meja (token tampil di UI, download QR + cetak via browser)
 - [x] Fitur regenerate token bila QR hilang/disalahgunakan
 - [x] Halaman status meja (kosong/terisi/reserved) via status badge
 - [x] Broadcast event `TableStatusChanged`
@@ -100,9 +100,9 @@
 - [x] Keranjang belanja (state-based)
 - [x] Checkout flow: order submission (QRIS payment integration via webhook)
 - [x] Integrasi Midtrans Core API — service class + webhook
-- [ ] Halaman status order realtime (order submission done, status page minimal)
+- [x] Halaman status order realtime (dengan progress tracker + Echo listener)
 - [x] Order tambahan dalam satu sesi meja (table session support)
-- [x] Rate limiting (route siap, middleware blm dipasang)
+- [x] Rate limiting (throttle:5,1 pada route self-order)
 - [x] Timeout order → auto-cancel (scheduled command)
 - [x] Tests: self-service ordering flow
 
@@ -125,24 +125,24 @@
 - [x] Halaman POS kasir (pilih meja, pilih menu, atur qty & varian)
 - [x] Modal pilih menu (sama dengan self-order)
 - [x] Multi metode bayar: Cash, QRIS (Midtrans), Kartu Debit/Kredit (UI ready)
-- [ ] Split bill per item atau merata per orang
-- [ ] Diskon persen/nominal dengan approval Admin untuk diskon besar
-- [ ] Cetak struk (browser print / ESC-POS thermal printer)
+- [x] Split bill per item atau merata per orang
+- [x] Diskon persen/nominal dengan approval Admin untuk diskon besar
+- [x] Cetak struk (browser print / ESC-POS thermal printer)
 - [x] Void/cancel order (hanya Owner/Admin via policy)
-- [ ] Audit log terintegrasi (model ActivityLog ada, blm di-hook)
-- [ ] Broadcast `OrderCreated` event (event ada, blm dispatch penuh)
-- [ ] Tests: POS kasir flow
+- [x] Audit log terintegrasi (MenuController, OrderController)
+- [x] Broadcast `OrderCreated` & `OrderStatusUpdated` events
+- [x] Tests: POS kasir flow
 
 ### 9. Kitchen Display System (KDS)
 
 - [x] Halaman KDS (dark mode default, kontras tinggi)
 - [x] Listener Reverb — polling via usePoll (realtime listener by page interval)
-- [ ] Kartu order per station (items ditampilkan, grouping belum per station)
-- [ ] Notifikasi suara + animasi highlight (animasi ada, suara blm)
+- [ ] Kartu order per station (butuh kolom station di menu)
+- [x] Notifikasi suara + animasi highlight (Web Audio API beep + CSS glow)
 - [x] Tombol aksi: `Mulai Masak` → `Selesai/Siap`
 - [x] Color-coded SLA: hijau < 5 menit, kuning 5-10 menit, merah > 10 menit
 - [x] Broadcast `OrderStatusUpdated` saat status berubah
-- [ ] Notifikasi ke waiter/kasir saat order siap diantar (event broadcast, notif UI blm)
+- [ ] Notifikasi ke waiter/kasir saat order siap (broadcast via OrderStatusUpdated, UI toast blm)
 - [x] Hanya tampilkan order dengan status `paid`
 - [ ] Tests: KDS realtime flow
 
@@ -150,7 +150,7 @@
 
 - [x] Halaman dashboard dengan widget:
   - [x] Penjualan hari ini (total & jumlah order)
-  - [ ] Rata-rata waktu masak
+  - [x] Rata-rata waktu masak
   - [x] Menu terlaris
   - [x] Order aktif di dapur
   - [x] Status kehadiran karyawan hari ini
@@ -237,8 +237,8 @@
 | Fase | Total Task | Selesai | Belum |
 |------|-----------|---------|-------|
 | Scaffolding & Auth | 17 | **17** | 0 |
-| Fase 1 — MVP | ~84 | **~64** | ~20 |
+| Fase 1 — MVP | ~84 | **~79** | ~5 |
 | Fase 2 | ~19 | **19** | 0 |
 | Fase 3 | ~20 | **0** | ~20 |
 | Fase 4 | 4 | **0** | 4 |
-| **Total** | **~144** | **~100** | **~44** |
+| **Total** | **~144** | **~115** | **~29** |

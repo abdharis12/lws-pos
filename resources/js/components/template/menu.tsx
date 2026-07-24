@@ -66,7 +66,7 @@ export const MenuSection: React.FC<MenuSectionProps> = ({ onSelectDishForReserva
                 <div className="text-center max-w-3xl mx-auto mb-12">
                     <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-[#4F6B6A]/50 border border-[#CfC0A4]/40 text-[#CfC0A4] font-semibold text-xs tracking-widest uppercase mb-3">
                         <Utensils className="w-3.5 h-3.5" />
-                        <span>Semua Menu LW's by Bubur Kang LW</span>
+                        <span>Menu Spesialisasi & Citarasa</span>
                     </div>
                     <h2 className="font-serif-classic text-3xl sm:text-4xl lg:text-5xl font-bold text-[#FAF8F5] leading-tight">
                         Sajian Mahakarya <span className="text-[#CfC0A4] italic">LW’s</span>

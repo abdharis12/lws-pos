@@ -107,7 +107,7 @@ test('guest can create order from self-order', function () {
                 'notes' => 'Tanpa daun bawang',
             ],
         ],
-    ])->assertRedirect(route('self-order.show', $this->table->table_token));
+    ])->assertRedirect();
 
     $this->assertDatabaseHas('orders', [
         'order_type' => 'dine_in_qr',

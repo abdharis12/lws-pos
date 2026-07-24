@@ -20,3 +20,6 @@ Broadcast::channel('table.{token}', function ($userOrGuest, $token) {
 
     return $table !== null;
 });
+
+// Public channel: no authorization callback needed for Channel
+// public-outlet.{outletId}.menu — used by MenuAvailabilityChanged

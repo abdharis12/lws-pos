@@ -32,6 +32,7 @@ interface SalesTrend {
 }
 
 interface Props {
+    avgCookingTime: number | null;
     todaySales: number;
     todayOrdersCount: number;
     yesterdaySales: number;
@@ -88,6 +89,7 @@ function StatCard({ title, value, subtitle, icon: Icon, trend, trendLabel, trend
 }
 
 export default function OwnerDashboard({
+    avgCookingTime,
     todaySales,
     todayOrdersCount,
     yesterdaySales,
@@ -144,6 +146,12 @@ export default function OwnerDashboard({
                         value={`${attendanceToday}/${employeeCount}`}
                         subtitle="Hadir hari ini"
                         icon={Clock}
+                    />
+                    <StatCard
+                        title="Rata-rata Waktu Masak"
+                        value={avgCookingTime ? `${avgCookingTime} mnt` : '-'}
+                        subtitle="Dari order selesai hari ini"
+                        icon={ChefHat}
                     />
                 </div>
 

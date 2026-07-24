@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\OrderCreated;
+use App\Events\OrderStatusUpdated;
 use App\Models\Meja;
 use App\Models\Menu;
 use App\Models\MenuCategory;
 use App\Models\OptionItem;
+use App\Models\Order;
 use App\Models\Outlet;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -115,6 +118,24 @@ class SelfOrderController extends Controller
             }
         }
 
-        return redirect()->route('self-order.show', $tableToken);
+        broadcast(new OrderCreated($order))->toOthers();
+        broadcast(new OrderStatusUpdated($order))->toOthers();
+
+        return redirect()->route('self-order.status', [$tableToken, $order]);
+    }
+
+    public function orderStatus(string $tableToken, Order $order): Response
+    {
+        $table = Meja::where('table_token', $tableToken)->firstOrFail();
+
+        abort_if($order->tableSession?->table_id !== $table->id, 404);
+
+        $order->load(['items.menu', 'items.options.optionItem']);
+
+        return Inertia::render('self-order/Status', [
+            'table' => $table,
+            'tableToken' => $tableToken,
+            'order' => $order,
+        ]);
     }
 }

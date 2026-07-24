@@ -95,7 +95,7 @@ export default function MenusCreate({ categories, optionGroups }: Props) {
                 </div>
 
                 <div className="grid gap-2">
-                    <Label htmlFor="description">Deskripsi</Label>
+                    <Label htmlFor="description">Bahan Utama</Label>
                     <textarea
                         id="description"
                         className="border-input flex min-h-[80px] w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:outline-none"
