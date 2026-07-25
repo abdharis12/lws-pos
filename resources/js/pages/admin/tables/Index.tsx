@@ -316,24 +316,34 @@ export default function TablesIndex({ tables, floors }: Props) {
                 </Dialog>
             </div>
 
-            <div className="mb-4 flex flex-wrap gap-1">
+            <div className="mb-4 inline-flex flex-wrap gap-1.5 rounded-xl bg-muted/50 p-1.5">
                 <button
                     onClick={() => setFilterFloor(null)}
-                    className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${!filterFloor ? 'text-white shadow-sm' : 'opacity-70 hover:opacity-100'}`}
-                    style={{ backgroundColor: !filterFloor ? '#233433' : 'transparent', color: !filterFloor ? '#fff' : '#233433' }}
+                    className={`rounded-lg px-3.5 py-1.5 text-xs font-medium transition-all duration-200 ${
+                        !filterFloor
+                            ? 'bg-white text-foreground shadow-sm ring-1 ring-black/5'
+                            : 'text-muted-foreground hover:bg-white/60 hover:text-foreground'
+                    }`}
                 >
                     Semua
                 </button>
-                {floors.map(f => (
-                    <button
-                        key={f}
-                        onClick={() => setFilterFloor(f)}
-                        className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${filterFloor === f ? 'text-white shadow-sm' : 'opacity-70 hover:opacity-100'}`}
-                        style={{ backgroundColor: filterFloor === f ? '#233433' : 'transparent', color: filterFloor === f ? '#fff' : '#233433' }}
-                    >
-                        {f}
-                    </button>
-                ))}
+                {floors.map((f, i) => {
+                    const icons = ['①', '②', '③', '④', '🌿'];
+                    return (
+                        <button
+                            key={f}
+                            onClick={() => setFilterFloor(f)}
+                            className={`rounded-lg px-3.5 py-1.5 text-xs font-medium transition-all duration-200 ${
+                                filterFloor === f
+                                    ? 'bg-white text-foreground shadow-sm ring-1 ring-black/5'
+                                    : 'text-muted-foreground hover:bg-white/60 hover:text-foreground'
+                            }`}
+                        >
+                            <span className="mr-1 opacity-60">{icons[i] ?? ''}</span>
+                            {f}
+                        </button>
+                    );
+                })}
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
