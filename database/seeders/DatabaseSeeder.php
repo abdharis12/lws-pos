@@ -204,17 +204,19 @@ class DatabaseSeeder extends Seeder
             }
         }
 
+        $floors = ['Lantai 1', 'Lantai 2', 'Lantai 3', 'Lantai 4', 'Teras'];
+
         $tables = [
-            ['code' => 'T01', 'capacity' => 2],
-            ['code' => 'T02', 'capacity' => 2],
-            ['code' => 'T03', 'capacity' => 4],
-            ['code' => 'T04', 'capacity' => 4],
-            ['code' => 'T05', 'capacity' => 6],
-            ['code' => 'T06', 'capacity' => 6],
-            ['code' => 'T07', 'capacity' => 8],
-            ['code' => 'T08', 'capacity' => 8],
-            ['code' => 'VIP1', 'capacity' => 6],
-            ['code' => 'VIP2', 'capacity' => 6],
+            ['code' => 'L1-01', 'capacity' => 2, 'floor' => 'Lantai 1'],
+            ['code' => 'L1-02', 'capacity' => 4, 'floor' => 'Lantai 1'],
+            ['code' => 'L2-01', 'capacity' => 4, 'floor' => 'Lantai 2'],
+            ['code' => 'L2-02', 'capacity' => 6, 'floor' => 'Lantai 2'],
+            ['code' => 'L3-01', 'capacity' => 4, 'floor' => 'Lantai 3'],
+            ['code' => 'L3-02', 'capacity' => 6, 'floor' => 'Lantai 3'],
+            ['code' => 'L4-01', 'capacity' => 6, 'floor' => 'Lantai 4'],
+            ['code' => 'L4-02', 'capacity' => 8, 'floor' => 'Lantai 4'],
+            ['code' => 'TR-01', 'capacity' => 4, 'floor' => 'Teras'],
+            ['code' => 'TR-02', 'capacity' => 6, 'floor' => 'Teras'],
         ];
 
         foreach ($tables as $table) {
@@ -223,6 +225,7 @@ class DatabaseSeeder extends Seeder
                 'code' => $table['code'],
                 'table_token' => Str::random(40),
                 'capacity' => $table['capacity'],
+                'floor' => $table['floor'],
                 'status' => 'available',
             ]);
         }

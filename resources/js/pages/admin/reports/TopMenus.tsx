@@ -86,7 +86,7 @@ export default function TopMenus({ menus, topOptionItems, startDate, endDate }: 
                                             />
                                         </div>
                                         <p className="mt-0.5 text-xs" style={{ color: '#8a968f' }}>
-                                            Rp {menu.total_revenue.toLocaleString('id-ID')}
+                                            Rp {Math.ceil(menu.total_revenue).toLocaleString('id-ID')}
                                         </p>
                                     </div>
                                 ))}
@@ -131,7 +131,7 @@ export default function TopMenus({ menus, topOptionItems, startDate, endDate }: 
                                                     {item.total_used}x
                                                 </td>
                                                 <td className="px-4 py-3 text-right" style={{ color: '#5c6a66' }}>
-                                                    Rp {item.total_adjustment.toLocaleString('id-ID')}
+                                                    Rp {Math.ceil(item.total_adjustment).toLocaleString('id-ID')}
                                                 </td>
                                             </tr>
                                         ))}

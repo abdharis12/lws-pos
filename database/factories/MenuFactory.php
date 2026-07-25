@@ -23,6 +23,7 @@ class MenuFactory extends Factory
             'category_id' => MenuCategory::factory(),
             'name' => fake()->unique()->randomElement(self::$menus),
             'description' => fake()->sentence(),
+            'station' => fake()->optional(0.7)->randomElement(['Main', 'Grill', 'Fry', 'Steam', 'Cold']),
             'price' => fake()->randomFloat(2, 3000, 50000),
             'photo_path' => null,
             'is_available' => true,

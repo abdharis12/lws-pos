@@ -40,10 +40,15 @@ class OrderStatusUpdated implements ShouldBroadcast
 
     public function broadcastWith(): array
     {
+        $order = $this->order->loadMissing(['tableSession.table', 'items.menu']);
+
         return [
             'order' => [
-                'id' => $this->order->id,
-                'status' => $this->order->status,
+                'id' => $order->id,
+                'status' => $order->status,
+                'table_code' => $order->tableSession?->table?->code,
+                'customer_name' => $order->customer_name,
+                'item_count' => $order->items->sum('qty'),
             ],
         ];
     }

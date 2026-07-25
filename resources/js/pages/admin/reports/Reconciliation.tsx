@@ -1,5 +1,5 @@
-import { Head, router } from '@inertiajs/react';
-import { ArrowLeft, CheckCircle2, XCircle, Clock, CreditCard } from 'lucide-react';
+import { Head, router, Link } from '@inertiajs/react';
+import { ArrowLeft, CheckCircle2, XCircle, Clock, CreditCard, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,6 +17,23 @@ interface PaymentItem {
     order: { id: number; total: number } | null;
 }
 
+interface PaginationLink {
+    url: string | null;
+    label: string;
+    active: boolean;
+}
+
+interface PaginatedData<T> {
+    data: T[];
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+    from: number | null;
+    to: number | null;
+    links: PaginationLink[];
+}
+
 interface Summary {
     total_system: number;
     total_pending: number;
@@ -27,7 +44,7 @@ interface Summary {
 }
 
 interface Props {
-    payments: PaymentItem[];
+    payments: PaginatedData<PaymentItem>;
     summary: Summary;
     startDate: string;
     endDate: string;
@@ -77,7 +94,7 @@ export default function Reconciliation({ payments, summary, startDate, endDate }
                         </CardHeader>
                         <CardContent>
                             <div className="font-display text-2xl font-bold" style={{ color: DARK }}>
-                                Rp {summary.total_system.toLocaleString('id-ID')}
+                                Rp {Math.ceil(summary.total_system).toLocaleString('id-ID')}
                             </div>
                         </CardContent>
                     </Card>
@@ -90,7 +107,7 @@ export default function Reconciliation({ payments, summary, startDate, endDate }
                         </CardHeader>
                         <CardContent>
                             <div className="font-display text-2xl font-bold" style={{ color: '#CFC0A4' }}>
-                                Rp {summary.total_pending.toLocaleString('id-ID')}
+                                Rp {Math.ceil(summary.total_pending).toLocaleString('id-ID')}
                             </div>
                         </CardContent>
                     </Card>
@@ -103,7 +120,7 @@ export default function Reconciliation({ payments, summary, startDate, endDate }
                         </CardHeader>
                         <CardContent>
                             <div className="font-display text-2xl font-bold" style={{ color: '#dc2626' }}>
-                                Rp {summary.total_failed.toLocaleString('id-ID')}
+                                Rp {Math.ceil(summary.total_failed).toLocaleString('id-ID')}
                             </div>
                         </CardContent>
                     </Card>
@@ -156,7 +173,7 @@ export default function Reconciliation({ payments, summary, startDate, endDate }
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        {payments.length === 0 ? (
+                        {payments.data.length === 0 ? (
                             <p className="py-4 text-center text-sm" style={{ color: '#8a968f' }}>
                                 Belum ada data pembayaran.
                             </p>
@@ -173,7 +190,7 @@ export default function Reconciliation({ payments, summary, startDate, endDate }
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {payments.map((p) => (
+                                        {payments.data.map((p) => (
                                             <tr key={p.id} className="border-b last:border-0 transition-colors hover:bg-[#F6F2E9]/30" style={{ borderColor: 'rgba(37,51,47,0.06)' }}>
                                                 <td className="px-4 py-3 font-medium" style={{ color: DARK }}>
                                                     #{p.order_id}
@@ -187,7 +204,7 @@ export default function Reconciliation({ payments, summary, startDate, endDate }
                                                     </Badge>
                                                 </td>
                                                 <td className="px-4 py-3 text-right font-semibold" style={{ color: DARK }}>
-                                                    Rp {Number(p.gross_amount).toLocaleString('id-ID')}
+                                                    Rp {Math.ceil(Number(p.gross_amount)).toLocaleString('id-ID')}
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     {statusBadge(p.status)}
@@ -196,6 +213,63 @@ export default function Reconciliation({ payments, summary, startDate, endDate }
                                         ))}
                                     </tbody>
                                 </table>
+
+                                {payments.last_page > 1 && (
+                                    <div className="flex items-center justify-between border-t px-2 py-3" style={{ borderColor: 'rgba(37,51,47,0.08)' }}>
+                                        <p className="text-sm" style={{ color: '#5c6a66' }}>
+                                            Menampilkan {payments.from}–{payments.to} dari {payments.total}
+                                        </p>
+                                        <div className="flex items-center gap-1">
+                                            {payments.links.map((link, i) => {
+                                                if (link.label.includes('Previous')) {
+                                                    return link.url ? (
+                                                        <Link key={i} href={link.url} preserveScroll preserveState>
+                                                            <Button variant="ghost" size="icon" className="size-8">
+                                                                <ChevronLeft className="size-4" />
+                                                            </Button>
+                                                        </Link>
+                                                    ) : (
+                                                        <Button key={i} variant="ghost" size="icon" className="size-8" disabled>
+                                                            <ChevronLeft className="size-4" />
+                                                        </Button>
+                                                    );
+                                                }
+                                                if (link.label.includes('Next')) {
+                                                    return link.url ? (
+                                                        <Link key={i} href={link.url} preserveScroll preserveState>
+                                                            <Button variant="ghost" size="icon" className="size-8">
+                                                                <ChevronRight className="size-4" />
+                                                            </Button>
+                                                        </Link>
+                                                    ) : (
+                                                        <Button key={i} variant="ghost" size="icon" className="size-8" disabled>
+                                                            <ChevronRight className="size-4" />
+                                                        </Button>
+                                                    );
+                                                }
+                                                const pageNum = link.label;
+                                                return link.url ? (
+                                                    <Link key={i} href={link.url} preserveScroll preserveState>
+                                                        <Button
+                                                            variant="ghost"
+                                                            className="min-w-8 h-8 px-2 text-sm"
+                                                            style={{
+                                                                backgroundColor: link.active ? PRIMARY : undefined,
+                                                                color: link.active ? '#fff' : DARK,
+                                                            }}
+                                                        >
+                                                            {pageNum}
+                                                        </Button>
+                                                    </Link>
+                                                ) : (
+                                                    <span key={i} className="px-2 text-sm" style={{ color: '#8a968f' }}>
+                                                        {pageNum}
+                                                    </span>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </CardContent>

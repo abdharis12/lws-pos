@@ -15,7 +15,7 @@ class Meja extends Model
     protected $table = 'tables';
 
     protected $fillable = [
-        'outlet_id', 'code', 'table_token', 'capacity', 'status',
+        'outlet_id', 'code', 'table_token', 'capacity', 'floor', 'status', 'locked_by',
     ];
 
     protected static function booted(): void
@@ -35,5 +35,10 @@ class Meja extends Model
     public function sessions(): HasMany
     {
         return $this->hasMany(TableSession::class, 'table_id');
+    }
+
+    public function lockedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'locked_by');
     }
 }

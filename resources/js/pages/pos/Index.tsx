@@ -1,13 +1,13 @@
-import { Head, useForm, router } from '@inertiajs/react';
-import { useState, useMemo, useRef } from 'react';
-import {
-    Search, ShoppingCart, Check,
-} from 'lucide-react';
+import { Head, useForm, router, usePage } from '@inertiajs/react';
+import { useState, useMemo, useRef, useEffect } from 'react';
+import { Search, ShoppingCart, Check, X, Move, ArrowRightLeft, Lock, Link, HandPlatter } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import { BORDER, CREAM, INK, MUTED, PRIMARY, SAND, TABLE_COLORS } from './constants';
-import type { CartItem, MenuItem, PendingOrder, PosPageProps } from './types';
+import type { CartItem, MenuItem, PendingOrder, PosPageProps, OrderData, PrintReceiptData, TableData } from './types';
 import MenuCard from './components/MenuCard';
 import CartPanel from './components/CartPanel';
 import ItemDialog from './dialogs/ItemDialog';
@@ -15,11 +15,14 @@ import PaymentDialog from './dialogs/PaymentDialog';
 import ApprovalDialog from './dialogs/ApprovalDialog';
 import SplitBillDialog from './dialogs/SplitBillDialog';
 import CashPaymentDialog from './dialogs/CashPaymentDialog';
-import QrisPaymentDialog from './dialogs/QrisPaymentDialog';
+import MidtransPaymentDialog from './dialogs/MidtransPaymentDialog';
 import SuccessDialog from './dialogs/SuccessDialog';
+import MoveMergeDialog from './dialogs/MoveMergeDialog';
 
-export default function PosIndex({ categories, tables, pendingOrders }: PosPageProps) {
-    const [selectedTableId, setSelectedTableId] = useState<number | null>(null);
+export default function PosIndex({ categories, tables, pendingOrders, lastOrder, groupedTables }: PosPageProps) {
+    const { auth } = usePage().props as { auth: { user: { id: number; name: string } | null } };
+    const cashierName = auth?.user?.name ?? '';
+    const [selectedTableIds, setSelectedTableIds] = useState<number[]>([]);
     const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(
         () => categories.length > 0 ? categories[0].id : null
     );
@@ -42,21 +45,50 @@ export default function PosIndex({ categories, tables, pendingOrders }: PosPageP
     const [splitCount, setSplitCount] = useState(1);
     const [splitInputValue, setSplitInputValue] = useState('2');
     const [showPrintButton, setShowPrintButton] = useState(false);
-    const [printReceiptData, setPrintReceiptData] = useState<{ items: CartItem[]; discountType: string | null; discountValue: number } | null>(null);
+    const [printReceiptData, setPrintReceiptData] = useState<PrintReceiptData | null>(null);
     const [cashDialogOpen, setCashDialogOpen] = useState(false);
     const [cashAmountGiven, setCashAmountGiven] = useState(0);
-    const [qrisDialogOpen, setQrisDialogOpen] = useState(false);
-    const [qrisProcessing, setQrisProcessing] = useState(false);
-    const [qrisQrCodeUrl, setQrisQrCodeUrl] = useState<string | null>(null);
-    const [qrisError, setQrisError] = useState<string | null>(null);
-    const [qrisOrderId, setQrisOrderId] = useState<number | null>(null);
-    const qrisOrderIdRef = useRef<number | null>(null);
-    const [qrisPaymentStatus, setQrisPaymentStatus] = useState<'pending' | 'settlement' | 'failed'>('pending');
+    const [midtransDialogOpen, setMidtransDialogOpen] = useState(false);
     const [successDialogOpen, setSuccessDialogOpen] = useState(false);
     const [successType, setSuccessType] = useState<'cash' | 'qris' | 'save'>('cash');
     const [isPendingCashPayment, setIsPendingCashPayment] = useState(false);
     const [successChange, setSuccessChange] = useState(0);
+    const [receiptOrder, setReceiptOrder] = useState<OrderData | null>(lastOrder ?? null);
     const printFrameRef = useRef<HTMLIFrameElement>(null);
+    const [releaseDialogTable, setReleaseDialogTable] = useState<{ id: number; code: string } | null>(null);
+    const [moveMergeDialog, setMoveMergeDialog] = useState<{ mode: 'move' | 'merge'; sourceTable: { id: number; code: string } } | null>(null);
+
+    useEffect(() => {
+        if (lastOrder) {
+            setReceiptOrder(lastOrder);
+        }
+    }, [lastOrder]);
+
+    const groupedBy = useMemo(() => {
+        const map: Record<number, number> = {};
+        if (groupedTables) {
+            for (const [mainId, extras] of Object.entries(groupedTables)) {
+                for (const extraId of extras) {
+                    map[extraId] = Number(mainId);
+                }
+            }
+        }
+        return map;
+    }, [groupedTables]);
+
+    function getGroupLabel(tableId: number): string | null {
+        const mainId = groupedBy[tableId];
+        if (mainId) {
+            const mainTable = tables.find(t => t.id === mainId);
+            return `${mainTable?.code ?? `Meja ${mainId}`}`;
+        }
+        const extras = groupedTables?.[tableId];
+        if (extras?.length) {
+            const extraTables = tables.filter(t => extras.includes(t.id));
+            return `+${extras.length} ${extraTables.map(t => t.code).join(', ')}`;
+        }
+        return null;
+    }
 
     const subtotal = useMemo(() => cartItems.reduce((sum, item) => {
         const optAdj = item.selectedOptions.reduce((s, o) => s + o.adjustment, 0);
@@ -67,16 +99,36 @@ export default function PosIndex({ categories, tables, pendingOrders }: PosPageP
         if (discountType === 'percentage') return Math.min(subtotal * (discountValue / 100), subtotal);
         return Math.min(discountValue, subtotal);
     }, [subtotal, discountType, discountValue]);
-    const total = subtotal - discountAmount;
+    const tax = Math.round(subtotal * 0.10);
+    const total = subtotal + tax - discountAmount;
+
+    const [orderType, setOrderType] = useState<'dine_in' | 'takeaway'>('dine_in');
+
+    const [customerName, setCustomerName] = useState('');
+
+    const [selectedFloor, setSelectedFloor] = useState<string | null>(null);
+
+    const allFloors = useMemo(() => {
+        const floors = tables.map(t => t.floor).filter((f): f is string => f !== null);
+        return [...new Set(floors)];
+    }, [tables]);
+
+    const filteredTables = useMemo(() => {
+        if (!selectedFloor) return tables;
+        return tables.filter(t => t.floor === selectedFloor);
+    }, [tables, selectedFloor]);
 
     const { setData, post, processing } = useForm({
         table_id: null as number | null,
+        table_ids: [] as number[],
         items: [] as { menu_id: number; qty: number; notes: string | null; option_ids: number[] }[],
         payment_method: null as string | null,
         discount_type: null as string | null,
         discount_value: null as number | null,
         discount_approved_by: null as number | null,
         split_count: null as number | null,
+        order_type: 'dine_in' as string,
+        customer_name: null as string | null,
     });
 
     const selectedCategory = categories.find(c => c.id === selectedCategoryId);
@@ -120,8 +172,11 @@ export default function PosIndex({ categories, tables, pendingOrders }: PosPageP
     }
 
     function getCsrfToken(): string {
-        const meta = document.querySelector('meta[name="csrf-token"]');
-        return meta?.getAttribute('content') ?? '';
+        const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        if (token) return token;
+        const cookie = document.cookie.split('; ').find(row => row.startsWith('XSRF-TOKEN='));
+        if (cookie) return decodeURIComponent(cookie.split('=')[1]);
+        return '';
     }
 
     function handleSubmitApproval() {
@@ -151,19 +206,70 @@ export default function PosIndex({ categories, tables, pendingOrders }: PosPageP
             });
     }
 
+    function handleTableClick(table: TableData) {
+        if (table.status === 'occupied') {
+            setReleaseDialogTable({ id: table.id, code: table.code });
+            return;
+        }
+        if (table.status === 'locked' && table.locked_by && table.locked_by !== auth?.user?.id) {
+            toast.error(`Meja sedang diproses oleh ${table.locked_by_user?.name || 'pengguna lain'}`);
+            return;
+        }
+        setSelectedTableIds(prev =>
+            prev.includes(table.id)
+                ? prev.filter(id => id !== table.id)
+                : [...prev, table.id]
+        );
+    }
+
+    async function toggleLock(table: TableData) {
+        const isLock = table.status === 'available';
+        const res = await fetch(`/pos/tables/${table.id}/${isLock ? 'lock' : 'unlock'}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': getCsrfToken() },
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+            toast.error(data?.message || (isLock ? 'Gagal mengunci meja' : 'Gagal unlock meja'));
+            return;
+        }
+        router.reload();
+    }
+
+    function buildReceiptData(amountGiven?: number): PrintReceiptData {
+        const pendingOrder = pendingOrders.find(o => o.id === selectedPendingOrderId);
+        const selectedCodes = tables.filter(t => selectedTableIds.includes(t.id)).map(t => t.code).join(', ');
+        const cashAmount = amountGiven ?? undefined;
+        const change = amountGiven ? amountGiven - total : undefined;
+        return {
+            items: [...cartItems],
+            discountType,
+            discountValue,
+            tableCode: selectedCodes || null,
+            kasir: cashierName,
+            customerName: pendingOrder?.customer_name ?? customerName,
+            cashAmount: cashAmount && cashAmount >= total ? cashAmount : undefined,
+            change: change && change >= 0 ? change : undefined,
+        };
+    }
+
+    const isDineIn = orderType === 'dine_in';
+
     function handleOrder(paymentMethod?: string) {
         if (cartItems.length === 0) return;
         if (paymentMethod === 'cash') {
             setCashDialogOpen(true);
             return;
         }
-        if (paymentMethod === 'qris') {
-            handleInitiateQris();
+        if (paymentMethod === 'online') {
+            setPrintReceiptData(buildReceiptData());
+            setMidtransDialogOpen(true);
             return;
         }
-        if (!selectedTableId) return;
+        if (isDineIn && selectedTableIds.length === 0) return;
         setData({
-            table_id: selectedTableId,
+            table_id: isDineIn ? selectedTableIds[0] : null,
+            table_ids: isDineIn ? selectedTableIds : [],
             items: cartItems.map(item => ({
                 menu_id: item.menu.id,
                 qty: item.qty,
@@ -175,8 +281,10 @@ export default function PosIndex({ categories, tables, pendingOrders }: PosPageP
             discount_value: discountValue > 0 ? discountValue : null,
             discount_approved_by: discountApprovedBy,
             split_count: splitCount > 1 ? splitCount : null,
+            order_type: orderType,
+            customer_name: isDineIn ? null : customerName,
         });
-        setPrintReceiptData({ items: [...cartItems], discountType, discountValue });
+        setPrintReceiptData(buildReceiptData());
         post('/pos/orders', {
             preserveScroll: true,
             onSuccess: () => {
@@ -189,10 +297,11 @@ export default function PosIndex({ categories, tables, pendingOrders }: PosPageP
     }
 
     function handleCashConfirm(amountGiven: number) {
-        if (cartItems.length === 0 || !selectedTableId) return;
+        if (cartItems.length === 0 || (isDineIn && selectedTableIds.length === 0)) return;
         setCashAmountGiven(amountGiven);
         setData({
-            table_id: selectedTableId,
+            table_id: isDineIn ? selectedTableIds[0] : null,
+            table_ids: isDineIn ? selectedTableIds : [],
             items: cartItems.map(item => ({
                 menu_id: item.menu.id,
                 qty: item.qty,
@@ -204,8 +313,10 @@ export default function PosIndex({ categories, tables, pendingOrders }: PosPageP
             discount_value: discountValue > 0 ? discountValue : null,
             discount_approved_by: discountApprovedBy,
             split_count: splitCount > 1 ? splitCount : null,
+            order_type: orderType,
+            customer_name: isDineIn ? null : customerName,
         });
-        setPrintReceiptData({ items: [...cartItems], discountType, discountValue });
+        setPrintReceiptData(buildReceiptData(amountGiven));
         post('/pos/orders', {
             preserveScroll: true,
             onSuccess: () => {
@@ -218,87 +329,23 @@ export default function PosIndex({ categories, tables, pendingOrders }: PosPageP
         });
     }
 
-    function handleInitiateQris() {
-        if (cartItems.length === 0) return;
-        setQrisDialogOpen(true);
-        setQrisProcessing(true);
-        setQrisQrCodeUrl(null);
-        setQrisError(null);
-        setQrisPaymentStatus('pending');
-
-        fetch('/pos/orders/qris-init', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': getCsrfToken() },
-            body: JSON.stringify({
-                table_id: selectedTableId,
-                items: cartItems.map(item => ({
-                    menu_id: item.menu.id,
-                    qty: item.qty,
-                    notes: item.notes || null,
-                    option_ids: item.selectedOptions.map(o => o.itemId),
-                })),
-                discount_type: discountValue > 0 ? discountType : null,
-                discount_value: discountValue > 0 ? discountValue : null,
-                discount_approved_by: discountApprovedBy,
-            }),
-        })
-            .then(res => res.json().then(data => ({ ok: res.ok, data })))
-            .then(({ ok, data }) => {
-                setQrisProcessing(false);
-                if (!ok) {
-                    setQrisError(data.message || 'Gagal memproses QRIS');
-                    return;
-                }
-                setQrisOrderId(data.order_id);
-                qrisOrderIdRef.current = data.order_id;
-                setQrisQrCodeUrl(data.qr_code);
-                setPrintReceiptData({ items: [...cartItems], discountType, discountValue });
-            })
-            .catch(() => {
-                setQrisProcessing(false);
-                setQrisError('Terjadi kesalahan jaringan');
-            });
-    }
-
-    function handleQrisClose() {
-        setQrisDialogOpen(false);
-        setQrisOrderId(null);
-        qrisOrderIdRef.current = null;
-        setQrisQrCodeUrl(null);
-        setQrisError(null);
-        setQrisPaymentStatus('pending');
-        if (qrisPaymentStatus === 'settlement') {
-            setSuccessDialogOpen(true);
-        }
-    }
-
-    function handleQrisPoll() {
-        const id = qrisOrderIdRef.current;
-        if (!id) return;
-        fetch(`/pos/orders/${id}/qris-status`, {
-            headers: { 'Accept': 'application/json' },
-        })
-            .then(res => res.json())
-            .then(data => {
-                if (data.status === 'settlement') {
-                    setQrisPaymentStatus('settlement');
-                    resetAfterOrder();
-                    setTimeout(() => {
-                        setQrisDialogOpen(false);
-                        setSuccessType('qris');
-                        setSuccessChange(0);
-                        setSuccessDialogOpen(true);
-                    }, 1500);
-                } else if (data.status === 'failed') {
-                    setQrisPaymentStatus('failed');
-                }
-            })
-            .catch(() => {});
+    function handleMidtransSuccess(result: { orderNumber: string; paymentType: string; midtransCharge: number }) {
+        setPrintReceiptData(prev => ({
+            ...(prev ?? buildReceiptData()),
+            orderNumber: result.orderNumber,
+            paymentMethod: result.paymentType,
+            midtransCharge: result.midtransCharge,
+        }));
+        resetAfterOrder();
+        setMidtransDialogOpen(false);
+        setSuccessType('qris');
+        setSuccessChange(0);
+        setSuccessDialogOpen(true);
     }
 
     function resetAfterOrder() {
         setCartItems([]);
-        setSelectedTableId(null);
+        setSelectedTableIds([]);
         setSelectedPendingOrderId(null);
         setCartOpen(false);
         setDiscountType(null);
@@ -306,10 +353,12 @@ export default function PosIndex({ categories, tables, pendingOrders }: PosPageP
         setDiscountApprovedBy(null);
         setSplitCount(1);
         setShowPrintButton(true);
+        setCustomerName('');
     }
 
     function handleSuccessClose() {
         setSuccessDialogOpen(false);
+        setTimeout(() => router.visit('/pos', { preserveScroll: true }), 100);
     }
 
     function handleSelectPendingOrder(order: PendingOrder) {
@@ -327,13 +376,9 @@ export default function PosIndex({ categories, tables, pendingOrders }: PosPageP
     }
 
     function handlePaymentMethodSelect(method: string) {
-        if (method === 'cash') {
-            setPaymentDialogOpen(false);
-            setIsPendingCashPayment(true);
-            setCashDialogOpen(true);
-        } else {
-            handleConfirmPay('qris');
-        }
+        setPaymentDialogOpen(false);
+        setIsPendingCashPayment(true);
+        setCashDialogOpen(true);
     }
 
     function handlePendingCashConfirm(amountGiven: number) {
@@ -341,7 +386,7 @@ export default function PosIndex({ categories, tables, pendingOrders }: PosPageP
         setCashAmountGiven(amountGiven);
         setCashDialogOpen(false);
         setConfirmPayProcessing(true);
-        setPrintReceiptData({ items: [...cartItems], discountType, discountValue });
+        setPrintReceiptData(buildReceiptData(amountGiven));
 
         router.put(`/pos/orders/${selectedPendingOrderId}/confirm-pay`, {
             items: cartItems.map(item => ({
@@ -374,7 +419,7 @@ export default function PosIndex({ categories, tables, pendingOrders }: PosPageP
     function handleConfirmPay(method: string) {
         if (!selectedPendingOrderId || cartItems.length === 0) return;
         setConfirmPayProcessing(true);
-        setPrintReceiptData({ items: [...cartItems], discountType, discountValue });
+        setPrintReceiptData(buildReceiptData());
 
         router.put(`/pos/orders/${selectedPendingOrderId}/confirm-pay`, {
             items: cartItems.map(item => ({
@@ -401,106 +446,264 @@ export default function PosIndex({ categories, tables, pendingOrders }: PosPageP
         });
     }
 
+    function formatPrice(amount: number): string {
+        return `Rp ${Math.round(amount).toLocaleString('id-ID')}`;
+    }
+
     function handlePrintReceipt() {
         const data = printReceiptData;
         if (!data || data.items.length === 0) return;
-
         const { items, discountType, discountValue } = data;
+
+        const order = receiptOrder;
+
         const subtotal = items.reduce((sum, item) => {
             const optAdj = item.selectedOptions.reduce((s, o) => s + o.adjustment, 0);
             return sum + (Number(item.menu.price) + optAdj) * item.qty;
         }, 0);
-
+        const tax = roundP(subtotal * 0.10);
+        const serviceCharge = roundP(subtotal * 0.05);
+        const midtransCharge = data.midtransCharge ?? 0;
         const discountAmount = discountType && discountValue > 0
             ? (discountType === 'percentage'
                 ? Math.min(subtotal * (discountValue / 100), subtotal)
                 : Math.min(discountValue, subtotal))
             : 0;
+        const total = subtotal + tax + serviceCharge + midtransCharge - discountAmount;
 
-        const total = subtotal - discountAmount;
+        const orderNumber = data.orderNumber
+            ?? (order ? `TRX-LW-${order.id}` : null)
+            ?? '—';
+        const kasir = data.kasir ?? order?.created_by?.name ?? '';
+        const tableCode = data.tableCode ?? order?.table_session?.table?.code ?? null;
+        const customerName = data.customerName ?? order?.customer_name ?? null;
+        const paymentMethod = data.paymentMethod ?? order?.payment?.method ?? null;
+        const orderType = order?.order_type === 'cashier' ? 'Dine-in'
+            : order?.order_type === 'dine_in_qr' ? 'Dine-in'
+                : order?.order_type === 'takeaway' ? 'Take Away'
+                    : order?.order_type ?? 'cashier';
 
+        printReceiptHtml({
+            orderNumber,
+            createdAt: order?.created_at ?? new Date().toISOString(),
+            kasir,
+            orderType,
+            tableCode,
+            customerName,
+            receiptItems: order
+                ? order.items.map(i => ({
+                    name: i.menu.name,
+                    qty: i.qty,
+                    basePrice: Number(i.base_price),
+                    totalPrice: Number(i.total_price),
+                    options: i.options.map(o => ({ name: o.option_item.name, price: Number(o.price_adjustment) })),
+                    notes: i.notes,
+                }))
+                : items.map(i => ({
+                    name: i.menu.name,
+                    qty: i.qty,
+                    basePrice: Number(i.menu.price),
+                    totalPrice: (Number(i.menu.price) + i.selectedOptions.reduce((s, o) => s + o.adjustment, 0)) * i.qty,
+                    options: i.selectedOptions.map(o => ({ name: o.name, price: o.adjustment })),
+                    notes: i.notes || null,
+                })),
+            subtotal: order ? Number(order.subtotal) : subtotal,
+            tax: order ? Number(order.tax) : tax,
+            serviceCharge: order ? Number(order.service_charge) : serviceCharge,
+            midtransCharge: order ? Number(order.midtrans_charge ?? 0) : midtransCharge,
+            discount: order ? Number(order.discount) : discountAmount,
+            discountLabel: order?.discount_type === 'percentage' ? `${order.discount_value}%`
+                : discountType === 'percentage' ? `${discountValue}%`
+                    : null,
+            total: order ? Number(order.total) : total,
+            paymentMethod,
+            cashAmount: data.cashAmount,
+            change: data.change,
+        });
+    }
+
+    function roundP(n: number): number {
+        return Math.round(n * 100) / 100;
+    }
+
+    function printReceiptHtml(data: {
+        orderNumber: string;
+        createdAt: string;
+        kasir: string;
+        orderType: string;
+        tableCode: string | null;
+        customerName: string | null;
+        receiptItems: { name: string; qty: number; basePrice: number; totalPrice: number; options: { name: string; price: number }[]; notes: string | null }[];
+        subtotal: number;
+        tax: number;
+        serviceCharge: number;
+        midtransCharge: number;
+        discount: number;
+        discountLabel: string | null;
+        total: number;
+        paymentMethod: string | null;
+        cashAmount?: number;
+        change?: number;
+    }) {
+        const paymentLabel = data.paymentMethod === 'cash' ? 'Tunai'
+            : data.paymentMethod === 'qris' ? 'QRIS'
+                : data.paymentMethod === 'debit' ? 'Kartu Debit'
+                    : data.paymentMethod === 'credit' ? 'Kartu Kredit'
+                        : data.paymentMethod === 'gopay' ? 'GoPay'
+                            : data.paymentMethod === 'shopeepay' ? 'ShopeePay'
+                                : data.paymentMethod === 'bca_va' ? 'BCA VA'
+                                    : data.paymentMethod === 'mandiri_va' ? 'Mandiri VA'
+                                        : data.paymentMethod === 'bni_va' ? 'BNI VA'
+                                            : data.paymentMethod === 'bri_va' ? 'BRI VA'
+                                                : data.paymentMethod === 'permata_va' ? 'Permata VA'
+                                                    : data.paymentMethod === 'echannel' ? 'Mandiri Bill'
+                                                        : data.paymentMethod === 'indomaret' ? 'Indomaret'
+                                                            : data.paymentMethod === 'alfamart' ? 'Alfamart'
+                                                                : data.paymentMethod === 'akulaku' ? 'Akulaku'
+                                                                    : '—';
+        const tableInfo = data.tableCode ? `Meja ${data.tableCode}` : '—';
+        const dateStr = new Date(data.createdAt).toLocaleDateString('id-ID', {
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+        });
+        const timeStr = new Date(data.createdAt).toLocaleTimeString('id-ID', {
+            hour: '2-digit', minute: '2-digit',
+        });
+
+        const logoUrl = `${window.location.origin}/img/lws-logo.png`;
         const receiptHtml = `<!DOCTYPE html>
-                                <html>
-                                <head>
-                                <meta charset="utf-8">
-                                <title>Struk Pembayaran</title>
-                                <style>
-                                    @page { margin: 0; size: 80mm auto; }
-                                    * { margin: 0; padding: 0; box-sizing: border-box; }
-                                    body {
-                                        font-family: 'Courier New', monospace;
-                                        font-size: 12px;
-                                        width: 72mm;
-                                        padding: 10px 5mm;
-                                        color: #000;
-                                    }
-                                    .header { text-align: center; margin-bottom: 10px; }
-                                    .header h2 { font-size: 16px; margin-bottom: 4px; }
-                                    .header p { font-size: 10px; color: #555; }
-                                    .divider { border-top: 1px dashed #000; margin: 8px 0; }
-                                    .items { width: 100%; }
-                                    .items th { text-align: left; font-size: 10px; padding-bottom: 4px; }
-                                    .items td { padding: 2px 0; }
-                                    .items .right { text-align: right; }
-                                    .totals { margin-top: 8px; }
-                                    .totals .row { display: flex; justify-content: space-between; padding: 2px 0; }
-                                    .totals .grand { font-weight: bold; font-size: 14px; border-top: 1px solid #000; padding-top: 4px; margin-top: 4px; }
-                                    .footer { text-align: center; margin-top: 12px; font-size: 10px; color: #555; }
-                                </style>
-                                </head>
-                                <body>
-                                    <div class="header">
-                                        <img src="/img/lws-logo.png" alt="Logo" style="max-width: 50px; margin-bottom: 4px;">
-                                        <h2>LW's by Bubur Kang LW</h2>
-                                        <p>Jl. Angkatan 45, Palembang</p>
-                                        <p>Telp: 0813-1234-5678</p>
-                                        <p>${new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                                        <p>${new Date().toLocaleTimeString('id-ID')}</p>
-                                    </div>
-                                    <div class="divider"></div>
-                                    <table class="items" cellpadding="2">
-                                        <tr>
-                                            <th>Item</th>
-                                            <th class="right">Qty</th>
-                                            <th class="right">Harga</th>
-                                        </tr>
-                                        ${items.map(item => `
-                                        <tr>
-                                            <td colspan="3">${item.menu.name}</td>
-                                        </tr>
-                                        <tr>
-                                            <td></td>
-                                            <td class="right">${item.qty}</td>
-                                            <td class="right">Rp ${((Number(item.menu.price) + item.selectedOptions.reduce((s, o) => s + o.adjustment, 0)) * item.qty).toLocaleString('id-ID')}</td>
-                                        </tr>
-                                        ${item.selectedOptions.length > 0 ? `<tr><td colspan="3" style="font-size:10px;color:#888;">  ${item.selectedOptions.map(o => o.name).join(', ')}</td></tr>` : ''}
-                                        ${item.notes ? `<tr><td colspan="3" style="font-size:10px;color:#888;">  Catatan: ${item.notes}</td></tr>` : ''}
-                                        `).join('')}
-                                    </table>
-                                    <div class="divider"></div>
-                                    <div class="totals">
-                                        <div class="row">
-                                            <span>Subtotal</span>
-                                            <span>Rp ${subtotal.toLocaleString('id-ID')}</span>
-                                        </div>
-                                        ${discountAmount > 0 ? `
-                                        <div class="row">
-                                            <span>Diskon</span>
-                                            <span>-Rp ${discountAmount.toLocaleString('id-ID')}</span>
-                                        </div>
-                                        ` : ''}
-                                        <div class="row grand">
-                                            <span>Total</span>
-                                            <span>Rp ${total.toLocaleString('id-ID')}</span>
-                                        </div>
-                                    </div>
-                                    <div class="divider"></div>
-                                    <div class="footer">
-                                        <p>Terima kasih telah berbelanja!</p>
-                                        <p>Barang yang sudah dibeli tidak dapat dikembalikan</p>
-                                    </div>
-                                </body>
-                                </html>`;
+<html>
+<head>
+<meta charset="utf-8">
+<title>Struk Pembayaran</title>
+<style>
+    @page { margin: 0; size: 80mm auto; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+        font-family: 'Courier New', monospace;
+        font-size: 11px;
+        width: 72mm;
+        padding: 8px 4mm;
+        color: #000;
+        line-height: 1.35;
+    }
+    .center { text-align: center; }
+    .header { margin-bottom: 6px; }
+    .header img { width: 60px; height: auto; margin-bottom: 4px; }
+    .header h2 { font-size: 14px; margin-bottom: 1px; letter-spacing: 0.5px; text-transform: uppercase; }
+    .header p { font-size: 9px; color: #555; }
+    .divider { border-top: 1px dashed #000; margin: 5px 0; }
+    .info-row { display: flex; justify-content: space-between; font-size: 9px; padding: 1px 0; }
+    .info-label { color: #555; }
+    .item-row { padding: 3px 0; }
+    .item-name { font-weight: bold; font-size: 10px; }
+    .item-detail { display: flex; justify-content: space-between; font-size: 9px; padding-left: 4px; }
+    .item-option { font-size: 8px; color: #555; padding-left: 10px; display: flex; justify-content: space-between; }
+    .item-note { font-size: 8px; color: #888; font-style: italic; padding-left: 10px; }
+    .totals { margin-top: 3px; }
+    .totals .row { display: flex; justify-content: space-between; padding: 1.5px 0; font-size: 10px; }
+    .totals .final { font-weight: bold; font-size: 12px; border-top: 1px solid #000; padding-top: 3px; margin-top: 2px; }
+    .payment { text-align: center; margin: 5px 0; font-weight: bold; font-size: 10px; }
+    .footer { text-align: center; margin-top: 6px; font-size: 9px; color: #555; }
+</style>
+</head>
+<body>
+    <div class="header center">
+        <img src="${logoUrl}" alt="LWS Logo" />
+        <h2>LW's by Bubur Kang LW</h2>
+        <p>Jl. Angkatan 45, Palembang</p>
+        <p>Telp: 0813-1234-5678</p>
+    </div>
+    <div class="divider"></div>
+    <div class="info-row">
+        <span class="info-label">No. Struk</span>
+        <span>${data.orderNumber}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Tanggal</span>
+        <span>${dateStr}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Waktu</span>
+        <span>${timeStr}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Kasir</span>
+        <span>${data.kasir || '—'}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Meja</span>
+        <span>${tableInfo}</span>
+    </div>
+    ${data.customerName ? `
+    <div class="info-row">
+        <span class="info-label">Pelanggan</span>
+        <span>${data.customerName}</span>
+    </div>` : ''}
+    <div class="divider"></div>
+    ${data.receiptItems.map(item => `
+    <div class="item-row">
+        <div class="item-name">${item.name}</div>
+        <div class="item-detail">
+            <span>${item.qty} x ${formatPrice(item.basePrice)}</span>
+            <span>${formatPrice(item.totalPrice)}</span>
+        </div>
+        ${item.options.length > 0 ? item.options.map(o => `
+        <div class="item-option">
+            <span>* ${o.name}</span>
+            <span>${o.price > 0 ? '+' + formatPrice(o.price * item.qty) : ''}</span>
+        </div>`).join('') : ''}
+        ${item.notes ? `<div class="item-note">${item.notes}</div>` : ''}
+    </div>`).join('')}
+    <div class="divider"></div>
+    <div class="totals">
+        <div class="row">
+            <span>Subtotal</span>
+            <span>${formatPrice(data.subtotal)}</span>
+        </div>
+        <div class="row">
+            <span>Service Charge (5%)</span>
+            <span>${formatPrice(data.serviceCharge)}</span>
+        </div>
+        <div class="row">
+            <span>Pajak Resto (10%)</span>
+            <span>${formatPrice(data.tax)}</span>
+        </div>
+        ${data.midtransCharge > 0 ? `
+        <div class="row">
+            <span>Biaya Transaksi Online</span>
+            <span>${formatPrice(data.midtransCharge)}</span>
+        </div>` : ''}
+        ${data.discount > 0 ? `
+        <div class="row">
+            <span>Diskon${data.discountLabel ? ` (${data.discountLabel})` : ''}</span>
+            <span>-${formatPrice(data.discount)}</span>
+        </div>` : ''}
+        <div class="row final">
+            <span>TOTAL</span>
+            <span>${formatPrice(data.total)}</span>
+        </div>
+    </div>
+    ${data.paymentMethod === 'cash' && data.cashAmount ? `
+    <div class="divider"></div>
+    <div class="row">
+        <span>Dibayar</span>
+        <span>${formatPrice(data.cashAmount)}</span>
+    </div>
+    <div class="row">
+        <span>Kembalian</span>
+        <span>${formatPrice(data.change ?? 0)}</span>
+    </div>` : ''}
+    <div class="divider"></div>
+    <div class="payment">
+        <span>${paymentLabel}</span>
+    </div>
+    <div class="divider"></div>
+    <div class="footer">
+        <p>~ TERIMA KASIH ATAS KUNJUNGAN ANDA ~</p>
+        <p style="margin-top:3px;font-size:8px;">Selamat Menikmati Hidangan dari LW's by Bubur Kang LW</p>
+    </div>
+</body>
+</html>`;
 
         const iframe = printFrameRef.current;
         if (!iframe || !iframe.contentWindow) return;
@@ -523,7 +726,7 @@ export default function PosIndex({ categories, tables, pendingOrders }: PosPageP
         processing,
         pendingOrderId: selectedPendingOrderId,
         confirmPayProcessing,
-        tableSelected: selectedTableId !== null,
+        tableSelected: isDineIn ? selectedTableIds.length > 0 : true,
         onUpdateQty: (i: number, q: number) => setCartItems(prev => q < 1 ? prev : prev.map((item, idx) => idx === i ? { ...item, qty: q } : item)),
         onRemove: (i: number) => setCartItems(prev => prev.filter((_, idx) => idx !== i)),
         onOrder: handleOrder,
@@ -579,18 +782,80 @@ export default function PosIndex({ categories, tables, pendingOrders }: PosPageP
                                 </div>
                             </div>
                         )}
+                        <div className="rounded-xl bg-white p-2 shadow-sm flex" style={{ border: `1px solid ${BORDER}` }}>
+                            {(['dine_in', 'takeaway'] as const).map(type => (
+                                <button
+                                    key={type}
+                                    onClick={() => { setOrderType(type); setSelectedTableIds([]); if (type === 'dine_in') setCustomerName(''); }}
+                                    className={cn(
+                                        'flex-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-all',
+                                        orderType === type ? 'text-white shadow-sm' : 'opacity-70 hover:opacity-100',
+                                    )}
+                                    style={{
+                                        backgroundColor: orderType === type ? PRIMARY : 'transparent',
+                                        color: orderType === type ? '#fff' : INK,
+                                    }}
+                                >
+                                    {type === 'dine_in' ? 'Dine-in' : 'Take Away'}
+                                </button>
+                            ))}
+                        </div>
+                        {!isDineIn && (
+                            <div className="rounded-xl bg-white p-4 shadow-sm" style={{ border: `1px solid ${BORDER}` }}>
+                                <h2 className="text-base font-semibold" style={{ color: INK }}>Nama Pelanggan</h2>
+                                <p className="mt-0.5 text-xs" style={{ color: MUTED }}>Untuk pemanggilan saat pesanan siap</p>
+                                <input
+                                    type="text"
+                                    value={customerName}
+                                    onChange={e => setCustomerName(e.target.value)}
+                                    placeholder="Masukkan nama..."
+                                    className="mt-2 w-full rounded-lg border px-3 py-2 text-sm outline-none transition-all focus:ring-1"
+                                    style={{ borderColor: BORDER, color: INK, '--tw-ring-color': PRIMARY } as React.CSSProperties}
+                                />
+                            </div>
+                        )}
+                        {isDineIn && (
                         <div className="rounded-xl bg-white p-4 shadow-sm" style={{ border: `1px solid ${BORDER}` }}>
                             <h2 className="text-base font-semibold" style={{ color: INK }}>Meja</h2>
                             <p className="mt-0.5 text-xs" style={{ color: MUTED }}>Pilih meja</p>
+                            {allFloors.length > 0 && (
+                                <div className="mt-2 flex flex-wrap gap-1">
+                                    <button
+                                        onClick={() => setSelectedFloor(null)}
+                                        className="rounded-lg px-2 py-1 text-[10px] font-medium transition-all"
+                                        style={{
+                                            backgroundColor: !selectedFloor ? PRIMARY : 'transparent',
+                                            color: !selectedFloor ? '#fff' : INK,
+                                            opacity: !selectedFloor ? 1 : 0.7,
+                                        }}
+                                    >
+                                        Semua
+                                    </button>
+                                    {allFloors.map(f => (
+                                        <button
+                                            key={f}
+                                            onClick={() => setSelectedFloor(f)}
+                                            className="rounded-lg px-2 py-1 text-[10px] font-medium transition-all"
+                                            style={{
+                                                backgroundColor: selectedFloor === f ? PRIMARY : 'transparent',
+                                                color: selectedFloor === f ? '#fff' : INK,
+                                                opacity: selectedFloor === f ? 1 : 0.7,
+                                            }}
+                                        >
+                                            {f}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                             <div className="mt-3 grid grid-cols-3 gap-2">
-                                {tables.map(table => {
-                                    const isSelected = selectedTableId === table.id;
+                                {filteredTables.map(table => {
+                                    const isSelected = selectedTableIds.includes(table.id);
                                     const bgColor = isSelected ? PRIMARY : (TABLE_COLORS[table.status] || '#9ca3af');
                                     const textColor = isSelected || table.status !== 'available' ? '#fff' : INK;
                                     return (
                                         <button
                                             key={table.id}
-                                            onClick={() => setSelectedTableId(isSelected ? null : table.id)}
+                                            onClick={() => handleTableClick(table)}
                                             className={cn(
                                                 'relative flex flex-col items-center rounded-xl p-3 text-sm font-medium transition-all hover:opacity-90',
                                                 isSelected && 'ring-1',
@@ -603,6 +868,24 @@ export default function PosIndex({ categories, tables, pendingOrders }: PosPageP
                                         >
                                             <span className="text-lg font-bold">{table.code}</span>
                                             <span className="mt-0.5 text-[10px] opacity-80">{table.capacity} org</span>
+                                            {(table.status === 'available' || table.status === 'locked') && (
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); toggleLock(table); }}
+                                                    className="mt-0.5 flex items-center gap-0.5 text-[9px] opacity-70 hover:text-black hover:opacity-100"
+                                                    title={table.status === 'locked' ? 'Klik unlock' : 'Klik lock'}
+                                                >
+                                                    <Lock className="size-2.5" />
+                                                    {table.status === 'locked'
+                                                        ? (table.locked_by_user?.name ?? 'Terkunci')
+                                                        : 'Buka'}
+                                                </button>
+                                            )}
+                                            {getGroupLabel(table.id) && (
+                                                <span className="mt-0.5 flex items-center gap-0.5 text-[9px] opacity-80">
+                                                    <Link className="size-2.5" />
+                                                    {getGroupLabel(table.id)}
+                                                </span>
+                                            )}
                                             {isSelected && (
                                                 <span className="absolute -top-1 -right-1 flex size-5 items-center justify-center rounded-full" style={{ backgroundColor: SAND, color: INK }}>
                                                     <Check className="size-3" />
@@ -613,36 +896,116 @@ export default function PosIndex({ categories, tables, pendingOrders }: PosPageP
                                 })}
                             </div>
                         </div>
+                        )}
                     </div>
                 </aside>
 
                 <div className="flex flex-1 flex-col overflow-hidden">
+                    <div className="flex gap-1 p-2 lg:hidden" style={{ borderBottom: `1px solid ${BORDER}` }}>
+                        {(['dine_in', 'takeaway'] as const).map(type => (
+                            <button
+                                key={type}
+                                onClick={() => { setOrderType(type); setSelectedTableIds([]); if (type === 'dine_in') setCustomerName(''); }}
+                                className={cn(
+                                    'flex-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-all',
+                                    orderType === type ? 'text-white shadow-sm' : 'opacity-70 hover:opacity-100',
+                                )}
+                                style={{
+                                    backgroundColor: orderType === type ? PRIMARY : 'transparent',
+                                    color: orderType === type ? '#fff' : INK,
+                                }}
+                            >
+                                {type === 'dine_in' ? 'Dine-in' : 'Take Away'}
+                            </button>
+                        ))}
+                    </div>
+                    {!isDineIn && (
+                        <div className="p-2 lg:hidden" style={{ borderBottom: `1px solid ${BORDER}` }}>
+                            <input
+                                type="text"
+                                value={customerName}
+                                onChange={e => setCustomerName(e.target.value)}
+                                placeholder="Nama pelanggan untuk pemanggilan..."
+                                className="w-full rounded-lg border px-3 py-2 text-sm outline-none transition-all focus:ring-1"
+                                style={{ borderColor: BORDER, color: INK, '--tw-ring-color': PRIMARY } as React.CSSProperties}
+                            />
+                        </div>
+                    )}
+                    {isDineIn && (
+                        <>
+                        {allFloors.length > 0 && (
+                        <div className="flex gap-1 overflow-x-auto p-2 lg:hidden" style={{ borderBottom: `1px solid ${BORDER}` }}>
+                            <button
+                                onClick={() => setSelectedFloor(null)}
+                                className="flex-shrink-0 rounded-lg px-3 py-1 text-xs font-medium transition-all"
+                                style={{
+                                    backgroundColor: !selectedFloor ? PRIMARY : 'transparent',
+                                    color: !selectedFloor ? '#fff' : INK,
+                                    opacity: !selectedFloor ? 1 : 0.7,
+                                }}
+                            >
+                                Semua
+                            </button>
+                            {allFloors.map(f => (
+                                <button
+                                    key={f}
+                                    onClick={() => setSelectedFloor(f)}
+                                    className="flex-shrink-0 rounded-lg px-3 py-1 text-xs font-medium transition-all"
+                                    style={{
+                                        backgroundColor: selectedFloor === f ? PRIMARY : 'transparent',
+                                        color: selectedFloor === f ? '#fff' : INK,
+                                        opacity: selectedFloor === f ? 1 : 0.7,
+                                    }}
+                                >
+                                    {f}
+                                </button>
+                            ))}
+                        </div>
+                        )}
                     <div className="flex gap-2 overflow-x-auto p-3 lg:hidden" style={{ borderBottom: `1px solid ${BORDER}` }}>
-                        {tables.map(table => {
-                            const isSelected = selectedTableId === table.id;
+                        {filteredTables.map(table => {
+                            const isSelected = selectedTableIds.includes(table.id);
                             const bgColor = isSelected ? PRIMARY : (TABLE_COLORS[table.status] || '#9ca3af');
                             const textColor = isSelected || table.status !== 'available' ? '#fff' : INK;
                             return (
-                                <button
-                                    key={table.id}
-                                    onClick={() => setSelectedTableId(isSelected ? null : table.id)}
-                                    className="relative flex-shrink-0 rounded-xl px-4 py-2 text-xs font-medium"
-                                    style={{
-                                        backgroundColor: bgColor,
-                                        color: textColor,
-                                        ...(isSelected ? { outline: `2px solid ${SAND}`, outlineOffset: '2px' } : {}),
-                                    }}
-                                >
-                                    {table.code}
-                                    {isSelected && (
-                                        <span className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full" style={{ backgroundColor: SAND, color: INK }}>
-                                            <Check className="size-2.5" />
-                                        </span>
+                                <div key={table.id} className="relative flex flex-col items-center gap-0.5 flex-shrink-0">
+                                    <button
+                                        onClick={() => handleTableClick(table)}
+                                        className="rounded-xl px-4 py-2 text-xs font-medium"
+                                        style={{
+                                            backgroundColor: bgColor,
+                                            color: textColor,
+                                            ...(isSelected ? { outline: `2px solid ${SAND}`, outlineOffset: '2px' } : {}),
+                                        }}
+                                    >
+                                        <span>{table.code}</span>
+                                        {getGroupLabel(table.id) && (
+                                            <span className="ml-1 text-[9px] opacity-80">{getGroupLabel(table.id)}</span>
+                                        )}
+                                        {isSelected && (
+                                            <span className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full" style={{ backgroundColor: SAND, color: INK }}>
+                                                <Check className="size-2.5" />
+                                            </span>
+                                        )}
+                                    </button>
+                                    {(table.status === 'available' || table.status === 'locked') && (
+                                        <button
+                                            onClick={() => toggleLock(table)}
+                                            className="text-[9px] opacity-70 hover:opacity-100 flex items-center gap-0.5"
+                                            title={table.status === 'locked' ? 'Klik unlock' : 'Klik lock'}
+                                        >
+                                            <Lock className="size-2.5" />
+                                            {table.status === 'locked'
+                                                ? (table.locked_by_user?.name ?? 'Terkunci')
+                                                : 'Buka kunci'}
+                                        </button>
                                     )}
-                                </button>
+                                </div>
                             );
                         })}
                     </div>
+                    </>
+                    )}
 
                     {pendingOrders.length > 0 && (
                         <div className="overflow-x-auto p-3 lg:hidden" style={{ borderBottom: `1px solid ${BORDER}`, backgroundColor: CREAM }}>
@@ -788,16 +1151,96 @@ export default function PosIndex({ categories, tables, pendingOrders }: PosPageP
                     processing={processing}
                 />
 
-                <QrisPaymentDialog
-                    open={qrisDialogOpen}
-                    onOpenChange={handleQrisClose}
+                <MidtransPaymentDialog
+                    open={midtransDialogOpen}
+                    onOpenChange={setMidtransDialogOpen}
+                    subtotal={subtotal}
                     total={total}
-                    qrCodeUrl={qrisQrCodeUrl}
-                    processing={qrisProcessing}
-                    error={qrisError}
-                    onPoll={handleQrisPoll}
-                    onCancel={handleQrisClose}
-                    paymentStatus={qrisPaymentStatus}
+                    onSuccess={handleMidtransSuccess}
+                    getCsrfToken={getCsrfToken}
+                    selectedTableId={selectedTableIds[0] ?? null}
+                    cartItems={cartItems.map(item => ({
+                        menu_id: item.menu.id,
+                        qty: item.qty,
+                        notes: item.notes || null,
+                        option_ids: item.selectedOptions.map(o => o.itemId),
+                    }))}
+                    discountType={discountType}
+                    discountValue={discountValue}
+                    discountApprovedBy={discountApprovedBy}
+                    orderType={orderType}
+                />
+
+                <Dialog open={releaseDialogTable !== null} onOpenChange={(v) => { if (!v) setReleaseDialogTable(null); }}>
+                    <DialogContent className="sm:max-w-xs" style={{ backgroundColor: CREAM }}>
+                        <div className="flex flex-col items-center py-4 text-center">
+                            <div className="mb-4 flex size-16 items-center justify-center rounded-full" style={{ backgroundColor: `${SAND}40` }}>
+                                <HandPlatter className="size-7" style={{ color: INK }} />
+                            </div>
+                            <h3 className="text-lg font-bold" style={{ color: INK }}>
+                                Meja {releaseDialogTable?.code}
+                            </h3>
+                            <p className="mt-1 text-sm" style={{ color: MUTED }}>
+                                Meja sedang digunakan
+                            </p>
+                            <div className="mt-5 flex w-full flex-col gap-2">
+                                <button
+                                    onClick={() => {
+                                        if (!releaseDialogTable) return;
+                                        const t = releaseDialogTable;
+                                        setReleaseDialogTable(null);
+                                        setMoveMergeDialog({ mode: 'move', sourceTable: t });
+                                    }}
+                                    className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold"
+                                    style={{ backgroundColor: PRIMARY, color: '#fff' }}
+                                >
+                                    <Move className="size-4" />
+                                    Pindah Meja
+                                </button>
+                                {(tables.filter(t => t.status === 'occupied' && t.id !== releaseDialogTable?.id).length > 0) && (
+                                    <button
+                                        onClick={() => {
+                                            if (!releaseDialogTable) return;
+                                            const t = releaseDialogTable;
+                                            setReleaseDialogTable(null);
+                                            setMoveMergeDialog({ mode: 'merge', sourceTable: t });
+                                        }}
+                                        className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold"
+                                        style={{ backgroundColor: PRIMARY, color: '#fff' }}
+                                    >
+                                        <ArrowRightLeft className="size-4" />
+                                        Gabung Meja
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => {
+                                        if (!releaseDialogTable) return;
+                                        const tableId = releaseDialogTable.id;
+                                        setReleaseDialogTable(null);
+                                        router.post(`/pos/tables/${tableId}/release`);
+                                    }}
+                                    className="w-full rounded-xl py-2.5 text-sm font-semibold"
+                                    style={{ backgroundColor: PRIMARY, color: '#fff' }}
+                                >
+                                    Kosongkan Meja
+                                </button>
+                                <button
+                                    onClick={() => setReleaseDialogTable(null)}
+                                    className="w-full rounded-xl py-2 text-xs bg-rose-700 text-white hover:bg-rose-800 transition-colors"
+                                >
+                                    Batal
+                                </button>
+                            </div>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+
+                <MoveMergeDialog
+                    open={moveMergeDialog !== null}
+                    mode={moveMergeDialog?.mode ?? null}
+                    sourceTable={moveMergeDialog?.sourceTable ?? { id: 0, code: '' }}
+                    tables={tables}
+                    onClose={() => setMoveMergeDialog(null)}
                 />
 
                 <SuccessDialog

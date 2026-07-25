@@ -55,26 +55,6 @@ export function AppSidebar() {
             ],
         },
         {
-            label: 'Employees',
-            roles: ['Owner', 'Admin'],
-            items: [
-                { title: 'Karyawan', href: admin.employees.index(), icon: Users },
-                { title: 'Absensi', href: admin.attendance.index(), icon: Clock },
-                { title: 'Shift', href: admin.shifts.index(), icon: Calendar },
-            ],
-        },
-        {
-            label: 'Reports',
-            roles: ['Owner', 'Admin'],
-            items: [
-                { title: 'Laporan Penjualan', href: admin.reports.index(), icon: BarChart3 },
-                { title: 'Menu & Varian Terlaris', href: admin.reports.topMenus(), icon: BarChart3 },
-                { title: 'Rekonsiliasi', href: admin.reports.reconciliation(), icon: BarChart3 },
-                { title: 'Kehadiran', href: admin.reports.attendance(), icon: BarChart3 },
-                { title: 'Lembur', href: admin.reports.overtime(), icon: BarChart3 },
-            ],
-        },
-        {
             label: 'Operations',
             roles: ['Owner', 'Admin', 'Cashier'],
             items: [
@@ -86,6 +66,32 @@ export function AppSidebar() {
             roles: ['Owner', 'Admin', 'Cashier', 'Kitchen Staff'],
             items: [
                 { title: 'Kitchen Display', href: kitchen.index(), icon: ChefHat },
+            ],
+        },
+        {
+            label: 'Employees',
+            roles: ['Owner', 'Admin'],
+            items: [
+                { title: 'Karyawan', href: admin.employees.index(), icon: Users },
+                { title: 'Absensi', href: admin.attendance.index(), icon: Clock },
+                { title: 'Shift', href: admin.shifts.index(), icon: Calendar },
+            ],
+        },
+        {
+            label: 'Reports Employee',
+            roles: ['Owner', 'Admin'],
+            items: [
+                { title: 'Kehadiran', href: admin.reports.attendance(), icon: BarChart3 },
+                { title: 'Lembur', href: admin.reports.overtime(), icon: BarChart3 },
+            ],
+        },
+        {
+            label: 'Reports Financial',
+            roles: ['Owner', 'Admin'],
+            items: [
+                { title: 'Laporan Penjualan', href: admin.reports.index(), icon: BarChart3 },
+                { title: 'Menu & Varian Terlaris', href: admin.reports.topMenus(), icon: BarChart3 },
+                { title: 'Rekonsiliasi', href: admin.reports.reconciliation(), icon: BarChart3 },
             ],
         },
     ];

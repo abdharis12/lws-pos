@@ -14,8 +14,9 @@ class Order extends Model
 
     protected $fillable = [
         'table_session_id', 'created_by', 'order_type', 'status',
-        'subtotal', 'tax', 'discount', 'discount_type', 'discount_value',
-        'discount_approved_by', 'total', 'notes', 'customer_name',
+        'subtotal', 'tax', 'service_charge', 'midtrans_charge', 'discount', 'discount_type',
+        'discount_value', 'discount_approved_by', 'total', 'notes', 'customer_name',
+        'grouped_tables',
     ];
 
     protected function casts(): array
@@ -23,9 +24,12 @@ class Order extends Model
         return [
             'subtotal' => 'decimal:2',
             'tax' => 'decimal:2',
+            'service_charge' => 'decimal:2',
+            'midtrans_charge' => 'decimal:2',
             'discount' => 'decimal:2',
             'discount_value' => 'decimal:2',
             'total' => 'decimal:2',
+            'grouped_tables' => 'array',
         ];
     }
 

@@ -137,14 +137,14 @@
 
 - [x] Halaman KDS (dark mode default, kontras tinggi)
 - [x] Listener Reverb — polling via usePoll (realtime listener by page interval)
-- [ ] Kartu order per station (butuh kolom station di menu)
+- [x] Kartu order per station (kolom station di menu)
 - [x] Notifikasi suara + animasi highlight (Web Audio API beep + CSS glow)
 - [x] Tombol aksi: `Mulai Masak` → `Selesai/Siap`
 - [x] Color-coded SLA: hijau < 5 menit, kuning 5-10 menit, merah > 10 menit
 - [x] Broadcast `OrderStatusUpdated` saat status berubah
-- [ ] Notifikasi ke waiter/kasir saat order siap (broadcast via OrderStatusUpdated, UI toast blm)
+- [x] Notifikasi ke waiter/kasir saat order siap (broadcast via OrderStatusUpdated, UI toast)
 - [x] Hanya tampilkan order dengan status `paid`
-- [ ] Tests: KDS realtime flow
+- [x] Tests: KDS realtime flow
 
 ### 10. Dashboard Dasar
 
@@ -237,8 +237,8 @@
 | Fase | Total Task | Selesai | Belum |
 |------|-----------|---------|-------|
 | Scaffolding & Auth | 17 | **17** | 0 |
-| Fase 1 — MVP | ~84 | **~79** | ~5 |
+| Fase 1 — MVP | ~84 | **~82** | ~2 |
 | Fase 2 | ~19 | **19** | 0 |
 | Fase 3 | ~20 | **0** | ~20 |
 | Fase 4 | 4 | **0** | 4 |
-| **Total** | **~144** | **~115** | **~29** |
+| **Total** | **~144** | **~118** | **~26** |

@@ -6,4 +6,5 @@ return [
     'is_production' => env('MIDTRANS_IS_PRODUCTION', false),
     'is_sanitized' => true,
     'is_3ds' => true,
+    'charge_percentage' => env('MIDTRANS_CHARGE_PERCENTAGE', 2.5),
 ];

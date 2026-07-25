@@ -114,7 +114,9 @@ test('guest can create order from self-order', function () {
         'status' => 'pending',
         'customer_name' => 'Budi',
         'subtotal' => 50000.00,
-        'total' => 50000.00,
+        'tax' => 5000.00,
+        'service_charge' => 2500.00,
+        'total' => 57500.00,
     ]);
 });
 
@@ -168,7 +170,9 @@ test('self-order creates order with correct price calculation', function () {
 
     $this->assertDatabaseHas('orders', [
         'subtotal' => 75000.00,
-        'total' => 75000.00,
+        'tax' => 7500.00,
+        'service_charge' => 3750.00,
+        'total' => 86250.00,
     ]);
 });
 

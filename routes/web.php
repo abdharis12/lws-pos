@@ -77,8 +77,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('pos', [PosController::class, 'index'])->name('pos.index');
     Route::post('pos/orders', [PosController::class, 'store'])->name('pos.orders.store');
     Route::put('pos/orders/{order}/confirm-pay', [PosController::class, 'confirmPay'])->name('pos.orders.confirm-pay');
-    Route::post('pos/orders/qris-init', [PosController::class, 'initiateQris'])->name('pos.orders.qris-init');
+    Route::post('pos/orders/initiate-payment', [PosController::class, 'initiatePayment'])->name('pos.orders.initiate-payment');
+    Route::post('pos/orders/qris-init', [PosController::class, 'initiatePayment'])->name('pos.orders.qris-init');
     Route::get('pos/orders/{order}/qris-status', [PosController::class, 'qrisStatus'])->name('pos.orders.qris-status');
+    Route::post('pos/tables/{table}/release', [PosController::class, 'releaseTable'])->name('pos.tables.release');
+    Route::post('pos/tables/{table}/move/{target}', [PosController::class, 'moveTable'])->name('pos.tables.move');
+    Route::post('pos/tables/{table}/merge/{target}', [PosController::class, 'mergeTable'])->name('pos.tables.merge');
+    Route::post('pos/tables/{table}/lock', [PosController::class, 'lockTable'])->name('pos.tables.lock');
+    Route::post('pos/tables/{table}/unlock', [PosController::class, 'unlockTable'])->name('pos.tables.unlock');
     Route::post('pos/verify-approval', [PosController::class, 'verifyApproval'])->name('pos.verify-approval');
 
     Route::get('kitchen', [KitchenDisplayController::class, 'index'])->name('kitchen.index');

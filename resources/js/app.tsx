@@ -8,7 +8,7 @@ import AuthLayout from '@/layouts/auth-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 
 configureEcho({
-    broadcaster: 'reverb',
+    broadcaster: import.meta.env.VITE_REVERB_APP_KEY ? 'reverb' : 'null',
 });
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';

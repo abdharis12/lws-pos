@@ -7,6 +7,7 @@ export const BORDER = 'rgba(37,51,47,0.08)';
 
 export const TABLE_COLORS: Record<string, string> = {
     available: CREAM,
-    occupied: '#f59e0b',
+    locked: '#8b5cf6',
+    occupied: '#e11d48',
     reserved: '#3b82f6',
 };

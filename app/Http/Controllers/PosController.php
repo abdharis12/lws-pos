@@ -38,7 +38,8 @@ class PosController extends Controller
             ->orderBy('sort_order')
             ->get();
 
-        $tables = Meja::where('outlet_id', $outlet?->id)
+        $tables = Meja::with('lockedBy')
+            ->where('outlet_id', $outlet?->id)
             ->orderBy('code')
             ->get();
 
@@ -47,17 +48,34 @@ class PosController extends Controller
             ->with(['table', 'orders' => fn ($q) => $q->with('items')])
             ->get();
 
+        $groupedTables = [];
+        foreach ($activeSessions as $session) {
+            foreach ($session->orders as $order) {
+                if (! empty($order->grouped_tables)) {
+                    $groupedTables[$session->table_id] = $order->grouped_tables;
+                }
+            }
+        }
+
         $pendingOrders = Order::where('status', 'pending')
             ->where('order_type', 'dine_in_qr')
             ->with(['tableSession.table', 'items.menu', 'items.options.optionItem'])
             ->orderByDesc('created_at')
             ->get();
 
+        $lastOrder = null;
+        if ($lastOrderId = session('last_order_id')) {
+            $lastOrder = Order::with(['items.menu', 'items.options.optionItem', 'payment', 'tableSession.table', 'createdBy'])
+                ->find($lastOrderId);
+        }
+
         return Inertia::render('pos/Index', [
             'categories' => $categories,
             'tables' => $tables,
             'activeSessions' => $activeSessions,
             'pendingOrders' => $pendingOrders,
+            'lastOrder' => $lastOrder,
+            'groupedTables' => $groupedTables,
         ]);
     }
 
@@ -65,6 +83,8 @@ class PosController extends Controller
     {
         $validated = $request->validate([
             'table_id' => 'nullable|exists:tables,id',
+            'table_ids' => 'nullable|array',
+            'table_ids.*' => 'exists:tables,id',
             'items' => 'required|array|min:1',
             'items.*.menu_id' => 'required|exists:menus,id',
             'items.*.qty' => 'required|integer|min:1',
@@ -76,9 +96,12 @@ class PosController extends Controller
             'discount_value' => 'nullable|numeric|min:0',
             'discount_approved_by' => 'nullable|exists:users,id',
             'split_count' => 'nullable|integer|min:1|max:20',
+            'order_type' => 'nullable|in:dine_in,takeaway',
+            'customer_name' => 'nullable|string|max:255',
         ]);
 
         $session = null;
+        $groupedTableIds = [];
         if ($validated['table_id'] ?? false) {
             $table = Meja::find($validated['table_id']);
             $session = $table->sessions()->where('status', 'active')->first();
@@ -88,7 +111,18 @@ class PosController extends Controller
                     'status' => 'active',
                 ]);
             }
-            $table->update(['status' => 'occupied']);
+            $table->update(['status' => 'occupied', 'locked_by' => null]);
+
+            $extraTableIds = collect($validated['table_ids'] ?? [])
+                ->reject(fn ($id) => (int) $id === (int) $validated['table_id'])
+                ->unique()
+                ->values()
+                ->toArray();
+
+            if (! empty($extraTableIds)) {
+                Meja::whereIn('id', $extraTableIds)->update(['status' => 'occupied']);
+                $groupedTableIds = $extraTableIds;
+            }
         }
 
         $subtotal = 0;
@@ -98,11 +132,17 @@ class PosController extends Controller
             $menu = Menu::findOrFail($item['menu_id']);
             $itemTotal = $menu->price * $item['qty'];
 
-            if (! empty($item['option_ids'])) {
-                $adjustments = OptionItem::whereIn('id', $item['option_ids'])
-                    ->pluck('price_adjustment')
-                    ->sum();
+            $selectedOptionIds = $item['option_ids'] ?? [];
+            $optionAdjustments = [];
+
+            if (! empty($selectedOptionIds)) {
+                $options = OptionItem::whereIn('id', $selectedOptionIds)->get();
+                $adjustments = $options->sum('price_adjustment');
                 $itemTotal += $adjustments * $item['qty'];
+                $optionAdjustments = $options->map(fn ($opt) => [
+                    'option_item_id' => $opt->id,
+                    'price_adjustment' => $opt->price_adjustment,
+                ])->toArray();
             }
 
             $subtotal += $itemTotal;
@@ -113,6 +153,8 @@ class PosController extends Controller
                 'base_price' => $menu->price,
                 'total_price' => $itemTotal,
                 'notes' => $item['notes'] ?? null,
+                'option_ids' => $selectedOptionIds,
+                'option_adjustments' => $optionAdjustments,
             ];
         }
 
@@ -122,10 +164,14 @@ class PosController extends Controller
             $this->validateDiscountApproval($validated);
         }
 
-        $total = max(0, $subtotal - $discountAmount);
+        $tax = round($subtotal * 0.10, 2);
+        $serviceCharge = 0;
+
+        $total = max(0, $subtotal + $tax - $discountAmount);
 
         $splitCount = (int) ($validated['split_count'] ?? 1);
         $splitSubtotal = round($subtotal / $splitCount, 2);
+        $splitTax = round($tax / $splitCount, 2);
         $splitTotal = round($total / $splitCount, 2);
         $splitDiscount = round($discountAmount / $splitCount, 2);
 
@@ -134,41 +180,46 @@ class PosController extends Controller
         for ($i = 0; $i < $splitCount; $i++) {
             $isLast = $i === $splitCount - 1;
 
-            $order = $session?->orders()->create([
+            $shared = [
                 'created_by' => $request->user()->id,
-                'order_type' => 'cashier',
+                'order_type' => $validated['order_type'] ?? 'dine_in',
+                'customer_name' => $validated['customer_name'] ?? null,
                 'status' => 'paid',
-                'subtotal' => $isLast ? round($subtotal - $splitSubtotal * $i, 2) : $splitSubtotal,
-                'tax' => 0,
-                'discount' => $isLast ? round($discountAmount - $splitDiscount * $i, 2) : $splitDiscount,
+                'service_charge' => 0,
                 'discount_type' => $validated['discount_type'] ?? null,
                 'discount_value' => $validated['discount_value'] ?? null,
                 'discount_approved_by' => $validated['discount_approved_by'] ?? null,
+                'grouped_tables' => ! empty($groupedTableIds) ? $groupedTableIds : null,
+            ];
+
+            $order = $session?->orders()->create([
+                ...$shared,
+                'subtotal' => $isLast ? round($subtotal - $splitSubtotal * $i, 2) : $splitSubtotal,
+                'tax' => $isLast ? round($tax - $splitTax * $i, 2) : $splitTax,
+                'discount' => $isLast ? round($discountAmount - $splitDiscount * $i, 2) : $splitDiscount,
                 'total' => $isLast ? round($total - $splitTotal * $i, 2) : $splitTotal,
                 'notes' => $splitCount > 1 ? "Split {$i}/{$splitCount}" : null,
             ]) ?? Order::create([
-                'created_by' => $request->user()->id,
-                'order_type' => 'cashier',
-                'status' => 'paid',
+                ...$shared,
                 'subtotal' => $isLast ? round($subtotal - $splitSubtotal * $i, 2) : $splitSubtotal,
-                'tax' => 0,
+                'tax' => $isLast ? round($tax - $splitTax * $i, 2) : $splitTax,
                 'discount' => $isLast ? round($discountAmount - $splitDiscount * $i, 2) : $splitDiscount,
-                'discount_type' => $validated['discount_type'] ?? null,
-                'discount_value' => $validated['discount_value'] ?? null,
-                'discount_approved_by' => $validated['discount_approved_by'] ?? null,
                 'total' => $isLast ? round($total - $splitTotal * $i, 2) : $splitTotal,
                 'notes' => $splitCount > 1 ? "Split {$i}/{$splitCount}" : null,
             ]);
 
             foreach ($orderItems as $orderItemData) {
-                $itemTotal = $orderItemData['base_price'] * $orderItemData['qty'];
-                $order->items()->create([
+                $orderItem = $order->items()->create([
                     'menu_id' => $orderItemData['menu_id'],
                     'qty' => $orderItemData['qty'],
                     'base_price' => $orderItemData['base_price'],
-                    'total_price' => $itemTotal,
+                    'total_price' => $orderItemData['total_price'],
                     'notes' => $orderItemData['notes'],
                 ]);
+
+                if (! empty($orderItemData['option_adjustments'])) {
+                    $orderItem->options()->createMany($orderItemData['option_adjustments']);
+                }
             }
 
             if (! empty($validated['payment_method'])) {
@@ -184,9 +235,13 @@ class PosController extends Controller
             broadcast(new OrderPaid($order))->toOthers();
         }
 
-        return redirect()->route('pos.index')->with('success', $splitCount > 1
-            ? "Pesanan berhasil dibuat ({$splitCount} bill)."
-            : 'Pesanan berhasil dibuat.');
+        $firstOrder = $createdOrders[0] ?? null;
+
+        return redirect()->route('pos.index')
+            ->with('success', $splitCount > 1
+                ? "Pesanan berhasil dibuat ({$splitCount} bill)."
+                : 'Pesanan berhasil dibuat.')
+            ->with('last_order_id', $firstOrder?->id);
     }
 
     public function confirmPay(Request $request, Order $order): RedirectResponse
@@ -214,16 +269,20 @@ class PosController extends Controller
         foreach ($validated['items'] as $itemData) {
             $menu = Menu::findOrFail($itemData['menu_id']);
             $itemTotal = $menu->price * $itemData['qty'];
-            $optionTotal = 0;
 
-            if (! empty($itemData['option_ids'])) {
-                $adjustments = OptionItem::whereIn('id', $itemData['option_ids'])
-                    ->pluck('price_adjustment')
-                    ->sum();
-                $optionTotal = $adjustments * $itemData['qty'];
+            $selectedOptionIds = $itemData['option_ids'] ?? [];
+            $optionAdjustments = [];
+
+            if (! empty($selectedOptionIds)) {
+                $options = OptionItem::whereIn('id', $selectedOptionIds)->get();
+                $adjustments = $options->sum('price_adjustment');
+                $itemTotal += $adjustments * $itemData['qty'];
+                $optionAdjustments = $options->map(fn ($opt) => [
+                    'option_item_id' => $opt->id,
+                    'price_adjustment' => $opt->price_adjustment,
+                ])->toArray();
             }
 
-            $itemTotal += $optionTotal;
             $newSubtotal += $itemTotal;
 
             if (! empty($itemData['id']) && in_array($itemData['id'], $existingItemIds)) {
@@ -234,14 +293,21 @@ class PosController extends Controller
                     'total_price' => $itemTotal,
                     'notes' => $itemData['notes'] ?? null,
                 ]);
+                $orderItem->options()->delete();
+                if (! empty($optionAdjustments)) {
+                    $orderItem->options()->createMany($optionAdjustments);
+                }
             } else {
-                $order->items()->create([
+                $orderItem = $order->items()->create([
                     'menu_id' => $menu->id,
                     'qty' => $itemData['qty'],
                     'base_price' => $menu->price,
                     'total_price' => $itemTotal,
                     'notes' => $itemData['notes'] ?? null,
                 ]);
+                if (! empty($optionAdjustments)) {
+                    $orderItem->options()->createMany($optionAdjustments);
+                }
             }
         }
 
@@ -256,11 +322,17 @@ class PosController extends Controller
             $this->validateDiscountApproval($validated);
         }
 
-        $newTotal = max(0, $newSubtotal - $discountAmount);
+        $taxRate = 0.10;
+        $tax = round($newSubtotal * $taxRate, 2);
+        $serviceCharge = 0;
+
+        $newTotal = max(0, $newSubtotal + $tax - $discountAmount);
 
         $order->update([
             'status' => 'paid',
             'subtotal' => $newSubtotal,
+            'tax' => $tax,
+            'service_charge' => $serviceCharge,
             'discount' => $discountAmount,
             'discount_type' => $validated['discount_type'] ?? null,
             'discount_value' => $validated['discount_value'] ?? null,
@@ -281,10 +353,12 @@ class PosController extends Controller
         broadcast(new OrderPaid($order))->toOthers();
         broadcast(new OrderStatusUpdated($order))->toOthers();
 
-        return redirect()->route('pos.index')->with('success', 'Pesanan berhasil dikonfirmasi dan dibayar.');
+        return redirect()->route('pos.index')
+            ->with('success', 'Pesanan berhasil dikonfirmasi dan dibayar.')
+            ->with('last_order_id', $order->id);
     }
 
-    public function initiateQris(Request $request, MidtransService $midtrans): JsonResponse
+    public function initiatePayment(Request $request, MidtransService $midtrans): JsonResponse
     {
         $validated = $request->validate([
             'table_id' => 'nullable|exists:tables,id',
@@ -294,25 +368,46 @@ class PosController extends Controller
             'items.*.notes' => 'nullable|string|max:500',
             'items.*.option_ids' => 'nullable|array',
             'items.*.option_ids.*' => 'exists:option_items,id',
+            'payment_type' => 'required|string|max:50',
             'discount_type' => 'nullable|in:percentage,nominal',
             'discount_value' => 'nullable|numeric|min:0',
             'discount_approved_by' => 'nullable|exists:users,id',
+            'order_type' => 'nullable|in:dine_in,takeaway',
+            'customer_name' => 'nullable|string|max:255',
         ]);
 
+        $paymentType = $validated['payment_type'];
+
         $subtotal = 0;
+        $orderItems = [];
 
         foreach ($validated['items'] as $item) {
             $menu = Menu::findOrFail($item['menu_id']);
             $itemTotal = $menu->price * $item['qty'];
 
-            if (! empty($item['option_ids'])) {
-                $adjustments = OptionItem::whereIn('id', $item['option_ids'])
-                    ->pluck('price_adjustment')
-                    ->sum();
+            $selectedOptionIds = $item['option_ids'] ?? [];
+            $optionAdjustments = [];
+
+            if (! empty($selectedOptionIds)) {
+                $options = OptionItem::whereIn('id', $selectedOptionIds)->get();
+                $adjustments = $options->sum('price_adjustment');
                 $itemTotal += $adjustments * $item['qty'];
+                $optionAdjustments = $options->map(fn ($opt) => [
+                    'option_item_id' => $opt->id,
+                    'price_adjustment' => $opt->price_adjustment,
+                ])->toArray();
             }
 
             $subtotal += $itemTotal;
+
+            $orderItems[] = [
+                'menu_id' => $menu->id,
+                'qty' => $item['qty'],
+                'base_price' => $menu->price,
+                'total_price' => $itemTotal,
+                'notes' => $item['notes'] ?? null,
+                'option_adjustments' => $optionAdjustments,
+            ];
         }
 
         $discountAmount = $this->calculateDiscount($subtotal, $validated);
@@ -321,7 +416,12 @@ class PosController extends Controller
             $this->validateDiscountApproval($validated);
         }
 
-        $total = max(0, $subtotal - $discountAmount);
+        $tax = round($subtotal * 0.10, 2);
+        $serviceCharge = round($subtotal * 0.05, 2);
+        $totalBeforeCharge = max(0, $subtotal + $tax + $serviceCharge - $discountAmount);
+        $chargePercent = (float) config('midtrans.charge_percentage', 2.5);
+        $midtransCharge = round($totalBeforeCharge * $chargePercent / 100 / 100) * 100;
+        $total = $totalBeforeCharge + $midtransCharge;
 
         $session = null;
         if ($validated['table_id'] ?? false) {
@@ -330,15 +430,19 @@ class PosController extends Controller
                 'opened_at' => now(),
                 'status' => 'active',
             ]);
-            $table->update(['status' => 'occupied']);
+            $table->update(['status' => 'occupied', 'locked_by' => null]);
         }
 
+        $orderType = $validated['order_type'] ?? 'dine_in';
         $order = $session?->orders()->create([
             'created_by' => $request->user()->id,
-            'order_type' => 'cashier',
+            'order_type' => $orderType,
+            'customer_name' => $validated['customer_name'] ?? null,
             'status' => 'pending_payment',
             'subtotal' => $subtotal,
-            'tax' => 0,
+            'tax' => $tax,
+            'service_charge' => $serviceCharge,
+            'midtrans_charge' => $midtransCharge,
             'discount' => $discountAmount,
             'discount_type' => $validated['discount_type'] ?? null,
             'discount_value' => $validated['discount_value'] ?? null,
@@ -346,10 +450,13 @@ class PosController extends Controller
             'total' => $total,
         ]) ?? Order::create([
             'created_by' => $request->user()->id,
-            'order_type' => 'cashier',
+            'order_type' => $orderType,
+            'customer_name' => $validated['customer_name'] ?? null,
             'status' => 'pending_payment',
             'subtotal' => $subtotal,
-            'tax' => 0,
+            'tax' => $tax,
+            'service_charge' => $serviceCharge,
+            'midtrans_charge' => $midtransCharge,
             'discount' => $discountAmount,
             'discount_type' => $validated['discount_type'] ?? null,
             'discount_value' => $validated['discount_value'] ?? null,
@@ -357,25 +464,80 @@ class PosController extends Controller
             'total' => $total,
         ]);
 
-        $qrisResponse = $midtrans->createQrisCharge((string) $order->id, (int) round($total));
-        $qrCodeUrl = $qrisResponse['actions'][0]['url'] ?? null;
-        $midtransTransactionId = $qrisResponse['transaction_id'] ?? null;
+        foreach ($orderItems as $orderItemData) {
+            $optionAdjustments = $orderItemData['option_adjustments'];
+            unset($orderItemData['option_adjustments']);
+
+            $orderItem = $order->items()->create($orderItemData);
+
+            if (! empty($optionAdjustments)) {
+                $orderItem->options()->createMany($optionAdjustments);
+            }
+        }
+
+        $midtransResponse = $midtrans->createCharge((string) $order->id, (int) round($total), $paymentType);
+        $midtransTransactionId = $midtransResponse['transaction_id'] ?? null;
+
+        $paymentData = $this->extractPaymentResponse($midtransResponse);
 
         $order->payment()->create([
-            'method' => 'qris',
+            'method' => $paymentType,
             'midtrans_transaction_id' => $midtransTransactionId,
             'gross_amount' => $total,
             'status' => 'pending',
-            'raw_payload' => $qrisResponse ? json_encode($qrisResponse) : null,
+            'raw_payload' => $midtransResponse ? json_encode($midtransResponse) : null,
         ]);
 
         return response()->json([
             'order_id' => $order->id,
-            'order_number' => $orderId,
+            'order_number' => "TRX-LW-{$order->id}",
+            'subtotal' => $subtotal,
+            'tax' => $tax,
+            'service_charge' => $serviceCharge,
+            'midtrans_charge' => $midtransCharge,
             'total' => $total,
-            'qr_code' => $qrCodeUrl,
+            'payment_type' => $paymentType,
             'transaction_id' => $midtransTransactionId,
+            ...$paymentData,
         ]);
+    }
+
+    private function extractPaymentResponse(array $response): array
+    {
+        $data = [];
+
+        if (! empty($response['actions'])) {
+            foreach ($response['actions'] as $action) {
+                if ($action['name'] === 'generate-qr-code') {
+                    $data['qr_code'] = $action['url'];
+                }
+                if ($action['name'] === 'deeplink-redirect') {
+                    $data['deeplink_url'] = $action['url'];
+                }
+            }
+        }
+
+        if (! empty($response['va_numbers'])) {
+            $data['va_number'] = $response['va_numbers'][0]['va_number'];
+            $data['bank'] = $response['va_numbers'][0]['bank'];
+        }
+
+        if (! empty($response['permata_va_number'])) {
+            $data['va_number'] = $response['permata_va_number'];
+            $data['bank'] = 'permata';
+        }
+
+        if (! empty($response['bill_key'])) {
+            $data['bill_key'] = $response['bill_key'];
+            $data['biller_code'] = $response['biller_code'] ?? null;
+        }
+
+        if (! empty($response['payment_code'])) {
+            $data['payment_code'] = $response['payment_code'];
+            $data['store'] = $response['store'] ?? null;
+        }
+
+        return $data;
     }
 
     public function qrisStatus(Order $order, MidtransService $midtrans): JsonResponse
@@ -395,7 +557,165 @@ class PosController extends Controller
             default => 'pending',
         };
 
+        if ($mapped !== 'pending' && $order->payment) {
+            $order->payment->update(['status' => $mapped]);
+            if ($mapped === 'settlement') {
+                $order->update(['status' => 'paid']);
+                broadcast(new OrderPaid($order))->toOthers();
+            } elseif ($mapped === 'failed') {
+                $order->update(['status' => 'cancelled']);
+            }
+        }
+
         return response()->json(['status' => $mapped]);
+    }
+
+    public function releaseTable(Request $request, Meja $table): RedirectResponse
+    {
+        $session = $table->sessions()->where('status', 'active')->first();
+        $groupedIds = [];
+
+        if ($session) {
+            $session->orders()->whereIn('status', ['pending', 'pending_payment'])
+                ->update(['status' => 'cancelled']);
+
+            $groupedIds = $session->orders()
+                ->whereNotNull('grouped_tables')
+                ->pluck('grouped_tables')
+                ->flatten()
+                ->unique()
+                ->values()
+                ->toArray();
+
+            $session->update([
+                'status' => 'closed',
+                'closed_at' => now(),
+            ]);
+        }
+
+        $affected = collect([$table->id, ...$groupedIds])->unique();
+        Meja::whereIn('id', $affected)->update(['status' => 'available']);
+
+        return redirect()->route('pos.index')
+            ->with('success', "Meja {$table->code} berhasil dikosongkan.");
+    }
+
+    public function lockTable(Request $request, Meja $table): JsonResponse
+    {
+        if ($table->status !== 'available') {
+            return response()->json([
+                'message' => "Meja {$table->code} tidak tersedia.",
+            ], 422);
+        }
+
+        $table->update([
+            'status' => 'locked',
+            'locked_by' => auth()->id(),
+        ]);
+
+        return response()->json([
+            'message' => "Meja {$table->code} terkunci.",
+            'table' => $table->fresh()->load('lockedBy'),
+        ]);
+    }
+
+    public function unlockTable(Request $request, Meja $table): JsonResponse
+    {
+        $table->update([
+            'status' => 'available',
+            'locked_by' => null,
+        ]);
+
+        return response()->json([
+            'message' => "Meja {$table->code} tersedia.",
+            'table' => $table->fresh()->load('lockedBy'),
+        ]);
+    }
+
+    public function moveTable(Meja $table, Meja $target): RedirectResponse
+    {
+        if ($table->status !== 'occupied') {
+            return redirect()->route('pos.index')
+                ->with('error', "Meja {$table->code} tidak sedang digunakan.");
+        }
+
+        if ($target->status !== 'available') {
+            return redirect()->route('pos.index')
+                ->with('error', "Meja {$target->code} sedang digunakan.");
+        }
+
+        $sourceSession = $table->sessions()->where('status', 'active')->first();
+
+        if (! $sourceSession) {
+            return redirect()->route('pos.index')
+                ->with('error', "Tidak ada sesi aktif untuk meja {$table->code}.");
+        }
+
+        $targetSession = $target->sessions()->where('status', 'active')->first()
+            ?? $target->sessions()->create([
+                'opened_at' => now(),
+                'status' => 'active',
+            ]);
+
+        $sourceSession->orders()->update(['table_session_id' => $targetSession->id]);
+
+        $sourceSession->update([
+            'status' => 'closed',
+            'closed_at' => now(),
+        ]);
+
+        $table->update(['status' => 'available']);
+        $target->update(['status' => 'occupied']);
+
+        return redirect()->route('pos.index')
+            ->with('success', "Meja {$table->code} dipindah ke Meja {$target->code}.");
+    }
+
+    public function mergeTable(Meja $table, Meja $target): RedirectResponse
+    {
+        if ($table->status !== 'occupied') {
+            return redirect()->route('pos.index')
+                ->with('error', "Meja {$table->code} tidak sedang digunakan.");
+        }
+
+        if ($target->status !== 'occupied') {
+            return redirect()->route('pos.index')
+                ->with('error', "Meja {$target->code} tidak sedang digunakan.");
+        }
+
+        $sourceSession = $table->sessions()->where('status', 'active')->first();
+        $targetSession = $target->sessions()->where('status', 'active')->first();
+
+        if (! $sourceSession || ! $targetSession) {
+            return redirect()->route('pos.index')
+                ->with('error', 'Sesi meja tidak ditemukan.');
+        }
+
+        $movedOrders = $sourceSession->orders()
+            ->whereIn('status', ['pending', 'pending_payment'])
+            ->get();
+
+        foreach ($movedOrders as $order) {
+            $grouped = $order->grouped_tables ?? [];
+            if (! in_array($table->id, $grouped)) {
+                $grouped[] = $table->id;
+            }
+            $order->update([
+                'table_session_id' => $targetSession->id,
+                'grouped_tables' => $grouped,
+            ]);
+        }
+
+        $sourceSession->update([
+            'status' => 'closed',
+            'closed_at' => now(),
+        ]);
+
+        $target->update(['status' => 'occupied', 'locked_by' => null]);
+        $table->update(['status' => 'occupied', 'locked_by' => null]);
+
+        return redirect()->route('pos.index')
+            ->with('success', "Meja {$table->code} digabung ke Meja {$target->code}.");
     }
 
     public function verifyApproval(Request $request): JsonResponse

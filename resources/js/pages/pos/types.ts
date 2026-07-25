@@ -33,7 +33,10 @@ export interface TableData {
     id: number;
     code: string;
     capacity: number;
+    floor: string | null;
     status: string;
+    locked_by: number | null;
+    locked_by_user: { name: string } | null;
 }
 
 export interface ActiveSession {
@@ -43,7 +46,9 @@ export interface ActiveSession {
 }
 
 export interface OrderItemOption {
-    option_item: { id: number; name: string; price_adjustment: string };
+    id?: number;
+    price_adjustment: number;
+    option_item: { id: number; name: string; price_adjustment: number };
 }
 
 export interface PendingOrder {
@@ -81,6 +86,14 @@ export interface PrintReceiptData {
     items: CartItem[];
     discountType: string | null;
     discountValue: number;
+    orderNumber?: string | null;
+    kasir?: string | null;
+    tableCode?: string | null;
+    customerName?: string | null;
+    paymentMethod?: string | null;
+    midtransCharge?: number;
+    cashAmount?: number;
+    change?: number;
 }
 
 export interface PosPageProps {
@@ -88,4 +101,35 @@ export interface PosPageProps {
     tables: TableData[];
     activeSessions: ActiveSession[];
     pendingOrders: PendingOrder[];
+    lastOrder?: OrderData | null;
+    groupedTables?: Record<number, number[]> | null;
+}
+
+export interface OrderData {
+    id: number;
+    order_type: string;
+    status: string;
+    subtotal: number;
+    tax: number;
+    service_charge: number;
+    midtrans_charge: number;
+    discount: number;
+    discount_type: string | null;
+    discount_value: number | null;
+    total: number;
+    customer_name: string | null;
+    created_at: string;
+    created_by: { id: number; name: string } | null;
+    table_session: { table: { code: string } } | null;
+    grouped_tables: number[] | null;
+    payment: { method: string } | null;
+    items: {
+        id: number;
+        menu: { name: string; price: number };
+        qty: number;
+        base_price: number;
+        total_price: number;
+        notes: string | null;
+        options: { price_adjustment: number; option_item: { name: string; price_adjustment: number } }[];
+    }[];
 }

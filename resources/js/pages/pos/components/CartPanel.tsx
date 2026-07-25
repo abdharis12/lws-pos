@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import {
     ShoppingCart, Plus, Minus, X, Percent, SplitSquareVertical,
-    Printer, Wallet, QrCode, ShieldCheck,
+    Printer, Wallet, Globe, ShieldCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -43,13 +43,14 @@ export default function CartPanel({
         return sum + (Number(item.menu.price) + optAdj) * item.qty;
     }, 0), [items]);
 
+    const tax = useMemo(() => Math.round(subtotal * 0.10), [subtotal]);
     const discountAmount = useMemo(() => {
         if (!discountType || !discountValue) return 0;
         if (discountType === 'percentage') return Math.min(subtotal * (discountValue / 100), subtotal);
         return Math.min(discountValue, subtotal);
     }, [subtotal, discountType, discountValue]);
 
-    const total = subtotal - discountAmount;
+    const total = subtotal + tax - discountAmount;
     const isConfirmMode = !!pendingOrderId;
     const needsApproval = discountType === 'percentage' ? discountValue > 10 : discountValue > 50000;
 
@@ -199,6 +200,10 @@ export default function CartPanel({
                         <span>Subtotal</span>
                         <span>Rp {subtotal.toLocaleString('id-ID')}</span>
                     </div>
+                    <div className="flex justify-between" style={{ color: MUTED }}>
+                        <span>Pajak Resto (10%)</span>
+                        <span>Rp {tax.toLocaleString('id-ID')}</span>
+                    </div>
                     {discountAmount > 0 && (
                         <div className="flex justify-between" style={{ color: '#059669' }}>
                             <span>Diskon</span>
@@ -231,8 +236,8 @@ export default function CartPanel({
                                     <Button onClick={() => onOrder('cash')} disabled={items.length === 0 || processing || !tableSelected} className="w-full" size="lg" style={{ backgroundColor: PRIMARY }}>
                                         <Wallet className="mr-2 size-4" /> Bayar Cash
                                     </Button>
-                                    <Button onClick={() => onOrder('qris')} disabled={items.length === 0 || processing || !tableSelected} variant="secondary" className="w-full" size="lg" style={{ backgroundColor: SAND, color: INK }}>
-                                        <QrCode className="mr-2 size-4" /> Bayar QRIS
+                                    <Button onClick={() => onOrder('online')} disabled={items.length === 0 || processing || !tableSelected} variant="secondary" className="w-full" size="lg" style={{ backgroundColor: SAND, color: INK }}>
+                                        <Globe className="mr-2 size-4" /> Bayar Online
                                     </Button>
                                 </>
                             )}

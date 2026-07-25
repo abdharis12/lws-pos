@@ -13,7 +13,7 @@ class Menu extends Model
 
     protected $fillable = [
         'category_id', 'name', 'description', 'price',
-        'photo_path', 'is_available',
+        'photo_path', 'is_available', 'station',
     ];
 
     protected function casts(): array

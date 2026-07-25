@@ -105,7 +105,7 @@ export default function ReportsIndex({
                         </CardHeader>
                         <CardContent>
                             <div className="font-display text-2xl font-bold" style={{ color: DARK }}>
-                                Rp {totalSales.toLocaleString('id-ID')}
+                                Rp {Math.ceil(totalSales).toLocaleString('id-ID')}
                             </div>
                             <p className="mt-1 text-xs" style={{ color: '#8a968f' }}>
                                 {period === 'daily' ? 'Hari ini' : period === 'weekly' ? 'Minggu ini' : 'Bulan ini'}
@@ -137,7 +137,7 @@ export default function ReportsIndex({
                         </CardHeader>
                         <CardContent>
                             <div className="font-display text-2xl font-bold" style={{ color: DARK }}>
-                                Rp {averageOrder.toLocaleString('id-ID')}
+                                Rp {Math.ceil(averageOrder).toLocaleString('id-ID')}
                             </div>
                             <p className="mt-1 text-xs" style={{ color: '#8a968f' }}>
                                 Per transaksi
@@ -159,7 +159,7 @@ export default function ReportsIndex({
                                     <div key={p.method} className="flex items-center justify-between text-xs">
                                         <span style={{ color: '#5c6a66' }} className="capitalize">{p.method}</span>
                                         <span className="font-semibold" style={{ color: DARK }}>
-                                            Rp {p.total.toLocaleString('id-ID')}
+                                            Rp {Math.ceil(p.total).toLocaleString('id-ID')}
                                         </span>
                                     </div>
                                 ))}
@@ -186,7 +186,7 @@ export default function ReportsIndex({
                                                 height: `${Math.max(4, (h.count / maxHourlyCount) * 100)}px`,
                                                 backgroundColor: h.count > 0 ? PRIMARY : 'rgba(79,107,106,0.08)',
                                             }}
-                                            title={`${h.hour} — ${h.count} order (Rp ${h.total.toLocaleString('id-ID')})`}
+                                            title={`${h.hour} — ${h.count} order (Rp ${Math.ceil(h.total).toLocaleString('id-ID')})`}
                                         />
                                         <span className="text-[10px]" style={{ color: '#8a968f' }}>
                                             {h.hour.slice(0, 2)}
@@ -226,7 +226,7 @@ export default function ReportsIndex({
                                                     {menu.total_qty}
                                                 </p>
                                                 <p className="text-xs" style={{ color: '#8a968f' }}>
-                                                    Rp {menu.total_revenue.toLocaleString('id-ID')}
+                                                    Rp {Math.ceil(menu.total_revenue).toLocaleString('id-ID')}
                                                 </p>
                                             </div>
                                         </div>

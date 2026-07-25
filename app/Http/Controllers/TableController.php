@@ -12,6 +12,11 @@ use Inertia\Response;
 
 class TableController extends Controller
 {
+    public static function availableFloors(): array
+    {
+        return ['Lantai 1', 'Lantai 2', 'Lantai 3', 'Lantai 4', 'Teras'];
+    }
+
     public function index(): Response
     {
         $outlet = Outlet::first();
@@ -19,6 +24,7 @@ class TableController extends Controller
 
         return Inertia::render('admin/tables/Index', [
             'tables' => $tables,
+            'floors' => self::availableFloors(),
         ]);
     }
 
@@ -29,6 +35,7 @@ class TableController extends Controller
         $validated = $request->validate([
             'code' => 'required|string|max:20|unique:tables,code,NULL,id,outlet_id,'.Outlet::first()?->id,
             'capacity' => 'required|integer|min:1|max:20',
+            'floor' => 'nullable|string|max:50',
         ]);
 
         $outlet = Outlet::first();
@@ -38,6 +45,7 @@ class TableController extends Controller
             'code' => $validated['code'],
             'table_token' => Str::random(40),
             'capacity' => $validated['capacity'],
+            'floor' => $validated['floor'] ?? null,
             'status' => 'available',
         ]);
 
@@ -52,6 +60,7 @@ class TableController extends Controller
             'code' => 'required|string|max:20',
             'capacity' => 'required|integer|min:1|max:20',
             'status' => 'required|in:available,occupied,reserved',
+            'floor' => 'nullable|string|max:50',
         ]);
 
         $table->update($validated);

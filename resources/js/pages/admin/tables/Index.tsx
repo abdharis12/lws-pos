@@ -24,16 +24,20 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 
+const FLOORS = ['Lantai 1', 'Lantai 2', 'Lantai 3', 'Lantai 4', 'Teras'];
+
 interface TableData {
     id: number;
     code: string;
     table_token: string;
     capacity: number;
+    floor: string | null;
     status: 'available' | 'occupied' | 'reserved';
 }
 
 interface Props {
     tables: TableData[];
+    floors: string[];
 }
 
 function TableCard({
@@ -114,6 +118,11 @@ function TableCard({
                         <span className="text-xs text-muted-foreground">
                             {table.capacity} orang
                         </span>
+                        {table.floor && (
+                            <span className="ml-2 rounded-md bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                                {table.floor}
+                            </span>
+                        )}
                     </div>
                     <Badge variant={statusColors[table.status]}>
                         {statusLabels[table.status]}
@@ -149,13 +158,15 @@ function TableCard({
     );
 }
 
-export default function TablesIndex({ tables }: Props) {
+export default function TablesIndex({ tables, floors }: Props) {
     const [open, setOpen] = useState(false);
     const [editing, setEditing] = useState<TableData | null>(null);
+    const [filterFloor, setFilterFloor] = useState<string | null>(null);
 
     const { data, setData, post, put, delete: destroy, processing, errors, reset } = useForm({
         code: '',
         capacity: '2',
+        floor: '',
         status: 'available',
     });
 
@@ -167,9 +178,13 @@ export default function TablesIndex({ tables }: Props) {
 
     function openEdit(table: TableData) {
         setEditing(table);
-        setData({ code: table.code, capacity: String(table.capacity), status: table.status });
+        setData({ code: table.code, capacity: String(table.capacity), floor: table.floor ?? '__none__', status: table.status });
         setOpen(true);
     }
+
+    const filteredTables = filterFloor
+        ? tables.filter(t => t.floor === filterFloor)
+        : tables;
 
     function submit(e: React.FormEvent) {
         e.preventDefault();
@@ -256,6 +271,24 @@ export default function TablesIndex({ tables }: Props) {
                                 />
                                 <InputError message={errors.capacity} />
                             </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="floor">Lantai / Area</Label>
+                                    <Select
+                                        value={data.floor}
+                                        onValueChange={(v) => setData('floor', v === '__none__' ? '' : v)}
+                                    >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Pilih lantai" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="__none__">Tidak ada</SelectItem>
+                                        {floors.map(f => (
+                                            <SelectItem key={f} value={f}>{f}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <InputError message={errors.floor} />
+                            </div>
                             {editing && (
                                 <div className="grid gap-2">
                                     <Label htmlFor="status">Status</Label>
@@ -283,8 +316,28 @@ export default function TablesIndex({ tables }: Props) {
                 </Dialog>
             </div>
 
+            <div className="mb-4 flex flex-wrap gap-1">
+                <button
+                    onClick={() => setFilterFloor(null)}
+                    className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${!filterFloor ? 'text-white shadow-sm' : 'opacity-70 hover:opacity-100'}`}
+                    style={{ backgroundColor: !filterFloor ? '#233433' : 'transparent', color: !filterFloor ? '#fff' : '#233433' }}
+                >
+                    Semua
+                </button>
+                {floors.map(f => (
+                    <button
+                        key={f}
+                        onClick={() => setFilterFloor(f)}
+                        className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${filterFloor === f ? 'text-white shadow-sm' : 'opacity-70 hover:opacity-100'}`}
+                        style={{ backgroundColor: filterFloor === f ? '#233433' : 'transparent', color: filterFloor === f ? '#fff' : '#233433' }}
+                    >
+                        {f}
+                    </button>
+                ))}
+            </div>
+
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {tables.map((table) => (
+                {filteredTables.map((table) => (
                     <TableCard
                         key={table.id}
                         table={table}
@@ -293,7 +346,7 @@ export default function TablesIndex({ tables }: Props) {
                         onRegenerateToken={regenerateToken}
                     />
                 ))}
-                {tables.length === 0 && (
+                {filteredTables.length === 0 && (
                     <p className="col-span-full py-8 text-center text-muted-foreground">
                         Belum ada meja.
                     </p>

@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
-import { router, Head, usePoll } from '@inertiajs/react'
+import { router, Head, usePoll, usePage } from '@inertiajs/react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
-import { ChefHat, Clock } from 'lucide-react'
+import { ChefHat, Clock, CookingPot } from 'lucide-react'
 
 interface OrderItem {
   id: number
-  menu: { name: string }
+  menu: { name: string; station: string | null }
   qty: number
   notes: string | null
 }
@@ -22,12 +22,19 @@ interface Order {
   table_session: { table: { code: string } } | null
 }
 
-interface Props {
+interface StationGroup {
+  name: string
   orders: Order[]
+}
+
+interface Props {
+  stations: StationGroup[]
+  unassignedOrders: Order[]
 }
 
 const statusLabel: Record<string, string> = {
   pending: 'Menunggu',
+  paid: 'Menunggu',
   processing: 'Dimasak',
   ready: 'Siap',
   served: 'Tersaji',
@@ -35,6 +42,7 @@ const statusLabel: Record<string, string> = {
 
 const statusColor: Record<string, string> = {
   pending: 'bg-yellow-600',
+  paid: 'bg-yellow-600',
   processing: 'bg-blue-600',
   ready: 'bg-green-600',
   served: 'bg-gray-600',
@@ -70,14 +78,122 @@ function ElapsedBadge({ createdAt }: { createdAt: string }) {
   )
 }
 
-export default function KitchenIndex({ orders }: Props) {
+function OrderCard({ order, isNew }: { order: Order; isNew: boolean }) {
+  return (
+    <Card
+      key={order.id}
+      className={cn(
+        'border-gray-800 bg-gray-900 text-white',
+        isNew && 'new-order'
+      )}
+    >
+      <CardHeader className="border-b border-gray-800 pb-3">
+        <div className="flex items-start justify-between">
+          <div>
+            <CardTitle className="text-lg">#{order.id}</CardTitle>
+            <p className="text-sm text-gray-400">
+              {order.table_session?.table?.code ?? order.order_type}
+            </p>
+          </div>
+          <ElapsedBadge createdAt={order.created_at} />
+        </div>
+      </CardHeader>
+      <CardContent className="pt-3">
+        <ul className="mb-3 space-y-1">
+          {order.items.map(item => (
+            <li key={item.id} className="flex text-sm">
+              <span className="mr-2 text-[#CFC0A4]">{item.qty}x</span>
+              <span>{item.menu.name}</span>
+            </li>
+          ))}
+        </ul>
+
+        {order.items.some(i => i.notes) && (
+          <div className="mb-3 space-y-1 rounded bg-gray-800 p-2 text-xs text-gray-300">
+            {order.items.filter(i => i.notes).map(i => (
+              <p key={i.id}>
+                <strong>{i.menu.name}:</strong> {i.notes}
+              </p>
+            ))}
+          </div>
+        )}
+
+        <div className="flex items-center justify-between border-t border-gray-800 pt-3">
+          <Badge
+            className={cn('text-white', statusColor[order.status] ?? 'bg-gray-500')}
+          >
+            {statusLabel[order.status] ?? order.status}
+          </Badge>
+
+          <div className="flex gap-2">
+            {order.status === 'paid' && (
+              <Button
+                size="sm"
+                className="bg-[#4F6B6A] hover:bg-[#3d5554]"
+                onClick={() =>
+                  router.patch(
+                    `/orders/${order.id}/status`,
+                    { status: 'processing' },
+                    { preserveState: true },
+                  )
+                }
+              >
+                Mulai Masak
+              </Button>
+            )}
+            {order.status === 'processing' && (
+              <Button
+                size="sm"
+                className="bg-green-600 hover:bg-green-700"
+                onClick={() =>
+                  router.patch(
+                    `/orders/${order.id}/status`,
+                    { status: 'ready' },
+                    { preserveState: true },
+                  )
+                }
+              >
+                Selesai
+              </Button>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function StationColumn({ station, stationOrders, newIds }: { station: StationGroup; stationOrders: Order[]; newIds: Set<number> }) {
+  if (stationOrders.length === 0) return null
+
+  return (
+    <div className="space-y-3">
+      <div className="sticky top-0 z-10 -mx-4 -mt-4 bg-gray-950 px-4 pb-2 pt-4">
+        <div className="flex items-center gap-2">
+          <CookingPot className="h-5 w-5 text-[#CFC0A4]" />
+          <h2 className="text-base font-semibold">{station.name}</h2>
+          <Badge variant="outline" className="ml-auto border-gray-700 text-xs text-gray-400">
+            {stationOrders.length}
+          </Badge>
+        </div>
+      </div>
+      {stationOrders.map(order => (
+        <OrderCard key={order.id} order={order} isNew={newIds.has(order.id)} />
+      ))}
+    </div>
+  )
+}
+
+export default function KitchenIndex({ stations, unassignedOrders }: Props) {
   const [newIds, setNewIds] = useState<Set<number>>(new Set())
   const prevIds = useRef<Set<number>>(new Set())
 
   usePoll(10000)
 
+  const allOrders = [...stations.flatMap(s => s.orders), ...unassignedOrders]
+
   useEffect(() => {
-    const ids = new Set(orders.map(o => o.id))
+    const ids = new Set(allOrders.map(o => o.id))
     const fresh = new Set([...ids].filter(id => !prevIds.current.has(id)))
     if (fresh.size > 0) {
       setNewIds(fresh)
@@ -98,7 +214,9 @@ export default function KitchenIndex({ orders }: Props) {
       return () => clearTimeout(t)
     }
     prevIds.current = ids
-  }, [orders])
+  }, [allOrders])
+
+  const hasOrders = allOrders.length > 0
 
   return (
     <div className="min-h-screen bg-gray-950 p-4 text-white">
@@ -120,98 +238,31 @@ export default function KitchenIndex({ orders }: Props) {
             <span className="absolute inline-flex h-3 w-3 animate-ping rounded-full bg-green-400 opacity-75" />
             <span className="relative inline-flex h-3 w-3 rounded-full bg-green-500" />
           </span>
-          <span className="ml-auto text-sm text-gray-400">{orders.length} pesanan</span>
+          <span className="ml-auto text-sm text-gray-400">{allOrders.length} pesanan</span>
         </div>
 
-        {orders.length === 0 ? (
+        {!hasOrders ? (
           <div className="flex flex-col items-center justify-center py-24 text-gray-500">
             <ChefHat className="mb-4 h-16 w-16 opacity-30" />
             <p className="text-lg">Belum ada pesanan</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {orders.map(order => (
-              <Card
-                key={order.id}
-                className={cn(
-                  'border-gray-800 bg-gray-900 text-white',
-                  newIds.has(order.id) && 'new-order'
-                )}
-              >
-                <CardHeader className="border-b border-gray-800 pb-3">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-lg">#{order.id}</CardTitle>
-                      <p className="text-sm text-gray-400">
-                        {order.table_session?.table?.code ?? order.order_type}
-                      </p>
-                    </div>
-                    <ElapsedBadge createdAt={order.created_at} />
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-3">
-                  <ul className="mb-3 space-y-1">
-                    {order.items.map(item => (
-                      <li key={item.id} className="flex text-sm">
-                        <span className="mr-2 text-[#CFC0A4]">{item.qty}x</span>
-                        <span>{item.menu.name}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  {order.items.some(i => i.notes) && (
-                    <div className="mb-3 space-y-1 rounded bg-gray-800 p-2 text-xs text-gray-300">
-                      {order.items.filter(i => i.notes).map(i => (
-                        <p key={i.id}>
-                          <strong>{i.menu.name}:</strong> {i.notes}
-                        </p>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="flex items-center justify-between border-t border-gray-800 pt-3">
-                    <Badge
-                      className={cn('text-white', statusColor[order.status] ?? 'bg-gray-500')}
-                    >
-                      {statusLabel[order.status] ?? order.status}
-                    </Badge>
-
-                    <div className="flex gap-2">
-                      {order.status === 'pending' && (
-                        <Button
-                          size="sm"
-                          className="bg-[#4F6B6A] hover:bg-[#3d5554]"
-                          onClick={() =>
-                            router.patch(
-                              `/orders/${order.id}/status`,
-                              { status: 'processing' },
-                              { preserveState: true },
-                            )
-                          }
-                        >
-                          Mulai Masak
-                        </Button>
-                      )}
-                      {order.status === 'processing' && (
-                        <Button
-                          size="sm"
-                          className="bg-green-600 hover:bg-green-700"
-                          onClick={() =>
-                            router.patch(
-                              `/orders/${order.id}/status`,
-                              { status: 'ready' },
-                              { preserveState: true },
-                            )
-                          }
-                        >
-                          Selesai
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {stations.map(station => (
+              <StationColumn
+                key={station.name}
+                station={station}
+                stationOrders={station.orders}
+                newIds={newIds}
+              />
             ))}
+            {unassignedOrders.length > 0 && (
+              <StationColumn
+                station={{ name: 'Lainnya', orders: unassignedOrders }}
+                stationOrders={unassignedOrders}
+                newIds={newIds}
+              />
+            )}
           </div>
         )}
       </div>

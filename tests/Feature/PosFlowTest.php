@@ -74,13 +74,15 @@ test('cashier can create order with cash payment', function () {
         'order_type' => 'cashier',
         'status' => 'paid',
         'subtotal' => 50000.00,
-        'total' => 50000.00,
+        'tax' => 5000.00,
+        'service_charge' => 0,
+        'total' => 55000.00,
     ]);
 
     $this->assertDatabaseHas('payments', [
         'method' => 'cash',
         'status' => 'settlement',
-        'gross_amount' => 50000.00,
+        'gross_amount' => 55000.00,
     ]);
 });
 
@@ -132,7 +134,9 @@ test('order includes option items in price calculation', function () {
 
     $this->assertDatabaseHas('orders', [
         'subtotal' => 30000.00,
-        'total' => 30000.00,
+        'tax' => 3000.00,
+        'service_charge' => 0,
+        'total' => 33000.00,
     ]);
 });
 
@@ -189,10 +193,12 @@ test('order can apply nominal discount', function () {
 
     $this->assertDatabaseHas('orders', [
         'subtotal' => 50000.00,
+        'tax' => 5000.00,
+        'service_charge' => 0,
         'discount' => 10000.00,
         'discount_type' => 'nominal',
         'discount_value' => 10000.00,
-        'total' => 40000.00,
+        'total' => 45000.00,
     ]);
 });
 
@@ -209,10 +215,12 @@ test('order can apply percentage discount', function () {
 
     $this->assertDatabaseHas('orders', [
         'subtotal' => 50000.00,
+        'tax' => 5000.00,
+        'service_charge' => 0,
         'discount' => 5000.00,
         'discount_type' => 'percentage',
         'discount_value' => 10.00,
-        'total' => 45000.00,
+        'total' => 50000.00,
     ]);
 });
 
@@ -230,8 +238,10 @@ test('discount is capped at subtotal', function () {
 
     $this->assertDatabaseHas('orders', [
         'subtotal' => 25000.00,
+        'tax' => 2500.00,
+        'service_charge' => 0,
         'discount' => 25000.00,
-        'total' => 0.00,
+        'total' => 2500.00,
     ]);
 });
 
@@ -273,9 +283,11 @@ test('large discount with admin approval succeeds', function () {
 
     $this->assertDatabaseHas('orders', [
         'subtotal' => 100000.00,
+        'tax' => 10000.00,
+        'service_charge' => 0,
         'discount' => 20000.00,
         'discount_approved_by' => $this->admin->id,
-        'total' => 80000.00,
+        'total' => 90000.00,
     ]);
 });
 
@@ -308,7 +320,9 @@ test('order can be split into multiple bills', function () {
     $orders = Order::where('order_type', 'cashier')->get();
     expect($orders)->toHaveCount(2);
     expect($orders[0]->subtotal + $orders[1]->subtotal)->toBe(100000.00);
-    expect($orders[0]->total + $orders[1]->total)->toBe(100000.00);
+    expect((float) $orders[0]->tax + (float) $orders[1]->tax)->toBe(10000.00);
+    expect((float) $orders[0]->service_charge + (float) $orders[1]->service_charge)->toBe(0.0);
+    expect($orders[0]->total + $orders[1]->total)->toBe(110000.00);
 });
 
 test('split with discount divides discount proportionally', function () {
@@ -410,8 +424,11 @@ test('confirm pay with discount', function () {
 
     $this->assertDatabaseHas('orders', [
         'id' => $order->id,
+        'subtotal' => 25000.00,
+        'tax' => 2500.00,
+        'service_charge' => 0,
         'discount' => 5000.00,
-        'total' => 20000.00,
+        'total' => 22500.00,
     ]);
 });
 

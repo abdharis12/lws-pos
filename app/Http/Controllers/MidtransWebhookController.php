@@ -53,11 +53,13 @@ class MidtransWebhookController extends Controller
             default => 'pending',
         };
 
+        $paymentMethod = $payload['payment_type'] ?? ($order->payment?->method ?? 'qris');
+
         Payment::updateOrCreate(
             ['midtrans_transaction_id' => $payload['transaction_id'] ?? $orderId],
             [
                 'order_id' => $order->id,
-                'method' => 'qris',
+                'method' => $paymentMethod,
                 'gross_amount' => $grossAmount,
                 'status' => $paymentStatus,
                 'signature_verified_at' => now(),

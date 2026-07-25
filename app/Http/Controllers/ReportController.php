@@ -151,20 +151,24 @@ class ReportController extends Controller
         $startDate = $request->input('start_date', today()->startOfMonth()->format('Y-m-d'));
         $endDate = $request->input('end_date', today()->format('Y-m-d'));
 
+        $allPayments = Payment::whereDate('created_at', '>=', $startDate)
+            ->whereDate('created_at', '<=', $endDate)
+            ->get();
+
+        $summary = [
+            'total_system' => (float) $allPayments->whereIn('status', ['settlement', 'success'])->sum('gross_amount'),
+            'total_pending' => (float) $allPayments->where('status', 'pending')->sum('gross_amount'),
+            'total_failed' => (float) $allPayments->whereIn('status', ['failed', 'expire', 'cancel', 'deny', 'failure'])->sum('gross_amount'),
+            'qris_count' => $allPayments->where('method', 'qris')->count(),
+            'cash_count' => $allPayments->where('method', 'cash')->count(),
+            'debit_count' => $allPayments->where('method', 'debit')->count(),
+        ];
+
         $payments = Payment::with('order')
             ->whereDate('created_at', '>=', $startDate)
             ->whereDate('created_at', '<=', $endDate)
             ->orderByDesc('created_at')
-            ->get();
-
-        $summary = [
-            'total_system' => (float) $payments->where('status', 'settlement')->sum('gross_amount'),
-            'total_pending' => (float) $payments->where('status', 'pending')->sum('gross_amount'),
-            'total_failed' => (float) $payments->whereIn('status', ['expire', 'cancel', 'deny', 'failure'])->sum('gross_amount'),
-            'qris_count' => $payments->where('method', 'qris')->count(),
-            'cash_count' => $payments->where('method', 'cash')->count(),
-            'debit_count' => $payments->where('method', 'debit')->count(),
-        ];
+            ->paginate(20);
 
         return Inertia::render('admin/reports/Reconciliation', [
             'payments' => $payments,

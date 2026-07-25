@@ -89,14 +89,17 @@ class SelfOrderController extends Controller
             ];
         }
 
-        $total = $subtotal;
+        $tax = round($subtotal * 0.10, 2);
+        $serviceCharge = round($subtotal * 0.05, 2);
+        $total = $subtotal + $tax + $serviceCharge;
 
         $order = $session->orders()->create([
             'order_type' => 'dine_in_qr',
             'status' => 'pending',
             'customer_name' => $validated['customer_name'],
             'subtotal' => $subtotal,
-            'tax' => 0,
+            'tax' => $tax,
+            'service_charge' => $serviceCharge,
             'discount' => 0,
             'total' => $total,
         ]);

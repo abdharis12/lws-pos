@@ -1,3 +1,4 @@
+import { useOrderReadyToast } from '@/hooks/use-order-ready-toast';
 import { AppContent } from '@/components/app-content';
 import { AppShell } from '@/components/app-shell';
 import { AppSidebar } from '@/components/app-sidebar';
@@ -10,6 +11,8 @@ export default function AppSidebarLayout({
     children,
     breadcrumbs = [],
 }: AppLayoutProps) {
+    useOrderReadyToast();
+
     return (
         <AppShell variant="sidebar">
             <AppSidebar />
