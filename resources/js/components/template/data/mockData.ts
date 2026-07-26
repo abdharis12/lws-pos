@@ -1,4 +1,4 @@
-import { MenuItem, Testimonial, Reservation } from '../types/types';
+import type { MenuItem, Testimonial, Reservation } from '../types/types';
 
 export const MENU_ITEMS: MenuItem[] = [
     {

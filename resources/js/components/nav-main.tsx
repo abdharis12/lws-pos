@@ -12,7 +12,9 @@ import type { NavItem } from '@/types';
 export function NavMain({ label = 'Platform', items = [] }: { label?: string; items: NavItem[] }) {
     const { isCurrentUrl } = useCurrentUrl();
 
-    if (items.length === 0) return null;
+    if (items.length === 0) {
+return null;
+}
 
     return (
         <SidebarGroup className="px-2 py-0">

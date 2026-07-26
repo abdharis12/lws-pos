@@ -1,9 +1,9 @@
-import { useState } from 'react';
 import { Plus, Minus, Check } from 'lucide-react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { BORDER, CREAM, INK, MUTED, PRIMARY } from '../constants';
 import type { MenuItem, CartItem } from '../types';
 
@@ -23,44 +23,65 @@ export default function ItemDialog({ open, onOpenChange, menu, onAdd }: Props) {
         setQty(1);
         setNotes('');
         const opts: Record<number, number[]> = {};
-        if (menu) for (const g of menu.option_groups) opts[g.id] = [];
+
+        if (menu) {
+for (const g of menu.option_groups) {
+opts[g.id] = [];
+}
+}
+
         setOptions(opts);
     }
 
     function toggleOption(groupId: number, itemId: number, selectionType: string) {
         setOptions(prev => {
             const current = [...(prev[groupId] || [])];
+
             if (selectionType === 'single') {
                 return { ...prev, [groupId]: current.includes(itemId) ? [] : [itemId] };
             }
+
             const idx = current.indexOf(itemId);
             idx >= 0 ? current.splice(idx, 1) : current.push(itemId);
+
             return { ...prev, [groupId]: current };
         });
     }
 
     function handleAdd() {
-        if (!menu) return;
+        if (!menu) {
+return;
+}
+
         const selectedOptions: CartItem['selectedOptions'] = [];
+
         for (const group of menu.option_groups) {
             for (const id of (options[group.id] || [])) {
                 const opt = group.option_items.find(i => i.id === id);
-                if (opt) selectedOptions.push({ itemId: opt.id, name: opt.name, adjustment: Number(opt.price_adjustment) });
+
+                if (opt) {
+selectedOptions.push({ itemId: opt.id, name: opt.name, adjustment: Number(opt.price_adjustment) });
+}
             }
         }
+
         onAdd(menu, qty, notes, selectedOptions);
         reset(null);
         onOpenChange(false);
     }
 
     function handleOpenChange(open: boolean) {
-        if (open && menu) reset(menu);
+        if (open && menu) {
+reset(menu);
+}
+
         onOpenChange(open);
     }
 
     const topAdj = menu ? menu.option_groups.reduce((sum, g) => {
         return sum + (options[g.id] || []).reduce((s, id) => {
             const opt = g.option_items.find(i => i.id === id);
+
             return s + (opt ? Number(opt.price_adjustment) : 0);
         }, 0);
     }, 0) : 0;
@@ -121,6 +142,7 @@ export default function ItemDialog({ open, onOpenChange, menu, onAdd }: Props) {
                                     {group.option_items.filter(i => i.is_available).map(opt => {
                                         const selected = (options[group.id] || []).includes(opt.id);
                                         const adj = Number(opt.price_adjustment);
+
                                         return (
                                             <button
                                                 key={opt.id}

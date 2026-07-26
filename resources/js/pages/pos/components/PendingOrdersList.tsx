@@ -10,7 +10,9 @@ interface Props {
 }
 
 export default function PendingOrdersList({ orders, selectedId, onSelect, variant = 'sidebar' }: Props) {
-    if (orders.length === 0) return null;
+    if (orders.length === 0) {
+return null;
+}
 
     if (variant === 'mobile') {
         return (

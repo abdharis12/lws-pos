@@ -1,6 +1,9 @@
 <?php
 
+use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\BonusController;
+use App\Http\Controllers\DeductionController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\KitchenDisplayController;
 use App\Http\Controllers\MenuCategoryController;
@@ -9,8 +12,13 @@ use App\Http\Controllers\MidtransWebhookController;
 use App\Http\Controllers\OptionGroupController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\OwnerDashboardController;
+use App\Http\Controllers\PayrollController;
+use App\Http\Controllers\PayrollSettingController;
+use App\Http\Controllers\PayslipController;
+use App\Http\Controllers\PdfController;
 use App\Http\Controllers\PosController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\SalaryComponentController;
 use App\Http\Controllers\SelfOrderController;
 use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\TableController;
@@ -70,6 +78,38 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('reports/attendance', [ReportController::class, 'attendance'])->name('admin.reports.attendance');
         Route::get('reports/overtime', [ReportController::class, 'overtime'])->name('admin.reports.overtime');
         Route::get('reports/export', [ReportController::class, 'exportSales'])->name('admin.reports.export');
+
+        Route::get('salary-components', [SalaryComponentController::class, 'index'])->name('admin.salary-components.index');
+        Route::post('salary-components', [SalaryComponentController::class, 'store'])->name('admin.salary-components.store');
+        Route::put('salary-components/{salaryComponent}', [SalaryComponentController::class, 'update'])->name('admin.salary-components.update');
+        Route::delete('salary-components/{salaryComponent}', [SalaryComponentController::class, 'destroy'])->name('admin.salary-components.destroy');
+
+        Route::get('bonuses', [BonusController::class, 'index'])->name('admin.bonuses.index');
+        Route::post('bonuses', [BonusController::class, 'store'])->name('admin.bonuses.store');
+        Route::put('bonuses/{bonus}', [BonusController::class, 'update'])->name('admin.bonuses.update');
+        Route::delete('bonuses/{bonus}', [BonusController::class, 'destroy'])->name('admin.bonuses.destroy');
+
+        Route::get('deductions', [DeductionController::class, 'index'])->name('admin.deductions.index');
+        Route::post('deductions', [DeductionController::class, 'store'])->name('admin.deductions.store');
+        Route::put('deductions/{deduction}', [DeductionController::class, 'update'])->name('admin.deductions.update');
+        Route::delete('deductions/{deduction}', [DeductionController::class, 'destroy'])->name('admin.deductions.destroy');
+
+        Route::get('payslips', [PayslipController::class, 'index'])->name('admin.payslips.index');
+        Route::get('payslips/{payslip}', [PayslipController::class, 'show'])->name('admin.payslips.show');
+        Route::post('payslips/generate', [PayslipController::class, 'generate'])->name('admin.payslips.generate');
+        Route::post('payslips/generate-single/{employee}', [PayslipController::class, 'generateSingle'])->name('admin.payslips.generate-single');
+        Route::post('payslips/{payslip}/approve', [PayslipController::class, 'approve'])->name('admin.payslips.approve');
+        Route::post('payslips/{payslip}/mark-paid', [PayslipController::class, 'markPaid'])->name('admin.payslips.mark-paid');
+
+        Route::get('payroll/report', [PayrollController::class, 'index'])->name('admin.payroll.report');
+        Route::get('payroll/export', [PayrollController::class, 'export'])->name('admin.payroll.export');
+
+        Route::get('payroll/settings', [PayrollSettingController::class, 'index'])->name('admin.payroll.settings');
+        Route::post('payroll/thr', [PayrollSettingController::class, 'storeThr'])->name('admin.payroll.thr.store');
+        Route::put('payroll/thr/{thrSetting}', [PayrollSettingController::class, 'updateThr'])->name('admin.payroll.thr.update');
+        Route::delete('payroll/thr/{thrSetting}', [PayrollSettingController::class, 'destroyThr'])->name('admin.payroll.thr.destroy');
+
+        Route::get('activity-logs', [ActivityLogController::class, 'index'])->name('admin.activity-logs.index');
     });
 
     Route::get('owner/dashboard', [OwnerDashboardController::class, 'index'])->name('owner.dashboard');
@@ -89,6 +129,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('kitchen', [KitchenDisplayController::class, 'index'])->name('kitchen.index');
     Route::patch('orders/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.update-status');
+
+    Route::get('payslips/{payslip}/pdf', [PdfController::class, 'payslip'])->name('payslips.pdf');
 });
 
 Route::get('t/{tableToken}', [SelfOrderController::class, 'show'])->name('self-order.show');
@@ -100,5 +142,7 @@ Route::post('t/{tableToken}/orders', [SelfOrderController::class, 'store'])
 Route::post('webhooks/midtrans/notification', [MidtransWebhookController::class, 'notification'])
     ->withoutMiddleware([VerifyCsrfToken::class])
     ->name('webhooks.midtrans.notification');
+
+Route::inertia('offline', 'welcome')->name('offline');
 
 require __DIR__.'/settings.php';

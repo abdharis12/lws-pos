@@ -1,5 +1,5 @@
-import { BORDER, CREAM, INK, MUTED, PRIMARY } from '../constants';
 import { cn } from '@/lib/utils';
+import { BORDER, CREAM, INK, MUTED, PRIMARY } from '../constants';
 
 interface Props {
     orderType: 'dine_in' | 'takeaway';

@@ -1,10 +1,10 @@
-import { useState, useMemo } from 'react';
 import {
     ShoppingCart, Plus, Minus, X, Percent, SplitSquareVertical,
     Printer, Wallet, Globe, ShieldCheck,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useState, useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { BORDER, CREAM, INK, MUTED, PRIMARY, SAND } from '../constants';
 import type { CartItem } from '../types';
@@ -40,13 +40,20 @@ export default function CartPanel({
     const [showDiscount, setShowDiscount] = useState(false);
     const subtotal = useMemo(() => items.reduce((sum, item) => {
         const optAdj = item.selectedOptions.reduce((s, o) => s + o.adjustment, 0);
+
         return sum + (Number(item.menu.price) + optAdj) * item.qty;
     }, 0), [items]);
 
     const tax = useMemo(() => Math.round(subtotal * 0.10), [subtotal]);
     const discountAmount = useMemo(() => {
-        if (!discountType || !discountValue) return 0;
-        if (discountType === 'percentage') return Math.min(subtotal * (discountValue / 100), subtotal);
+        if (!discountType || !discountValue) {
+return 0;
+}
+
+        if (discountType === 'percentage') {
+return Math.min(subtotal * (discountValue / 100), subtotal);
+}
+
         return Math.min(discountValue, subtotal);
     }, [subtotal, discountType, discountValue]);
 
@@ -75,6 +82,7 @@ export default function CartPanel({
                 ) : (
                     items.map((item, i) => {
                         const itemTotal = (Number(item.menu.price) + item.selectedOptions.reduce((s, o) => s + o.adjustment, 0)) * item.qty;
+
                         return (
                             <div key={i} className="rounded-xl p-3" style={{ border: `1px solid ${BORDER}`, backgroundColor: `${CREAM}60` }}>
                                 <div className="flex items-start justify-between">

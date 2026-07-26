@@ -1,6 +1,6 @@
-import { useState } from 'react';
 import { router } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
+import { useState } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { BORDER, CREAM, INK, MUTED, PRIMARY, TABLE_COLORS } from '../constants';
 import type { TableData } from '../types';
@@ -17,9 +17,18 @@ export default function MoveMergeDialog({ open, mode, sourceTable, tables, onClo
     const [loading, setLoading] = useState(false);
 
     const filtered = tables.filter(t => {
-        if (t.id === sourceTable.id) return false;
-        if (mode === 'move') return t.status === 'available';
-        if (mode === 'merge') return t.status === 'occupied';
+        if (t.id === sourceTable.id) {
+return false;
+}
+
+        if (mode === 'move') {
+return t.status === 'available';
+}
+
+        if (mode === 'merge') {
+return t.status === 'occupied';
+}
+
         return false;
     });
 
@@ -39,7 +48,11 @@ export default function MoveMergeDialog({ open, mode, sourceTable, tables, onClo
     };
 
     return (
-        <Dialog open={open} onOpenChange={(v) => { if (!v && !loading) onClose(); }}>
+        <Dialog open={open} onOpenChange={(v) => {
+ if (!v && !loading) {
+onClose();
+} 
+}}>
             <DialogContent className="sm:max-w-sm" style={{ backgroundColor: CREAM }}>
                 <div className="py-2">
                     <div className="flex items-center gap-3 mb-4">

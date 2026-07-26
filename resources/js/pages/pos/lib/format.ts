@@ -32,11 +32,18 @@ export function paymentLabel(method: string | null): string {
         alfamart: 'Alfamart',
         akulaku: 'Akulaku',
     };
+
     return method ? (labels[method] ?? '—') : '—';
 }
 
 export function orderTypeLabel(type: string | null | undefined): string {
-    if (type === 'cashier' || type === 'dine_in_qr' || type === 'dine_in') return 'Dine-in';
-    if (type === 'takeaway') return 'Take Away';
+    if (type === 'cashier' || type === 'dine_in_qr' || type === 'dine_in') {
+return 'Dine-in';
+}
+
+    if (type === 'takeaway') {
+return 'Take Away';
+}
+
     return type ?? '—';
 }

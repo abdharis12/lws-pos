@@ -71,7 +71,7 @@ test('cashier can create order with cash payment', function () {
     ])->assertRedirect(route('pos.index'));
 
     $this->assertDatabaseHas('orders', [
-        'order_type' => 'cashier',
+        'order_type' => 'dine_in',
         'status' => 'paid',
         'subtotal' => 50000.00,
         'tax' => 5000.00,
@@ -110,7 +110,7 @@ test('order can be created without payment (save only)', function () {
     ])->assertRedirect();
 
     $this->assertDatabaseHas('orders', [
-        'order_type' => 'cashier',
+        'order_type' => 'dine_in',
         'status' => 'paid',
     ]);
 
@@ -317,7 +317,7 @@ test('order can be split into multiple bills', function () {
         'split_count' => 2,
     ]);
 
-    $orders = Order::where('order_type', 'cashier')->get();
+    $orders = Order::where('order_type', 'dine_in')->get();
     expect($orders)->toHaveCount(2);
     expect($orders[0]->subtotal + $orders[1]->subtotal)->toBe(100000.00);
     expect((float) $orders[0]->tax + (float) $orders[1]->tax)->toBe(10000.00);
@@ -337,7 +337,7 @@ test('split with discount divides discount proportionally', function () {
         'split_count' => 2,
     ]);
 
-    $orders = Order::where('order_type', 'cashier')->get();
+    $orders = Order::where('order_type', 'dine_in')->get();
     expect($orders)->toHaveCount(2);
     expect((float) $orders[0]->discount)->toEqual(5000.00);
     expect((float) $orders[1]->discount)->toEqual(5000.00);

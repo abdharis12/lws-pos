@@ -65,6 +65,7 @@ export default function AttendanceRecap({
         const date = new Date(2026, i, 1);
         const value = date.toISOString().slice(0, 7);
         const label = date.toLocaleDateString('id-ID', { year: 'numeric', month: 'long' });
+
         return { value, label };
     });
 

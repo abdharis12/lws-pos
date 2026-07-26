@@ -1,8 +1,8 @@
-import { useOrderReadyToast } from '@/hooks/use-order-ready-toast';
 import { AppContent } from '@/components/app-content';
 import { AppShell } from '@/components/app-shell';
 import { AppSidebar } from '@/components/app-sidebar';
 import { AppSidebarHeader } from '@/components/app-sidebar-header';
+import { useOrderReadyToast } from '@/hooks/use-order-ready-toast';
 import type { AppLayoutProps } from '@/types';
 
 const CREAM = '#F6F2E9';

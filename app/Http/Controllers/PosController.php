@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Events\OrderCreated;
 use App\Events\OrderPaid;
 use App\Events\OrderStatusUpdated;
+use App\Models\ActivityLog;
 use App\Models\Meja;
 use App\Models\Menu;
 use App\Models\MenuCategory;
@@ -162,6 +163,15 @@ class PosController extends Controller
 
         if ($discountAmount > 0 && $this->needsApproval($subtotal, $validated)) {
             $this->validateDiscountApproval($validated);
+
+            ActivityLog::create([
+                'user_id' => $request->user()->id,
+                'action' => 'large_discount',
+                'subject_type' => null,
+                'subject_id' => null,
+                'description' => 'Diskon besar diterapkan: '.$validated['discount_type'].' '.$validated['discount_value'].' (disetujui: '.$validated['discount_approved_by'].')',
+                'metadata' => $validated,
+            ]);
         }
 
         $tax = round($subtotal * 0.10, 2);
@@ -320,6 +330,15 @@ class PosController extends Controller
 
         if ($discountAmount > 0 && $this->needsApproval($newSubtotal, $validated)) {
             $this->validateDiscountApproval($validated);
+
+            ActivityLog::create([
+                'user_id' => $request->user()->id,
+                'action' => 'large_discount',
+                'subject_type' => null,
+                'subject_id' => null,
+                'description' => 'Diskon besar diterapkan (confirm pay): '.$validated['discount_type'].' '.$validated['discount_value'].' (disetujui: '.$validated['discount_approved_by'].')',
+                'metadata' => $validated,
+            ]);
         }
 
         $taxRate = 0.10;

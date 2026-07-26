@@ -1,6 +1,6 @@
+import { Calendar, Clock, Users, MapPin, CheckCircle2, Sparkles, X, Phone, User, Mail, MessageSquare } from 'lucide-react';
 import React, { useState } from 'react';
 import { LogoSeal } from './logoseal';
-import { Calendar, Clock, Users, MapPin, CheckCircle2, Sparkles, X, Phone, User, Mail, MessageSquare } from 'lucide-react';
 
 interface ReservationModalProps {
   isOpen: boolean;
@@ -21,7 +21,9 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({ isOpen, onCl
     notes: '',
   });
 
-  if (!isOpen) return null;
+  if (!isOpen) {
+return null;
+}
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

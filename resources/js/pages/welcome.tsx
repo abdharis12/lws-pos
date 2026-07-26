@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
 import { Head, Link, usePage } from '@inertiajs/react';
-import { Button } from '@/components/ui/button';
-import { dashboard, login } from '@/routes';
+import React, { useState } from 'react';
 import { Hero } from '@/components/template/hero';
 import { MenuSection } from '@/components/template/menu';
 import { ReservationModal } from '@/components/template/reservation';
+import { Button } from '@/components/ui/button';
+import { dashboard, login } from '@/routes';
 
 const CREAM = '#F6F2E9';
 const PRIMARY = '#4F6B6A';

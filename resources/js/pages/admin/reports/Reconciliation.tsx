@@ -61,6 +61,7 @@ const statusBadge = (status: string) => {
         failure: { bg: 'rgba(220,38,38,0.1)', color: '#dc2626', label: 'Gagal' },
     };
     const s = styles[status] ?? { bg: 'rgba(100,100,100,0.1)', color: '#666', label: status };
+
     return <Badge className="font-semibold border-none" style={{ backgroundColor: s.bg, color: s.color }}>{s.label}</Badge>;
 };
 
@@ -234,6 +235,7 @@ export default function Reconciliation({ payments, summary, startDate, endDate }
                                                         </Button>
                                                     );
                                                 }
+
                                                 if (link.label.includes('Next')) {
                                                     return link.url ? (
                                                         <Link key={i} href={link.url} preserveScroll preserveState>
@@ -247,7 +249,9 @@ export default function Reconciliation({ payments, summary, startDate, endDate }
                                                         </Button>
                                                     );
                                                 }
+
                                                 const pageNum = link.label;
+
                                                 return link.url ? (
                                                     <Link key={i} href={link.url} preserveScroll preserveState>
                                                         <Button

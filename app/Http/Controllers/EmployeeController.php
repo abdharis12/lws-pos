@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\Employee;
 use App\Models\Outlet;
 use App\Models\User;
@@ -109,9 +110,23 @@ class EmployeeController extends Controller
         return redirect()->back()->with('success', 'Karyawan berhasil diperbarui.');
     }
 
-    public function destroy(Employee $employee): RedirectResponse
+    public function destroy(Request $request, Employee $employee): RedirectResponse
     {
         $user = $employee->user;
+
+        ActivityLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'employee_deleted',
+            'subject_type' => Employee::class,
+            'subject_id' => $employee->id,
+            'description' => "Karyawan {$user->name} ({$employee->position}) dihapus",
+            'metadata' => [
+                'employee_name' => $user->name,
+                'position' => $employee->position,
+                'deleted_user_id' => $user->id,
+            ],
+        ]);
+
         $employee->delete();
         $user->delete();
 

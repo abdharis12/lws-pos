@@ -1,7 +1,7 @@
+import { Head } from '@inertiajs/react';
+import { Coffee, Utensils, Sparkles, ChevronRight, Award } from 'lucide-react';
 import React from 'react';
 import { LogoSeal } from './logoseal';
-import { Coffee, Utensils, Sparkles, ChevronRight, Award } from 'lucide-react';
-import { Head } from '@inertiajs/react';
 
 interface HeroProps {
     onOpenReservation: () => void;

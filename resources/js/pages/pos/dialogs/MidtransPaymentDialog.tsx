@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
 import {
     QrCode, Smartphone, Building2, Store, ChevronLeft,
     LoaderCircle, AlertCircle, Check, Copy, ExternalLink,
 } from 'lucide-react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { BORDER, CREAM, INK, MUTED, PRIMARY } from '../constants';
@@ -99,7 +99,10 @@ export default function MidtransPaymentDialog({
     const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     const localBreakdown = useMemo(() => {
-        if (response) return null;
+        if (response) {
+return null;
+}
+
         const sub = subtotal;
         const tx = Math.round(sub * 0.10);
         const sc = Math.round(sub * 0.05);
@@ -111,15 +114,21 @@ export default function MidtransPaymentDialog({
         const totalBeforeCharge = sub + tx + sc - discountAmount;
         const mc = Math.round(totalBeforeCharge * 2.5 / 100 / 100) * 100;
         const finalTotal = totalBeforeCharge + mc;
+
         return { subtotal: sub, tax: tx, serviceCharge: sc, midtransCharge: mc, total: finalTotal };
     }, [subtotal, discountType, discountValue, response]);
 
     const groupedMethods = useMemo(() => {
         const groups: Record<string, PaymentMethod[]> = {};
+
         for (const method of PAYMENT_METHODS) {
-            if (!groups[method.category]) groups[method.category] = [];
+            if (!groups[method.category]) {
+groups[method.category] = [];
+}
+
             groups[method.category].push(method);
         }
+
         return groups;
     }, []);
 
@@ -133,8 +142,11 @@ export default function MidtransPaymentDialog({
         if (open && step === 'pay' && paymentStatus === 'pending') {
             pollRef.current = setInterval(handlePoll, 3000);
         }
+
         return () => {
-            if (pollRef.current) clearInterval(pollRef.current);
+            if (pollRef.current) {
+clearInterval(pollRef.current);
+}
         };
     }, [open, step, paymentStatus]);
 
@@ -148,11 +160,17 @@ export default function MidtransPaymentDialog({
         setPaymentStatus('pending');
         setCopied(false);
         orderIdRef.current = null;
-        if (pollRef.current) clearInterval(pollRef.current);
+
+        if (pollRef.current) {
+clearInterval(pollRef.current);
+}
     }
 
     function handleSelectMethod(method: PaymentMethod) {
-        if (processing) return;
+        if (processing) {
+return;
+}
+
         setSelectedMethod(method);
         setStep('pay');
         setProcessing(true);
@@ -175,10 +193,13 @@ export default function MidtransPaymentDialog({
             .then(res => res.json().then(data => ({ ok: res.ok, data })))
             .then(({ ok, data }) => {
                 setProcessing(false);
+
                 if (!ok) {
                     setError(data.message || `Gagal memproses ${method.name}`);
+
                     return;
                 }
+
                 setResponse(data);
                 responseRef.current = data;
                 orderIdRef.current = data.order_id;
@@ -191,7 +212,11 @@ export default function MidtransPaymentDialog({
 
     function handlePoll() {
         const id = orderIdRef.current;
-        if (!id) return;
+
+        if (!id) {
+return;
+}
+
         fetch(`/pos/orders/${id}/qris-status`, {
             headers: { 'Accept': 'application/json' },
         })
@@ -199,7 +224,11 @@ export default function MidtransPaymentDialog({
             .then(data => {
                 if (data.status === 'settlement') {
                     setPaymentStatus('settlement');
-                    if (pollRef.current) clearInterval(pollRef.current);
+
+                    if (pollRef.current) {
+clearInterval(pollRef.current);
+}
+
                     const resp = responseRef.current;
                     setTimeout(() => {
                         onSuccess({
@@ -212,7 +241,10 @@ export default function MidtransPaymentDialog({
                     }, 1500);
                 } else if (data.status === 'failed') {
                     setPaymentStatus('failed');
-                    if (pollRef.current) clearInterval(pollRef.current);
+
+                    if (pollRef.current) {
+clearInterval(pollRef.current);
+}
                 }
             })
             .catch(() => { });
@@ -225,7 +257,10 @@ export default function MidtransPaymentDialog({
         setResponse(null);
         setPaymentStatus('pending');
         setCopied(false);
-        if (pollRef.current) clearInterval(pollRef.current);
+
+        if (pollRef.current) {
+clearInterval(pollRef.current);
+}
     }
 
     function handleClose() {
@@ -238,7 +273,10 @@ export default function MidtransPaymentDialog({
     }
 
     function handleCopy(text: string) {
-        if (!navigator.clipboard?.writeText) return;
+        if (!navigator.clipboard?.writeText) {
+return;
+}
+
         navigator.clipboard.writeText(text).then(() => {
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
@@ -250,9 +288,18 @@ export default function MidtransPaymentDialog({
     }
 
     function getIcon(method: PaymentMethod) {
-        if (method.category === 'qris') return QrCode;
-        if (method.category === 'ewallet') return Smartphone;
-        if (method.category === 'cstore') return Store;
+        if (method.category === 'qris') {
+return QrCode;
+}
+
+        if (method.category === 'ewallet') {
+return Smartphone;
+}
+
+        if (method.category === 'cstore') {
+return Store;
+}
+
         return Building2;
     }
 
@@ -275,6 +322,7 @@ export default function MidtransPaymentDialog({
                                 <div className="grid grid-cols-2 gap-2">
                                     {methods.map(method => {
                                         const Icon = getIcon(method);
+
                                         return (
                                             <button
                                                 key={method.id}

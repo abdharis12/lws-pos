@@ -1,8 +1,8 @@
 import { Head, router } from '@inertiajs/react';
 import { useForm } from '@inertiajs/react';
 import { Download, Plus, Printer, RefreshCw, Trash2 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
 import QRCode from 'qrcode';
+import { useEffect, useRef, useState } from 'react';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -65,7 +65,11 @@ function TableCard({
 
     function downloadQR() {
         const canvas = canvasRef.current;
-        if (!canvas) return;
+
+        if (!canvas) {
+return;
+}
+
         const link = document.createElement('a');
         link.download = `meja-${table.code}-qr.png`;
         link.href = canvas.toDataURL('image/png');
@@ -74,9 +78,17 @@ function TableCard({
 
     function printQR() {
         const canvas = canvasRef.current;
-        if (!canvas) return;
+
+        if (!canvas) {
+return;
+}
+
         const win = window.open('', '_blank');
-        if (!win) return;
+
+        if (!win) {
+return;
+}
+
         win.document.write(`
             <html>
             <head><title>QR Meja ${table.code}</title>
@@ -329,6 +341,7 @@ export default function TablesIndex({ tables, floors }: Props) {
                 </button>
                 {floors.map((f, i) => {
                     const icons = ['①', '②', '③', '④', '🌿'];
+
                     return (
                         <button
                             key={f}

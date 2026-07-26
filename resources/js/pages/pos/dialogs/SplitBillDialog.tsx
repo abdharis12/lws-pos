@@ -1,7 +1,7 @@
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { BORDER, CREAM, INK, MUTED, PRIMARY } from '../constants';
 import type { CartItem } from '../types';
 
@@ -18,6 +18,7 @@ export default function SplitBillDialog({ open, onOpenChange, splitInputValue, o
     const count = Number(splitInputValue);
     const subtotal = cartItems.reduce((s, item) => {
         const optAdj = item.selectedOptions.reduce((a, o) => a + o.adjustment, 0);
+
         return s + (Number(item.menu.price) + optAdj) * item.qty;
     }, 0);
     const perBill = count >= 2 ? Math.round(subtotal / count) : 0;

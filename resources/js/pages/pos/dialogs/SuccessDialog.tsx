@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
 import { Printer, Check } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { CREAM, INK, MUTED, PRIMARY, SAND } from '../constants';
@@ -21,12 +21,17 @@ export default function SuccessDialog({ open, onClose, onPrint, type, changeAmou
         if (open) {
             setShow(false);
             const t = setTimeout(() => setShow(true), 100);
+
             return () => clearTimeout(t);
         }
     }, [open]);
 
     return (
-        <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+        <Dialog open={open} onOpenChange={(v) => {
+ if (!v) {
+onClose();
+} 
+}}>
             <DialogContent className="sm:max-w-sm" style={{ backgroundColor: CREAM }}>
                 <div className="flex flex-col items-center py-6 text-center">
                     <div className="relative mb-5">

@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
 import { Check, Lock, Link as LinkIcon } from 'lucide-react';
+import { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { BORDER, CREAM, INK, MUTED, PRIMARY, SAND, TABLE_COLORS } from '../constants';
 import type { TableData } from '../types';
@@ -15,21 +15,28 @@ interface Props {
 
 function getGroupLabel(tableId: number, tables: TableData[], groupedBy: Record<number, number>, groupedTables: Record<number, number[]> | null): string | null {
     const mainId = groupedBy[tableId];
+
     if (mainId) {
         const mainTable = tables.find(t => t.id === mainId);
+
         return `${mainTable?.code ?? `Meja ${mainId}`}`;
     }
+
     const extras = groupedTables?.[tableId];
+
     if (extras?.length) {
         const extraTables = tables.filter(t => extras.includes(t.id));
+
         return `+${extras.length} ${extraTables.map(t => t.code).join(', ')}`;
     }
+
     return null;
 }
 
 function useGroupedBy(groupedTables: Record<number, number[]> | null): Record<number, number> {
     return useMemo(() => {
         const map: Record<number, number> = {};
+
         if (groupedTables) {
             for (const [mainId, extras] of Object.entries(groupedTables)) {
                 for (const extraId of extras) {
@@ -37,6 +44,7 @@ function useGroupedBy(groupedTables: Record<number, number[]> | null): Record<nu
                 }
             }
         }
+
         return map;
     }, [groupedTables]);
 }
@@ -76,7 +84,9 @@ function TableCard({
             <span className="mt-0.5 text-[10px] opacity-80">{table.capacity} org</span>
             {(table.status === 'available' || table.status === 'locked') && (
                 <button
-                    onClick={(e) => { e.stopPropagation(); onLockToggle(); }}
+                    onClick={(e) => {
+ e.stopPropagation(); onLockToggle(); 
+}}
                     className="mt-0.5 flex items-center gap-0.5 text-[9px] opacity-70 hover:text-black hover:opacity-100"
                     title={table.status === 'locked' ? 'Klik unlock' : 'Klik lock'}
                 >
@@ -162,11 +172,15 @@ export default function TableGrid({
 
     const allFloors = useMemo(() => {
         const floors = tables.map(t => t.floor).filter((f): f is string => f !== null);
+
         return [...new Set(floors)];
     }, [tables]);
 
     const filteredTables = useMemo(() => {
-        if (!selectedFloor) return tables;
+        if (!selectedFloor) {
+return tables;
+}
+
         return tables.filter(t => t.floor === selectedFloor);
     }, [tables, selectedFloor]);
 
@@ -186,6 +200,7 @@ export default function TableGrid({
                 {filteredTables.map(table => {
                     const isSelected = selectedTableIds.includes(table.id);
                     const groupLabel = getGroupLabel(table.id, tables, groupedBy, groupedTablesProp ?? null);
+
                     return (
                         <TableCard
                             key={table.id}
@@ -223,15 +238,21 @@ export function MobileTableStrip({
 
     const allFloors = useMemo(() => {
         const floors = tables.map(t => t.floor).filter((f): f is string => f !== null);
+
         return [...new Set(floors)];
     }, [tables]);
 
     const filteredTables = useMemo(() => {
-        if (!selectedFloor) return tables;
+        if (!selectedFloor) {
+return tables;
+}
+
         return tables.filter(t => t.floor === selectedFloor);
     }, [tables, selectedFloor]);
 
-    if (!isDineIn) return null;
+    if (!isDineIn) {
+return null;
+}
 
     return (
         <>
@@ -247,6 +268,7 @@ export function MobileTableStrip({
                 {filteredTables.map(table => {
                     const isSelected = selectedTableIds.includes(table.id);
                     const groupLabel = getGroupLabel(table.id, tables, groupedBy, groupedTablesProp ?? null);
+
                     return (
                         <TableCardMobile
                             key={table.id}

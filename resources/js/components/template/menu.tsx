@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from 'react';
 import { Search, Filter, Sparkles, Clock, Star, Info, Check, Plus, Utensils, Award } from 'lucide-react';
-import { MenuItem } from '../template/types/types';
+import React, { useState, useMemo } from 'react';
 import { MENU_ITEMS } from '../template/data/mockData';
+import type { MenuItem } from '../template/types/types';
 
 interface MenuSectionProps {
     onSelectDishForReservation?: (item: MenuItem) => void;
@@ -29,22 +29,36 @@ export const MenuSection: React.FC<MenuSectionProps> = ({ onSelectDishForReserva
             if (selectedCategory !== 'all' && item.category !== selectedCategory) {
                 return false;
             }
+
             // Search check
             if (searchQuery.trim()) {
                 const query = searchQuery.toLowerCase();
                 const matchesName = item.name.toLowerCase().includes(query);
                 const matchesDesc = item.description.toLowerCase().includes(query);
                 const matchesIng = item.ingredients.some(ing => ing.toLowerCase().includes(query));
-                if (!matchesName && !matchesDesc && !matchesIng) return false;
+
+                if (!matchesName && !matchesDesc && !matchesIng) {
+return false;
+}
             }
+
             // Dietary check
             if (dietaryFilter !== 'all') {
-                if (!item.dietary.includes(dietaryFilter as any)) return false;
+                if (!item.dietary.includes(dietaryFilter as any)) {
+return false;
+}
             }
+
             return true;
         }).sort((a, b) => {
-            if (sortBy === 'price-asc') return a.price - b.price;
-            if (sortBy === 'price-desc') return b.price - a.price;
+            if (sortBy === 'price-asc') {
+return a.price - b.price;
+}
+
+            if (sortBy === 'price-desc') {
+return b.price - a.price;
+}
+
             // Default popular
             return (b.rating * b.reviewCount) - (a.rating * a.reviewCount);
         });

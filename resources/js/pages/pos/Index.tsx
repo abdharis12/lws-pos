@@ -1,30 +1,31 @@
 import { Head, useForm, router, usePage } from '@inertiajs/react';
-import { useState, useMemo, useRef, useEffect } from 'react';
 import { Search, ShoppingCart, Move, ArrowRightLeft, HandPlatter, X } from 'lucide-react';
+import { useState, useMemo, useRef, useEffect } from 'react';
+import { toast } from 'sonner';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { toast } from 'sonner';
-import { BORDER, CREAM, INK, MUTED, PRIMARY, SAND } from './constants';
-import type { CartItem, MenuItem, PendingOrder, PosPageProps, OrderData, PrintReceiptData, TableData } from './types';
-import MenuCard from './components/MenuCard';
 import CartPanel from './components/CartPanel';
-import ItemDialog from './dialogs/ItemDialog';
-import PaymentDialog from './dialogs/PaymentDialog';
-import ApprovalDialog from './dialogs/ApprovalDialog';
-import SplitBillDialog from './dialogs/SplitBillDialog';
-import CashPaymentDialog from './dialogs/CashPaymentDialog';
-import MidtransPaymentDialog from './dialogs/MidtransPaymentDialog';
-import SuccessDialog from './dialogs/SuccessDialog';
-import MoveMergeDialog from './dialogs/MoveMergeDialog';
-import OrderTypeSelector from './components/OrderTypeSelector';
 import CustomerNameInput from './components/CustomerNameInput';
+import MenuCard from './components/MenuCard';
+import OrderTypeSelector from './components/OrderTypeSelector';
 import PendingOrdersList from './components/PendingOrdersList';
 import TableGrid, { MobileTableStrip } from './components/TableGrid';
-import { calcSubtotal, calcDiscount, calcTax, roundPrice } from './lib/pricing';
-import { formatPrice, orderTypeLabel } from './lib/format';
+import { BORDER, CREAM, INK, MUTED, PRIMARY, SAND } from './constants';
+import ApprovalDialog from './dialogs/ApprovalDialog';
+import CashPaymentDialog from './dialogs/CashPaymentDialog';
+import ItemDialog from './dialogs/ItemDialog';
+import MidtransPaymentDialog from './dialogs/MidtransPaymentDialog';
+import MoveMergeDialog from './dialogs/MoveMergeDialog';
+import PaymentDialog from './dialogs/PaymentDialog';
+import SplitBillDialog from './dialogs/SplitBillDialog';
+import SuccessDialog from './dialogs/SuccessDialog';
 import { posFetchJson, jsonHeaders } from './lib/api';
-import { printReceipt, type ReceiptData } from './lib/receipt';
+import { formatPrice, orderTypeLabel } from './lib/format';
+import { calcSubtotal, calcDiscount, calcTax, roundPrice } from './lib/pricing';
+import { printReceipt  } from './lib/receipt';
+import type {ReceiptData} from './lib/receipt';
+import type { CartItem, MenuItem, PendingOrder, PosPageProps, OrderData, PrintReceiptData, TableData } from './types';
 
 export default function PosIndex({ categories, tables, pendingOrders, lastOrder, groupedTables }: PosPageProps) {
     const { auth } = usePage().props as { auth: { user: { id: number; name: string } | null } };
@@ -69,7 +70,9 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
     const [customerName, setCustomerName] = useState('');
 
     useEffect(() => {
-        if (lastOrder) setReceiptOrder(lastOrder);
+        if (lastOrder) {
+setReceiptOrder(lastOrder);
+}
     }, [lastOrder]);
 
     const subtotal = useMemo(() => calcSubtotal(cartItems), [cartItems]);
@@ -97,8 +100,12 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
     const allMenus = useMemo(() => categories.flatMap(c => c.menus), [categories]);
 
     const visibleMenus = useMemo(() => {
-        if (!searchQuery && selectedCategory) return selectedCategory.menus.filter(m => m.is_available);
+        if (!searchQuery && selectedCategory) {
+return selectedCategory.menus.filter(m => m.is_available);
+}
+
         const lowered = searchQuery.toLowerCase();
+
         return allMenus.filter(m => m.is_available && m.name.toLowerCase().includes(lowered));
     }, [searchQuery, selectedCategory, allMenus]);
 
@@ -108,11 +115,14 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
                 item.menu.id === menu.id && item.notes === notes &&
                 JSON.stringify(item.selectedOptions.map(o => o.itemId).sort()) === JSON.stringify(selectedOptions.map(o => o.itemId).sort())
             );
+
             if (existing >= 0) {
                 const updated = [...prev];
                 updated[existing] = { ...updated[existing], qty: updated[existing].qty + qty };
+
                 return updated;
             }
+
             return [...prev, { menu, qty, notes, selectedOptions }];
         });
     }
@@ -132,7 +142,10 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
     }
 
     async function handleSubmitApproval() {
-        if (!approvalPassword) return;
+        if (!approvalPassword) {
+return;
+}
+
         setApprovalProcessing(true);
         setApprovalError('');
 
@@ -142,10 +155,13 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
         });
 
         setApprovalProcessing(false);
+
         if (!ok) {
             setApprovalError(data.message || 'Terjadi kesalahan');
+
             return;
         }
+
         setDiscountApprovedBy(data.approved_by ?? null);
         setApprovalDialogOpen(false);
     }
@@ -153,12 +169,16 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
     function handleTableClick(table: TableData) {
         if (table.status === 'occupied') {
             setReleaseDialogTable({ id: table.id, code: table.code });
+
             return;
         }
+
         if (table.status === 'locked' && table.locked_by && table.locked_by !== auth?.user?.id) {
             toast.error(`Meja sedang diproses oleh ${table.locked_by_user?.name || 'pengguna lain'}`);
+
             return;
         }
+
         setSelectedTableIds(prev =>
             prev.includes(table.id) ? prev.filter(id => id !== table.id) : [...prev, table.id]
         );
@@ -170,10 +190,13 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
             `/pos/tables/${table.id}/${isLock ? 'lock' : 'unlock'}`,
             { method: 'POST' }
         );
+
         if (!ok) {
             toast.error(data?.message || (isLock ? 'Gagal mengunci meja' : 'Gagal unlock meja'));
+
             return;
         }
+
         router.reload();
     }
 
@@ -182,6 +205,7 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
         const selectedCodes = tables.filter(t => selectedTableIds.includes(t.id)).map(t => t.code).join(', ');
         const cashAmount = amountGiven ?? undefined;
         const change = amountGiven ? amountGiven - total : undefined;
+
         return {
             items: [...cartItems],
             discountType, discountValue,
@@ -194,14 +218,27 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
     }
 
     function handleOrder(paymentMethod?: string) {
-        if (cartItems.length === 0) return;
-        if (paymentMethod === 'cash') { setCashDialogOpen(true); return; }
+        if (cartItems.length === 0) {
+return;
+}
+
+        if (paymentMethod === 'cash') {
+ setCashDialogOpen(true);
+
+ return; 
+}
+
         if (paymentMethod === 'online') {
             setPrintReceiptData(buildReceiptData());
             setMidtransDialogOpen(true);
+
             return;
         }
-        if (isDineIn && selectedTableIds.length === 0) return;
+
+        if (isDineIn && selectedTableIds.length === 0) {
+return;
+}
+
         setData({
             table_id: isDineIn ? selectedTableIds[0] : null,
             table_ids: isDineIn ? selectedTableIds : [],
@@ -220,12 +257,17 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
         setPrintReceiptData(buildReceiptData());
         post('/pos/orders', {
             preserveScroll: true,
-            onSuccess: () => { resetAfterOrder(); setSuccessType('save'); setSuccessChange(0); setSuccessDialogOpen(true); },
+            onSuccess: () => {
+ resetAfterOrder(); setSuccessType('save'); setSuccessChange(0); setSuccessDialogOpen(true); 
+},
         });
     }
 
     function handleCashConfirm(amountGiven: number) {
-        if (cartItems.length === 0 || (isDineIn && selectedTableIds.length === 0)) return;
+        if (cartItems.length === 0 || (isDineIn && selectedTableIds.length === 0)) {
+return;
+}
+
         setCashAmountGiven(amountGiven);
         setData({
             table_id: isDineIn ? selectedTableIds[0] : null,
@@ -303,7 +345,10 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
     }
 
     function handlePendingCashConfirm(amountGiven: number) {
-        if (!selectedPendingOrderId || cartItems.length === 0) return;
+        if (!selectedPendingOrderId || cartItems.length === 0) {
+return;
+}
+
         setCashAmountGiven(amountGiven);
         setCashDialogOpen(false);
         setConfirmPayProcessing(true);
@@ -325,12 +370,17 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
                 resetAfterOrder(); setSuccessType('cash');
                 setSuccessChange(amountGiven - total); setSuccessDialogOpen(true);
             },
-            onError: () => { setConfirmPayProcessing(false); setIsPendingCashPayment(false); },
+            onError: () => {
+ setConfirmPayProcessing(false); setIsPendingCashPayment(false); 
+},
         });
     }
 
     function handleConfirmPay(method: string) {
-        if (!selectedPendingOrderId || cartItems.length === 0) return;
+        if (!selectedPendingOrderId || cartItems.length === 0) {
+return;
+}
+
         setConfirmPayProcessing(true);
         setPrintReceiptData(buildReceiptData());
 
@@ -357,7 +407,11 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
 
     function handlePrintReceipt() {
         const data = printReceiptData;
-        if (!data || data.items.length === 0) return;
+
+        if (!data || data.items.length === 0) {
+return;
+}
+
         const { items, discountType: dType, discountValue: dVal } = data;
         const order = receiptOrder;
 
@@ -405,7 +459,10 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
     function handleOrderTypeChange(type: 'dine_in' | 'takeaway') {
         setOrderType(type);
         setSelectedTableIds([]);
-        if (type === 'dine_in') setCustomerName('');
+
+        if (type === 'dine_in') {
+setCustomerName('');
+}
     }
 
     const cartPanelProps = {
@@ -420,7 +477,9 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
         onConfirmPay: () => setPaymentDialogOpen(true),
         discountType, discountValue, discountApprovedBy,
         onDiscountChange: handleDiscountChange,
-        onOpenApproval: () => { setApprovalDialogOpen(true); setApprovalPassword(''); setApprovalError(''); },
+        onOpenApproval: () => {
+ setApprovalDialogOpen(true); setApprovalPassword(''); setApprovalError(''); 
+},
         splitCount, onOpenSplitBill: () => setSplitDialogOpen(true),
         onPrintReceipt: handlePrintReceipt, showPrintButton,
     };
@@ -481,7 +540,9 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
                     <div className="min-h-0 flex-1 overflow-y-auto p-4">
                         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
                             {visibleMenus.map(menu => (
-                                <MenuCard key={menu.id} menu={menu} onSelect={() => { setItemDialogMenu(menu); setItemDialogOpen(true); }} />
+                                <MenuCard key={menu.id} menu={menu} onSelect={() => {
+ setItemDialogMenu(menu); setItemDialogOpen(true); 
+}} />
                             ))}
                             {visibleMenus.length === 0 && (
                                 <p className="col-span-full py-8 text-center text-sm" style={{ color: MUTED }}>Menu tidak ditemukan</p>
@@ -514,11 +575,23 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
                 <ItemDialog open={itemDialogOpen} onOpenChange={setItemDialogOpen} menu={itemDialogMenu} onAdd={handleAddToCart} />
                 <PaymentDialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen} onConfirm={handlePaymentMethodSelect} processing={confirmPayProcessing} />
                 <ApprovalDialog open={approvalDialogOpen} onOpenChange={setApprovalDialogOpen} password={approvalPassword} onPasswordChange={setApprovalPassword} onSubmit={handleSubmitApproval} error={approvalError} processing={approvalProcessing} />
-                <SplitBillDialog open={splitDialogOpen} onOpenChange={setSplitDialogOpen} splitInputValue={splitInputValue} onSplitInputChange={setSplitInputValue} onApply={(count) => { setSplitCount(Math.max(2, Math.min(20, count))); setSplitDialogOpen(false); }} cartItems={cartItems} />
-                <CashPaymentDialog open={cashDialogOpen} onOpenChange={v => { setCashDialogOpen(v); if (!v) setIsPendingCashPayment(false); }} total={total} onConfirm={isPendingCashPayment ? handlePendingCashConfirm : handleCashConfirm} processing={processing} />
+                <SplitBillDialog open={splitDialogOpen} onOpenChange={setSplitDialogOpen} splitInputValue={splitInputValue} onSplitInputChange={setSplitInputValue} onApply={(count) => {
+ setSplitCount(Math.max(2, Math.min(20, count))); setSplitDialogOpen(false); 
+}} cartItems={cartItems} />
+                <CashPaymentDialog open={cashDialogOpen} onOpenChange={v => {
+ setCashDialogOpen(v);
+
+ if (!v) {
+setIsPendingCashPayment(false);
+} 
+}} total={total} onConfirm={isPendingCashPayment ? handlePendingCashConfirm : handleCashConfirm} processing={processing} />
                 <MidtransPaymentDialog open={midtransDialogOpen} onOpenChange={setMidtransDialogOpen} subtotal={subtotal} total={total} onSuccess={handleMidtransSuccess} getCsrfToken={() => document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? ''} selectedTableId={selectedTableIds[0] ?? null} cartItems={cartItems.map(item => ({ menu_id: item.menu.id, qty: item.qty, notes: item.notes || null, option_ids: item.selectedOptions.map(o => o.itemId) }))} discountType={discountType} discountValue={discountValue} discountApprovedBy={discountApprovedBy} orderType={orderType} />
 
-                <Dialog open={releaseDialogTable !== null} onOpenChange={(v) => { if (!v) setReleaseDialogTable(null); }}>
+                <Dialog open={releaseDialogTable !== null} onOpenChange={(v) => {
+ if (!v) {
+setReleaseDialogTable(null);
+} 
+}}>
                     <DialogContent className="sm:max-w-xs" style={{ backgroundColor: CREAM }}>
                         <div className="flex flex-col items-center py-4 text-center">
                             <div className="mb-4 flex size-16 items-center justify-center rounded-full" style={{ backgroundColor: `${SAND}40` }}>
@@ -527,17 +600,35 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
                             <h3 className="text-lg font-bold" style={{ color: INK }}>Meja {releaseDialogTable?.code}</h3>
                             <p className="mt-1 text-sm" style={{ color: MUTED }}>Meja sedang digunakan</p>
                             <div className="mt-5 flex w-full flex-col gap-2">
-                                <button onClick={() => { const t = releaseDialogTable; setReleaseDialogTable(null); if (t) setMoveMergeDialog({ mode: 'move', sourceTable: t }); }}
+                                <button onClick={() => {
+ const t = releaseDialogTable; setReleaseDialogTable(null);
+
+ if (t) {
+setMoveMergeDialog({ mode: 'move', sourceTable: t });
+} 
+}}
                                     className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold" style={{ backgroundColor: PRIMARY, color: '#fff' }}>
                                     <Move className="size-4" /> Pindah Meja
                                 </button>
                                 {(tables.filter(t => t.status === 'occupied' && t.id !== releaseDialogTable?.id).length > 0) && (
-                                    <button onClick={() => { const t = releaseDialogTable; setReleaseDialogTable(null); if (t) setMoveMergeDialog({ mode: 'merge', sourceTable: t }); }}
+                                    <button onClick={() => {
+ const t = releaseDialogTable; setReleaseDialogTable(null);
+
+ if (t) {
+setMoveMergeDialog({ mode: 'merge', sourceTable: t });
+} 
+}}
                                         className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold" style={{ backgroundColor: PRIMARY, color: '#fff' }}>
                                         <ArrowRightLeft className="size-4" /> Gabung Meja
                                     </button>
                                 )}
-                                <button onClick={() => { if (!releaseDialogTable) return; router.post(`/pos/tables/${releaseDialogTable.id}/release`); }}
+                                <button onClick={() => {
+ if (!releaseDialogTable) {
+return;
+}
+
+ router.post(`/pos/tables/${releaseDialogTable.id}/release`); 
+}}
                                     className="w-full rounded-xl py-2.5 text-sm font-semibold" style={{ backgroundColor: PRIMARY, color: '#fff' }}>
                                     Kosongkan Meja
                                 </button>

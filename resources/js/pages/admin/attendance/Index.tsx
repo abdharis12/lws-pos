@@ -2,10 +2,10 @@ import { Head } from '@inertiajs/react';
 import { useForm } from '@inertiajs/react';
 import { Camera, Clock, MapPin, CheckCircle2, XCircle } from 'lucide-react';
 import { useState } from 'react';
+import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import InputError from '@/components/input-error';
 
 const PRIMARY = '#4F6B6A';
 const DARK = '#233433';
@@ -83,8 +83,10 @@ export default function AttendanceIndex({
         return new Promise<{ lat: string; lng: string } | null>((resolve) => {
             if (!navigator.geolocation) {
                 resolve(null);
+
                 return;
             }
+
             navigator.geolocation.getCurrentPosition(
                 (pos) => resolve({ lat: String(pos.coords.latitude), lng: String(pos.coords.longitude) }),
                 () => resolve(null),
@@ -94,7 +96,9 @@ export default function AttendanceIndex({
     }
 
     async function handleClockIn() {
-        if (!selectedEmployee) return;
+        if (!selectedEmployee) {
+return;
+}
 
         const loc = await getLocation();
         setInData({
@@ -134,6 +138,7 @@ export default function AttendanceIndex({
 
     function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
         const file = e.target.files?.[0];
+
         if (file) {
             setPhotoFile(file);
             setInData('photo', file);
@@ -242,6 +247,7 @@ export default function AttendanceIndex({
                                     <option value="">Pilih karyawan...</option>
                                     {employees.map((emp) => {
                                         const alreadyIn = todayAttendance[emp.id] && !todayAttendance[emp.id].clock_out_at;
+
                                         return (
                                             <option key={emp.id} value={emp.id} disabled={!!alreadyIn}>
                                                 {emp.user.name} — {emp.position}

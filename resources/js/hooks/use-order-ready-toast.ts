@@ -1,5 +1,5 @@
-import { useEcho } from '@laravel/echo-react'
 import { usePage } from '@inertiajs/react'
+import { useEcho } from '@laravel/echo-react'
 import { toast } from 'sonner'
 
 interface ReadyPayload {

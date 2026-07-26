@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { BarChart3, Calendar, ChefHat, Clock, Grid3x3, LayoutGrid, Settings2, ShoppingCart, Tag, Users, Utensils } from 'lucide-react';
+import { BarChart3, Calendar, ChefHat, Clock, Grid3x3, LayoutGrid, ListTodo, Settings2, ShoppingCart, Tag, Users, Utensils, Wallet } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -14,10 +14,10 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
-import owner from '@/routes/owner';
 import admin from '@/routes/admin';
-import pos from '@/routes/pos';
 import kitchen from '@/routes/kitchen';
+import owner from '@/routes/owner';
+import pos from '@/routes/pos';
 import type { NavItem } from '@/types';
 
 type NavGroup = {
@@ -31,7 +31,10 @@ export function AppSidebar() {
     const userRoles: string[] = (auth as { roles: string[] }).roles ?? [];
 
     const hasAnyRole = (roles: string[] | null): boolean => {
-        if (roles === null) return true;
+        if (roles === null) {
+return true;
+}
+
         return roles.some((role) => userRoles.includes(role));
     };
 
@@ -78,6 +81,18 @@ export function AppSidebar() {
             ],
         },
         {
+            label: 'Payroll',
+            roles: ['Owner', 'Admin'],
+            items: [
+                { title: 'Komponen Gaji', href: admin.salaryComponents.index(), icon: Wallet },
+                { title: 'Bonus', href: admin.bonuses.index(), icon: Wallet },
+                { title: 'Potongan', href: admin.deductions.index(), icon: Wallet },
+                { title: 'Slip Gaji', href: admin.payslips.index(), icon: Wallet },
+                { title: 'Laporan Payroll', href: admin.payroll.report(), icon: BarChart3 },
+                { title: 'Pengaturan Payroll', href: admin.payroll.settings(), icon: Settings2 },
+            ],
+        },
+        {
             label: 'Reports Employee',
             roles: ['Owner', 'Admin'],
             items: [
@@ -92,6 +107,13 @@ export function AppSidebar() {
                 { title: 'Laporan Penjualan', href: admin.reports.index(), icon: BarChart3 },
                 { title: 'Menu & Varian Terlaris', href: admin.reports.topMenus(), icon: BarChart3 },
                 { title: 'Rekonsiliasi', href: admin.reports.reconciliation(), icon: BarChart3 },
+            ],
+        },
+        {
+            label: 'Security',
+            roles: ['Owner', 'Admin'],
+            items: [
+                { title: 'Log Aktivitas', href: admin.activityLogs.index(), icon: ListTodo },
             ],
         },
     ];

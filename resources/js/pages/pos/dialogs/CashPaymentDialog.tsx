@@ -1,9 +1,9 @@
-import { useState, useMemo } from 'react';
 import { Wallet } from 'lucide-react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { BORDER, CREAM, INK, MUTED, PRIMARY } from '../constants';
 
 interface Props {
@@ -25,7 +25,10 @@ export default function CashPaymentDialog({ open, onOpenChange, total, onConfirm
     }
 
     function handleConfirm() {
-        if (!isEnough || processing) return;
+        if (!isEnough || processing) {
+return;
+}
+
         onConfirm(numericGiven);
     }
 

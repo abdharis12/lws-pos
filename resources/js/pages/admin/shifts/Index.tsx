@@ -2,9 +2,9 @@ import { Head, Link } from '@inertiajs/react';
 import { useForm } from '@inertiajs/react';
 import { ChevronLeft, ChevronRight, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import InputError from '@/components/input-error';
 
 const PRIMARY = '#4F6B6A';
 const DARK = '#233433';
@@ -39,6 +39,7 @@ interface Props {
 
 function formatDate(dateStr: string) {
     const d = new Date(dateStr + 'T12:00:00');
+
     return {
         dayName: d.toLocaleDateString('id-ID', { weekday: 'long' }),
         dayNum: d.getDate(),
@@ -109,7 +110,10 @@ export default function ShiftsIndex({ shifts, employees, dates, weekStart }: Pro
     }
 
     function handleUpdateShift() {
-        if (!editingShift) return;
+        if (!editingShift) {
+return;
+}
+
         setData({
             employee_id: String(editingShift.employee_id),
             shift_date: editingShift.shift_date,
@@ -337,7 +341,9 @@ export default function ShiftsIndex({ shifts, employees, dates, weekStart }: Pro
                                     </Button>
                                     <Button
                                         variant="outline"
-                                        onClick={() => { setEditingShift(null); reset(); }}
+                                        onClick={() => {
+ setEditingShift(null); reset(); 
+}}
                                         className="flex-1"
                                     >
                                         Batal

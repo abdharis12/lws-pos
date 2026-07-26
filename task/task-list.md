@@ -189,37 +189,37 @@
 
 ---
 
-## 📋 Fase 3
+## 📋 Fase 3 ✅
 
-### 14. Payroll Semi-Otomatis
+### 14. Payroll Semi-Otomatis ✅
 
-- [ ] Konfigurasi komponen gaji per karyawan (gaji pokok, tunjangan, rate lembur)
-- [ ] Hitung otomatis: tunjangan berdasarkan hari kerja, lembur dari selisih jam aktual vs shift
-- [ ] Input manual bonus per periode (dengan alasan & approval Owner/Admin)
-- [ ] Hitung otomatis potongan keterlambatan dari data absensi
-- [ ] Input potongan lain (kasbon/pinjaman, dll.)
-- [ ] Generate slip gaji (payslip) otomatis per periode
-- [ ] Rincian payslip: gaji pokok + tunjangan + bonus + lembur − potongan = Take Home Pay
-- [ ] Status payslip: draft → disetujui Owner → dibayar
-- [ ] Ekspor payslip PDF per karyawan
-- [ ] Riwayat penggajian per karyawan per bulan
-- [ ] Laporan payroll: total labor cost, rasio terhadap penjualan, status pembayaran
-- [ ] THR: konfigurasi bebas (flat, % gaji pokok, rasio masa kerja)
-- [ ] Ekspor laporan payroll ke Excel/PDF
-- [ ] Tests: payroll flow
+- [x] Konfigurasi komponen gaji per karyawan (gaji pokok, tunjangan, rate lembur)
+- [x] Hitung otomatis: tunjangan berdasarkan hari kerja, lembur dari selisih jam aktual vs shift
+- [x] Input manual bonus per periode (dengan alasan & approval Owner/Admin)
+- [x] Hitung otomatis potongan keterlambatan dari data absensi
+- [x] Input potongan lain (kasbon/pinjaman, dll.)
+- [x] Generate slip gaji (payslip) otomatis per periode
+- [x] Rincian payslip: gaji pokok + tunjangan + bonus + lembur − potongan = Take Home Pay
+- [x] Status payslip: draft → disetujui Owner → dibayar
+- [x] Ekspor payslip PDF per karyawan
+- [x] Riwayat penggajian per karyawan per bulan
+- [x] Laporan payroll: total labor cost, rasio terhadap penjualan, status pembayaran
+- [x] THR: konfigurasi bebas (flat, % gaji pokok, rasio masa kerja)
+- [x] Ekspor laporan payroll ke Excel/PDF
+- [x] Tests: payroll flow
 
-### 15. Audit Log & Keamanan Lanjutan
+### 15. Audit Log & Keamanan Lanjutan ✅
 
-- [ ] Audit log untuk aksi kritikal: void order, diskon > threshold, ubah harga menu, hapus karyawan
-- [ ] Halaman log aktivitas dengan filter (user, aksi, periode)
-- [ ] Logging terpusat dengan Sentry/Monitoring
+- [x] Audit log untuk aksi kritikal: void order, diskon > threshold, ubah harga menu, hapus karyawan
+- [x] Halaman log aktivitas dengan filter (user, aksi, periode)
+- [x] Logging terpusat dengan Sentry/Monitoring
 
-### 16. Optimasi & PWA
+### 16. Optimasi & PWA ✅
 
-- [ ] PWA support untuk halaman self-order (manifest, service worker, "Add to Home Screen")
-- [ ] Load testing & optimasi performa
-- [ ] Optimasi query (N+1, eager loading, caching)
-- [ ] Error tracking & monitoring
+- [x] PWA support untuk halaman self-order (manifest, service worker, "Add to Home Screen")
+- [x] Load testing & optimasi performa
+- [x] Optimasi query (N+1, eager loading, caching)
+- [x] Error tracking & monitoring
 
 ---
 
@@ -239,6 +239,6 @@
 | Scaffolding & Auth | 17 | **17** | 0 |
 | Fase 1 — MVP | ~84 | **~82** | ~2 |
 | Fase 2 | ~19 | **19** | 0 |
-| Fase 3 | ~20 | **0** | ~20 |
+| Fase 3 | ~20 | **~20** | 0 |
 | Fase 4 | 4 | **0** | 4 |
-| **Total** | **~144** | **~118** | **~26** |
+| **Total** | **~144** | **~138** | **~6** |

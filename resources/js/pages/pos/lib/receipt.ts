@@ -29,7 +29,9 @@ export interface ReceiptData {
 }
 
 export function printReceipt(iframe: HTMLIFrameElement | null, data: ReceiptData): void {
-    if (!iframe?.contentWindow) return;
+    if (!iframe?.contentWindow) {
+return;
+}
 
     const paymentLabelText = paymentLabel(data.paymentMethod);
     const tableInfo = data.tableCode ? `Meja ${data.tableCode}` : '—';

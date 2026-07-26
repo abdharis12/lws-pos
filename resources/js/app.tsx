@@ -19,6 +19,8 @@ createInertiaApp({
         switch (true) {
             case name === 'welcome':
                 return null;
+            case name.startsWith('self-order/'):
+                return null;
             case name.startsWith('auth/'):
                 return AuthLayout;
             case name.startsWith('settings/'):
@@ -43,3 +45,10 @@ createInertiaApp({
 
 // This will set light / dark mode on load...
 initializeTheme();
+
+// Register service worker for PWA
+if (import.meta.env.PROD) {
+    import('@/sw-register').then(({ registerServiceWorker }) => {
+        registerServiceWorker();
+    });
+}
