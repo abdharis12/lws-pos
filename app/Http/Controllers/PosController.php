@@ -137,13 +137,24 @@ class PosController extends Controller
             $optionAdjustments = [];
 
             if (! empty($selectedOptionIds)) {
-                $options = OptionItem::whereIn('id', $selectedOptionIds)->get();
-                $adjustments = $options->sum('price_adjustment');
+                $counts = array_count_values($selectedOptionIds);
+                $options = OptionItem::whereIn('id', array_keys($counts))->get()->keyBy('id');
+                $adjustments = 0;
+                $optionAdjustments = [];
+
+                foreach ($counts as $optionId => $count) {
+                    if (isset($options[$optionId])) {
+                        $opt = $options[$optionId];
+                        $adjustments += $opt->price_adjustment * $count;
+                        $optionAdjustments[] = [
+                            'option_item_id' => $opt->id,
+                            'price_adjustment' => $opt->price_adjustment,
+                            'quantity' => $count,
+                        ];
+                    }
+                }
+
                 $itemTotal += $adjustments * $item['qty'];
-                $optionAdjustments = $options->map(fn ($opt) => [
-                    'option_item_id' => $opt->id,
-                    'price_adjustment' => $opt->price_adjustment,
-                ])->toArray();
             }
 
             $subtotal += $itemTotal;
@@ -284,13 +295,24 @@ class PosController extends Controller
             $optionAdjustments = [];
 
             if (! empty($selectedOptionIds)) {
-                $options = OptionItem::whereIn('id', $selectedOptionIds)->get();
-                $adjustments = $options->sum('price_adjustment');
+                $counts = array_count_values($selectedOptionIds);
+                $options = OptionItem::whereIn('id', array_keys($counts))->get()->keyBy('id');
+                $adjustments = 0;
+                $optionAdjustments = [];
+
+                foreach ($counts as $optionId => $count) {
+                    if (isset($options[$optionId])) {
+                        $opt = $options[$optionId];
+                        $adjustments += $opt->price_adjustment * $count;
+                        $optionAdjustments[] = [
+                            'option_item_id' => $opt->id,
+                            'price_adjustment' => $opt->price_adjustment,
+                            'quantity' => $count,
+                        ];
+                    }
+                }
+
                 $itemTotal += $adjustments * $itemData['qty'];
-                $optionAdjustments = $options->map(fn ($opt) => [
-                    'option_item_id' => $opt->id,
-                    'price_adjustment' => $opt->price_adjustment,
-                ])->toArray();
             }
 
             $newSubtotal += $itemTotal;
@@ -408,13 +430,24 @@ class PosController extends Controller
             $optionAdjustments = [];
 
             if (! empty($selectedOptionIds)) {
-                $options = OptionItem::whereIn('id', $selectedOptionIds)->get();
-                $adjustments = $options->sum('price_adjustment');
+                $counts = array_count_values($selectedOptionIds);
+                $options = OptionItem::whereIn('id', array_keys($counts))->get()->keyBy('id');
+                $adjustments = 0;
+                $optionAdjustments = [];
+
+                foreach ($counts as $optionId => $count) {
+                    if (isset($options[$optionId])) {
+                        $opt = $options[$optionId];
+                        $adjustments += $opt->price_adjustment * $count;
+                        $optionAdjustments[] = [
+                            'option_item_id' => $opt->id,
+                            'price_adjustment' => $opt->price_adjustment,
+                            'quantity' => $count,
+                        ];
+                    }
+                }
+
                 $itemTotal += $adjustments * $item['qty'];
-                $optionAdjustments = $options->map(fn ($opt) => [
-                    'option_item_id' => $opt->id,
-                    'price_adjustment' => $opt->price_adjustment,
-                ])->toArray();
             }
 
             $subtotal += $itemTotal;
@@ -581,8 +614,10 @@ class PosController extends Controller
             if ($mapped === 'settlement') {
                 $order->update(['status' => 'paid']);
                 broadcast(new OrderPaid($order))->toOthers();
+                broadcast(new OrderStatusUpdated($order))->toOthers();
             } elseif ($mapped === 'failed') {
                 $order->update(['status' => 'cancelled']);
+                broadcast(new OrderStatusUpdated($order))->toOthers();
             }
         }
 

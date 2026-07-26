@@ -11,13 +11,14 @@ class OrderItemOption extends Model
     use HasFactory;
 
     protected $fillable = [
-        'order_item_id', 'option_item_id', 'price_adjustment',
+        'order_item_id', 'option_item_id', 'price_adjustment', 'quantity',
     ];
 
     protected function casts(): array
     {
         return [
             'price_adjustment' => 'decimal:2',
+            'quantity' => 'integer',
         ];
     }
 

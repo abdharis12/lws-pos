@@ -13,7 +13,7 @@ export interface ReceiptData {
         qty: number;
         basePrice: number;
         totalPrice: number;
-        options: { name: string; price: number }[];
+        options: { name: string; price: number; quantity: number }[];
         notes: string | null;
     }[];
     subtotal: number;
@@ -111,8 +111,8 @@ return;
         </div>
         ${item.options.length > 0 ? item.options.map(o => `
         <div class="item-option">
-            <span>* ${o.name}</span>
-            <span>${o.price > 0 ? '+' + formatPrice(o.price * item.qty) : ''}</span>
+            <span>* ${o.name}${o.quantity > 1 ? ` x${o.quantity}` : ''}</span>
+            <span>${o.price > 0 ? '+' + formatPrice(o.price * o.quantity * item.qty) : ''}</span>
         </div>`).join('') : ''}
         ${item.notes ? `<div class="item-note">${item.notes}</div>` : ''}
     </div>`).join('')}

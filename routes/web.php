@@ -138,6 +138,8 @@ Route::get('t/{tableToken}/orders/{order}/status', [SelfOrderController::class, 
 Route::post('t/{tableToken}/orders', [SelfOrderController::class, 'store'])
     ->middleware('throttle:5,1')
     ->name('self-order.orders.store');
+Route::post('t/{tableToken}/pay', [SelfOrderController::class, 'pay'])->name('self-order.pay');
+Route::get('t/{tableToken}/orders/{order}/payment-status', [SelfOrderController::class, 'paymentStatus'])->name('self-order.payment-status');
 
 Route::post('webhooks/midtrans/notification', [MidtransWebhookController::class, 'notification'])
     ->withoutMiddleware([VerifyCsrfToken::class])

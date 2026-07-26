@@ -20,11 +20,10 @@ import MoveMergeDialog from './dialogs/MoveMergeDialog';
 import PaymentDialog from './dialogs/PaymentDialog';
 import SplitBillDialog from './dialogs/SplitBillDialog';
 import SuccessDialog from './dialogs/SuccessDialog';
-import { posFetchJson, jsonHeaders } from './lib/api';
-import { formatPrice, orderTypeLabel } from './lib/format';
+import { posFetchJson } from './lib/api';
+import { orderTypeLabel } from './lib/format';
 import { calcSubtotal, calcDiscount, calcTax, roundPrice } from './lib/pricing';
-import { printReceipt  } from './lib/receipt';
-import type {ReceiptData} from './lib/receipt';
+import { printReceipt } from './lib/receipt';
 import type { CartItem, MenuItem, PendingOrder, PosPageProps, OrderData, PrintReceiptData, TableData } from './types';
 
 export default function PosIndex({ categories, tables, pendingOrders, lastOrder, groupedTables }: PosPageProps) {
@@ -71,8 +70,8 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
 
     useEffect(() => {
         if (lastOrder) {
-setReceiptOrder(lastOrder);
-}
+            setReceiptOrder(lastOrder);
+        }
     }, [lastOrder]);
 
     const subtotal = useMemo(() => calcSubtotal(cartItems), [cartItems]);
@@ -101,8 +100,8 @@ setReceiptOrder(lastOrder);
 
     const visibleMenus = useMemo(() => {
         if (!searchQuery && selectedCategory) {
-return selectedCategory.menus.filter(m => m.is_available);
-}
+            return selectedCategory.menus.filter(m => m.is_available);
+        }
 
         const lowered = searchQuery.toLowerCase();
 
@@ -113,7 +112,8 @@ return selectedCategory.menus.filter(m => m.is_available);
         setCartItems(prev => {
             const existing = prev.findIndex(item =>
                 item.menu.id === menu.id && item.notes === notes &&
-                JSON.stringify(item.selectedOptions.map(o => o.itemId).sort()) === JSON.stringify(selectedOptions.map(o => o.itemId).sort())
+                JSON.stringify(item.selectedOptions.map(o => ({ id: o.itemId, qty: o.quantity })).sort((a, b) => a.id - b.id)) ===
+                JSON.stringify(selectedOptions.map(o => ({ id: o.itemId, qty: o.quantity })).sort((a, b) => a.id - b.id))
             );
 
             if (existing >= 0) {
@@ -143,8 +143,8 @@ return selectedCategory.menus.filter(m => m.is_available);
 
     async function handleSubmitApproval() {
         if (!approvalPassword) {
-return;
-}
+            return;
+        }
 
         setApprovalProcessing(true);
         setApprovalError('');
@@ -219,14 +219,14 @@ return;
 
     function handleOrder(paymentMethod?: string) {
         if (cartItems.length === 0) {
-return;
-}
+            return;
+        }
 
         if (paymentMethod === 'cash') {
- setCashDialogOpen(true);
+            setCashDialogOpen(true);
 
- return; 
-}
+            return;
+        }
 
         if (paymentMethod === 'online') {
             setPrintReceiptData(buildReceiptData());
@@ -236,15 +236,15 @@ return;
         }
 
         if (isDineIn && selectedTableIds.length === 0) {
-return;
-}
+            return;
+        }
 
         setData({
             table_id: isDineIn ? selectedTableIds[0] : null,
             table_ids: isDineIn ? selectedTableIds : [],
             items: cartItems.map(item => ({
                 menu_id: item.menu.id, qty: item.qty, notes: item.notes || null,
-                option_ids: item.selectedOptions.map(o => o.itemId),
+                option_ids: item.selectedOptions.flatMap(o => Array.from({ length: o.quantity }, () => o.itemId)),
             })),
             payment_method: null,
             discount_type: discountValue > 0 ? discountType : null,
@@ -258,15 +258,15 @@ return;
         post('/pos/orders', {
             preserveScroll: true,
             onSuccess: () => {
- resetAfterOrder(); setSuccessType('save'); setSuccessChange(0); setSuccessDialogOpen(true); 
-},
+                resetAfterOrder(); setSuccessType('save'); setSuccessChange(0); setSuccessDialogOpen(true);
+            },
         });
     }
 
     function handleCashConfirm(amountGiven: number) {
         if (cartItems.length === 0 || (isDineIn && selectedTableIds.length === 0)) {
-return;
-}
+            return;
+        }
 
         setCashAmountGiven(amountGiven);
         setData({
@@ -274,7 +274,7 @@ return;
             table_ids: isDineIn ? selectedTableIds : [],
             items: cartItems.map(item => ({
                 menu_id: item.menu.id, qty: item.qty, notes: item.notes || null,
-                option_ids: item.selectedOptions.map(o => o.itemId),
+                option_ids: item.selectedOptions.flatMap(o => Array.from({ length: o.quantity }, () => o.itemId)),
             })),
             payment_method: 'cash',
             discount_type: discountValue > 0 ? discountType : null,
@@ -333,7 +333,10 @@ return;
             qty: item.qty,
             notes: item.notes || '',
             selectedOptions: item.options.map(o => ({
-                itemId: o.option_item.id, name: o.option_item.name, adjustment: Number(o.option_item.price_adjustment),
+                itemId: o.option_item.id,
+                name: o.option_item.name,
+                adjustment: Number(o.option_item.price_adjustment),
+                quantity: (o as { quantity?: number }).quantity ?? 1,
             })),
         })));
     }
@@ -346,8 +349,8 @@ return;
 
     function handlePendingCashConfirm(amountGiven: number) {
         if (!selectedPendingOrderId || cartItems.length === 0) {
-return;
-}
+            return;
+        }
 
         setCashAmountGiven(amountGiven);
         setCashDialogOpen(false);
@@ -357,7 +360,7 @@ return;
         router.put(`/pos/orders/${selectedPendingOrderId}/confirm-pay`, {
             items: cartItems.map(item => ({
                 menu_id: item.menu.id, qty: item.qty, notes: item.notes || null,
-                option_ids: item.selectedOptions.map(o => o.itemId),
+                option_ids: item.selectedOptions.flatMap(o => Array.from({ length: o.quantity }, () => o.itemId)),
             })),
             payment_method: 'cash',
             discount_type: discountValue > 0 ? discountType : null,
@@ -371,15 +374,15 @@ return;
                 setSuccessChange(amountGiven - total); setSuccessDialogOpen(true);
             },
             onError: () => {
- setConfirmPayProcessing(false); setIsPendingCashPayment(false); 
-},
+                setConfirmPayProcessing(false); setIsPendingCashPayment(false);
+            },
         });
     }
 
     function handleConfirmPay(method: string) {
         if (!selectedPendingOrderId || cartItems.length === 0) {
-return;
-}
+            return;
+        }
 
         setConfirmPayProcessing(true);
         setPrintReceiptData(buildReceiptData());
@@ -387,7 +390,7 @@ return;
         router.put(`/pos/orders/${selectedPendingOrderId}/confirm-pay`, {
             items: cartItems.map(item => ({
                 menu_id: item.menu.id, qty: item.qty, notes: item.notes || null,
-                option_ids: item.selectedOptions.map(o => o.itemId),
+                option_ids: item.selectedOptions.flatMap(o => Array.from({ length: o.quantity }, () => o.itemId)),
             })),
             payment_method: method,
             discount_type: discountValue > 0 ? discountType : null,
@@ -409,8 +412,8 @@ return;
         const data = printReceiptData;
 
         if (!data || data.items.length === 0) {
-return;
-}
+            return;
+        }
 
         const { items, discountType: dType, discountValue: dVal } = data;
         const order = receiptOrder;
@@ -436,13 +439,13 @@ return;
                 ? order.items.map(i => ({
                     name: i.menu.name, qty: i.qty, basePrice: Number(i.base_price),
                     totalPrice: Number(i.total_price),
-                    options: i.options.map(o => ({ name: o.option_item.name, price: Number(o.price_adjustment) })),
+                    options: i.options.map(o => ({ name: o.option_item.name, price: Number(o.price_adjustment), quantity: o.quantity || 1 })),
                     notes: i.notes,
                 }))
                 : items.map(i => ({
                     name: i.menu.name, qty: i.qty, basePrice: Number(i.menu.price),
                     totalPrice: (Number(i.menu.price) + i.selectedOptions.reduce((s, o) => s + o.adjustment, 0)) * i.qty,
-                    options: i.selectedOptions.map(o => ({ name: o.name, price: o.adjustment })),
+                    options: i.selectedOptions.map(o => ({ name: o.name, price: o.adjustment, quantity: o.quantity || 1 })),
                     notes: i.notes || null,
                 })),
             subtotal: order ? Number(order.subtotal) : sub,
@@ -461,8 +464,8 @@ return;
         setSelectedTableIds([]);
 
         if (type === 'dine_in') {
-setCustomerName('');
-}
+            setCustomerName('');
+        }
     }
 
     const cartPanelProps = {
@@ -478,8 +481,8 @@ setCustomerName('');
         discountType, discountValue, discountApprovedBy,
         onDiscountChange: handleDiscountChange,
         onOpenApproval: () => {
- setApprovalDialogOpen(true); setApprovalPassword(''); setApprovalError(''); 
-},
+            setApprovalDialogOpen(true); setApprovalPassword(''); setApprovalError('');
+        },
         splitCount, onOpenSplitBill: () => setSplitDialogOpen(true),
         onPrintReceipt: handlePrintReceipt, showPrintButton,
     };
@@ -541,8 +544,8 @@ setCustomerName('');
                         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
                             {visibleMenus.map(menu => (
                                 <MenuCard key={menu.id} menu={menu} onSelect={() => {
- setItemDialogMenu(menu); setItemDialogOpen(true); 
-}} />
+                                    setItemDialogMenu(menu); setItemDialogOpen(true);
+                                }} />
                             ))}
                             {visibleMenus.length === 0 && (
                                 <p className="col-span-full py-8 text-center text-sm" style={{ color: MUTED }}>Menu tidak ditemukan</p>
@@ -576,22 +579,22 @@ setCustomerName('');
                 <PaymentDialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen} onConfirm={handlePaymentMethodSelect} processing={confirmPayProcessing} />
                 <ApprovalDialog open={approvalDialogOpen} onOpenChange={setApprovalDialogOpen} password={approvalPassword} onPasswordChange={setApprovalPassword} onSubmit={handleSubmitApproval} error={approvalError} processing={approvalProcessing} />
                 <SplitBillDialog open={splitDialogOpen} onOpenChange={setSplitDialogOpen} splitInputValue={splitInputValue} onSplitInputChange={setSplitInputValue} onApply={(count) => {
- setSplitCount(Math.max(2, Math.min(20, count))); setSplitDialogOpen(false); 
-}} cartItems={cartItems} />
+                    setSplitCount(Math.max(2, Math.min(20, count))); setSplitDialogOpen(false);
+                }} cartItems={cartItems} />
                 <CashPaymentDialog open={cashDialogOpen} onOpenChange={v => {
- setCashDialogOpen(v);
+                    setCashDialogOpen(v);
 
- if (!v) {
-setIsPendingCashPayment(false);
-} 
-}} total={total} onConfirm={isPendingCashPayment ? handlePendingCashConfirm : handleCashConfirm} processing={processing} />
-                <MidtransPaymentDialog open={midtransDialogOpen} onOpenChange={setMidtransDialogOpen} subtotal={subtotal} total={total} onSuccess={handleMidtransSuccess} getCsrfToken={() => document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? ''} selectedTableId={selectedTableIds[0] ?? null} cartItems={cartItems.map(item => ({ menu_id: item.menu.id, qty: item.qty, notes: item.notes || null, option_ids: item.selectedOptions.map(o => o.itemId) }))} discountType={discountType} discountValue={discountValue} discountApprovedBy={discountApprovedBy} orderType={orderType} />
+                    if (!v) {
+                        setIsPendingCashPayment(false);
+                    }
+                }} total={total} onConfirm={isPendingCashPayment ? handlePendingCashConfirm : handleCashConfirm} processing={processing} />
+                <MidtransPaymentDialog open={midtransDialogOpen} onOpenChange={setMidtransDialogOpen} subtotal={subtotal} total={total} onSuccess={handleMidtransSuccess} getCsrfToken={() => document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? ''} selectedTableId={selectedTableIds[0] ?? null} cartItems={cartItems.map(item => ({ menu_id: item.menu.id, qty: item.qty, notes: item.notes || null, option_ids: item.selectedOptions.flatMap(o => Array.from({ length: o.quantity }, () => o.itemId)) }))} discountType={discountType} discountValue={discountValue} discountApprovedBy={discountApprovedBy} orderType={orderType} />
 
                 <Dialog open={releaseDialogTable !== null} onOpenChange={(v) => {
- if (!v) {
-setReleaseDialogTable(null);
-} 
-}}>
+                    if (!v) {
+                        setReleaseDialogTable(null);
+                    }
+                }}>
                     <DialogContent className="sm:max-w-xs" style={{ backgroundColor: CREAM }}>
                         <div className="flex flex-col items-center py-4 text-center">
                             <div className="mb-4 flex size-16 items-center justify-center rounded-full" style={{ backgroundColor: `${SAND}40` }}>
@@ -601,34 +604,34 @@ setReleaseDialogTable(null);
                             <p className="mt-1 text-sm" style={{ color: MUTED }}>Meja sedang digunakan</p>
                             <div className="mt-5 flex w-full flex-col gap-2">
                                 <button onClick={() => {
- const t = releaseDialogTable; setReleaseDialogTable(null);
+                                    const t = releaseDialogTable; setReleaseDialogTable(null);
 
- if (t) {
-setMoveMergeDialog({ mode: 'move', sourceTable: t });
-} 
-}}
+                                    if (t) {
+                                        setMoveMergeDialog({ mode: 'move', sourceTable: t });
+                                    }
+                                }}
                                     className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold" style={{ backgroundColor: PRIMARY, color: '#fff' }}>
                                     <Move className="size-4" /> Pindah Meja
                                 </button>
                                 {(tables.filter(t => t.status === 'occupied' && t.id !== releaseDialogTable?.id).length > 0) && (
                                     <button onClick={() => {
- const t = releaseDialogTable; setReleaseDialogTable(null);
+                                        const t = releaseDialogTable; setReleaseDialogTable(null);
 
- if (t) {
-setMoveMergeDialog({ mode: 'merge', sourceTable: t });
-} 
-}}
+                                        if (t) {
+                                            setMoveMergeDialog({ mode: 'merge', sourceTable: t });
+                                        }
+                                    }}
                                         className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold" style={{ backgroundColor: PRIMARY, color: '#fff' }}>
                                         <ArrowRightLeft className="size-4" /> Gabung Meja
                                     </button>
                                 )}
                                 <button onClick={() => {
- if (!releaseDialogTable) {
-return;
-}
+                                    if (!releaseDialogTable) {
+                                        return;
+                                    }
 
- router.post(`/pos/tables/${releaseDialogTable.id}/release`); 
-}}
+                                    router.post(`/pos/tables/${releaseDialogTable.id}/release`);
+                                }}
                                     className="w-full rounded-xl py-2.5 text-sm font-semibold" style={{ backgroundColor: PRIMARY, color: '#fff' }}>
                                     Kosongkan Meja
                                 </button>

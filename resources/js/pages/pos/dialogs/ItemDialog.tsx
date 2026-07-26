@@ -17,34 +17,65 @@ interface Props {
 export default function ItemDialog({ open, onOpenChange, menu, onAdd }: Props) {
     const [qty, setQty] = useState(1);
     const [notes, setNotes] = useState('');
-    const [options, setOptions] = useState<Record<number, number[]>>({});
+    const [options, setOptions] = useState<Record<number, Record<number, number>>>({});
 
     function reset(menu: MenuItem | null) {
         setQty(1);
         setNotes('');
-        const opts: Record<number, number[]> = {};
+        const opts: Record<number, Record<number, number>> = {};
 
         if (menu) {
-for (const g of menu.option_groups) {
-opts[g.id] = [];
-}
-}
+            for (const g of menu.option_groups) {
+                if (g.selection_type === 'single' && g.option_items.length > 0) {
+                    opts[g.id] = { [g.option_items[0].id]: 1 };
+                } else {
+                    opts[g.id] = {};
+                }
+            }
+        }
 
         setOptions(opts);
     }
 
     function toggleOption(groupId: number, itemId: number, selectionType: string) {
         setOptions(prev => {
-            const current = [...(prev[groupId] || [])];
+            const cur = prev[groupId] ?? {};
 
             if (selectionType === 'single') {
-                return { ...prev, [groupId]: current.includes(itemId) ? [] : [itemId] };
+                if (cur[itemId]) {
+                    return { ...prev, [groupId]: {} };
+                }
+
+                return { ...prev, [groupId]: { [itemId]: 1 } };
             }
 
-            const idx = current.indexOf(itemId);
-            idx >= 0 ? current.splice(idx, 1) : current.push(itemId);
+            if (cur[itemId]) {
+                const next = { ...cur };
+                delete next[itemId];
 
-            return { ...prev, [groupId]: current };
+                return { ...prev, [groupId]: next };
+            }
+
+            return { ...prev, [groupId]: { ...cur, [itemId]: 1 } };
+        });
+    }
+
+    function changeOptionQty(groupId: number, itemId: number, delta: number) {
+        setOptions(prev => {
+            const cur = prev[groupId]?.[itemId] ?? 0;
+            const next = cur + delta;
+
+            if (next <= 0) {
+                const items = { ...prev[groupId] };
+                delete items[itemId];
+
+                return { ...prev, [groupId]: items };
+            }
+
+            return {
+                ...prev,
+                [groupId]: { ...prev[groupId], [itemId]: next },
+            };
         });
     }
 
@@ -56,12 +87,15 @@ return;
         const selectedOptions: CartItem['selectedOptions'] = [];
 
         for (const group of menu.option_groups) {
-            for (const id of (options[group.id] || [])) {
+            const sel = options[group.id] ?? {};
+
+            for (const idStr of Object.keys(sel)) {
+                const id = Number(idStr);
                 const opt = group.option_items.find(i => i.id === id);
 
                 if (opt) {
-selectedOptions.push({ itemId: opt.id, name: opt.name, adjustment: Number(opt.price_adjustment) });
-}
+                    selectedOptions.push({ itemId: opt.id, name: opt.name, adjustment: Number(opt.price_adjustment), quantity: sel[id] });
+                }
             }
         }
 
@@ -79,10 +113,13 @@ reset(menu);
     }
 
     const topAdj = menu ? menu.option_groups.reduce((sum, g) => {
-        return sum + (options[g.id] || []).reduce((s, id) => {
+        const sel = options[g.id] ?? {};
+
+        return sum + Object.keys(sel).reduce((s, idStr) => {
+            const id = Number(idStr);
             const opt = g.option_items.find(i => i.id === id);
 
-            return s + (opt ? Number(opt.price_adjustment) : 0);
+            return s + (opt ? Number(opt.price_adjustment) * sel[id] : 0);
         }, 0);
     }, 0) : 0;
     const itemTotal = menu ? (Number(menu.price) + topAdj) * qty : 0;
@@ -140,7 +177,8 @@ reset(menu);
                                 </div>
                                 <div className="grid grid-cols-2 gap-2">
                                     {group.option_items.filter(i => i.is_available).map(opt => {
-                                        const selected = (options[group.id] || []).includes(opt.id);
+                                        const qtySel = options[group.id]?.[opt.id] ?? 0;
+                                        const selected = qtySel > 0;
                                         const adj = Number(opt.price_adjustment);
 
                                         return (
@@ -148,27 +186,61 @@ reset(menu);
                                                 key={opt.id}
                                                 type="button"
                                                 onClick={() => toggleOption(group.id, opt.id, group.selection_type)}
-                                                className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition-all"
+                                                className="flex flex-col items-stretch gap-1 rounded-xl px-3 py-2.5 text-sm font-medium transition-all"
                                                 style={{
                                                     backgroundColor: selected ? PRIMARY : CREAM,
                                                     color: selected ? '#fff' : INK,
                                                     border: `1.5px solid ${selected ? PRIMARY : BORDER}`,
                                                 }}
                                             >
-                                                <div className="flex size-5 items-center justify-center rounded-full border" style={{
-                                                    borderColor: selected ? '#fff' : BORDER,
-                                                    backgroundColor: selected ? '#fff' : 'transparent',
-                                                }}>
-                                                    {selected && <Check className="size-3" style={{ color: PRIMARY }} />}
+                                                <div className="flex items-center gap-2">
+                                                    <div className="flex size-5 items-center justify-center rounded-full border" style={{
+                                                        borderColor: selected ? '#fff' : BORDER,
+                                                        backgroundColor: selected ? '#fff' : 'transparent',
+                                                    }}>
+                                                        {selected && <Check className="size-3" style={{ color: PRIMARY }} />}
+                                                    </div>
+                                                    <div className="flex flex-1 items-center justify-between min-w-0">
+                                                        <span className="truncate">{opt.name}</span>
+                                                        {adj > 0 && (
+                                                            <span className="ml-1 whitespace-nowrap text-xs opacity-80">
+                                                                +Rp{adj.toLocaleString('id-ID')}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                                <div className="flex flex-1 items-center justify-between min-w-0">
-                                                    <span className="truncate">{opt.name}</span>
-                                                    {adj > 0 && (
-                                                        <span className="ml-1 whitespace-nowrap text-xs opacity-80">
-                                                            +Rp{adj.toLocaleString('id-ID')}
+                                                {selected && group.selection_type === 'multiple' && (
+                                                    <div className="flex items-center justify-center gap-3 rounded-lg bg-white/20 p-1">
+                                                        <button
+                                                            className="flex size-6 items-center justify-center rounded-md bg-white text-sm font-bold shadow-sm"
+                                                            style={{ color: PRIMARY }}
+                                                            onClick={e => {
+                                                                e.stopPropagation();
+                                                                changeOptionQty(group.id, opt.id, -1);
+                                                            }}
+                                                        >
+                                                            <Minus className="size-3" />
+                                                        </button>
+                                                        <span className="min-w-5 text-center text-sm font-bold text-white">
+                                                            {qtySel}
                                                         </span>
-                                                    )}
-                                                </div>
+                                                        <button
+                                                            className="flex size-6 items-center justify-center rounded-md bg-white text-sm font-bold shadow-sm"
+                                                            style={{ color: PRIMARY }}
+                                                            onClick={e => {
+                                                                e.stopPropagation();
+                                                                changeOptionQty(group.id, opt.id, 1);
+                                                            }}
+                                                        >
+                                                            <Plus className="size-3" />
+                                                        </button>
+                                                    </div>
+                                                )}
+                                                {selected && group.selection_type === 'single' && adj > 0 && (
+                                                    <div className="text-center text-[10px] opacity-70">
+                                                        +Rp{(adj * qtySel).toLocaleString('id-ID')}
+                                                    </div>
+                                                )}
                                             </button>
                                         );
                                     })}

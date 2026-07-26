@@ -2,6 +2,7 @@ import { AppContent } from '@/components/app-content';
 import { AppShell } from '@/components/app-shell';
 import { AppSidebar } from '@/components/app-sidebar';
 import { AppSidebarHeader } from '@/components/app-sidebar-header';
+import { useOrderCreated } from '@/hooks/use-order-created';
 import { useOrderReadyToast } from '@/hooks/use-order-ready-toast';
 import type { AppLayoutProps } from '@/types';
 
@@ -12,6 +13,7 @@ export default function AppSidebarLayout({
     breadcrumbs = [],
 }: AppLayoutProps) {
     useOrderReadyToast();
+    useOrderCreated();
 
     return (
         <AppShell variant="sidebar">

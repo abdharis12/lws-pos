@@ -39,7 +39,7 @@ export default function CartPanel({
 }: Props) {
     const [showDiscount, setShowDiscount] = useState(false);
     const subtotal = useMemo(() => items.reduce((sum, item) => {
-        const optAdj = item.selectedOptions.reduce((s, o) => s + o.adjustment, 0);
+        const optAdj = item.selectedOptions.reduce((s, o) => s + o.adjustment * (o.quantity || 1), 0);
 
         return sum + (Number(item.menu.price) + optAdj) * item.qty;
     }, 0), [items]);
@@ -81,7 +81,7 @@ return Math.min(subtotal * (discountValue / 100), subtotal);
                     <p className="py-8 text-center text-sm" style={{ color: MUTED }}>Belum ada item</p>
                 ) : (
                     items.map((item, i) => {
-                        const itemTotal = (Number(item.menu.price) + item.selectedOptions.reduce((s, o) => s + o.adjustment, 0)) * item.qty;
+                        const itemTotal = (Number(item.menu.price) + item.selectedOptions.reduce((s, o) => s + o.adjustment * (o.quantity || 1), 0)) * item.qty;
 
                         return (
                             <div key={i} className="rounded-xl p-3" style={{ border: `1px solid ${BORDER}`, backgroundColor: `${CREAM}60` }}>
@@ -99,7 +99,7 @@ return Math.min(subtotal * (discountValue / 100), subtotal);
                                                 className="rounded-full px-2 py-0.5 text-[10px] font-medium"
                                                 style={{ backgroundColor: `${PRIMARY}10`, color: PRIMARY }}
                                             >
-                                                {o.name}{o.adjustment > 0 ? ` +${o.adjustment.toLocaleString('id-ID')}` : ''}
+                                                {o.name}{o.quantity > 1 ? ` x${o.quantity}` : ''}{o.adjustment > 0 ? ` +${o.adjustment.toLocaleString('id-ID')}` : ''}
                                             </span>
                                         ))}
                                     </div>

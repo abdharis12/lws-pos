@@ -73,7 +73,7 @@ export interface CartItem {
     menu: MenuItem;
     qty: number;
     notes: string;
-    selectedOptions: { itemId: number; name: string; adjustment: number }[];
+    selectedOptions: { itemId: number; name: string; adjustment: number; quantity: number }[];
 }
 
 export interface DiscountState {
