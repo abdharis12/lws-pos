@@ -1,7 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
-import { BarChart3, Calendar, ChefHat, Clock, Grid3x3, LayoutGrid, ListTodo, Settings2, ShoppingCart, Tag, Users, Utensils, Wallet } from 'lucide-react';
+import { AwardIcon, BarChart3, Calendar, ChartArea, ChartCandlestick, ChefHat, Clock, FileUserIcon, Grid3x3, HandCoinsIcon, HandPlatter, LayoutGrid, ListTodo, MapPin, ScissorsLineDashedIcon, Settings2, ShoppingCart, Tag, Users, Utensils, Wallet } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
-import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import {
@@ -84,11 +83,11 @@ return true;
             label: 'Payroll',
             roles: ['Owner', 'Admin'],
             items: [
-                { title: 'Komponen Gaji', href: admin.salaryComponents.index(), icon: Wallet },
-                { title: 'Bonus', href: admin.bonuses.index(), icon: Wallet },
-                { title: 'Potongan', href: admin.deductions.index(), icon: Wallet },
+                { title: 'Komponen Gaji', href: admin.salaryComponents.index(), icon: HandCoinsIcon },
+                { title: 'Bonus', href: admin.bonuses.index(), icon: AwardIcon },
+                { title: 'Potongan', href: admin.deductions.index(), icon: ScissorsLineDashedIcon },
                 { title: 'Slip Gaji', href: admin.payslips.index(), icon: Wallet },
-                { title: 'Laporan Payroll', href: admin.payroll.report(), icon: BarChart3 },
+                { title: 'Laporan Payroll', href: admin.payroll.report(), icon: ChartArea },
                 { title: 'Pengaturan Payroll', href: admin.payroll.settings(), icon: Settings2 },
             ],
         },
@@ -96,7 +95,7 @@ return true;
             label: 'Reports Employee',
             roles: ['Owner', 'Admin'],
             items: [
-                { title: 'Kehadiran', href: admin.reports.attendance(), icon: BarChart3 },
+                { title: 'Kehadiran', href: admin.reports.attendance(), icon: FileUserIcon },
                 { title: 'Lembur', href: admin.reports.overtime(), icon: BarChart3 },
             ],
         },
@@ -104,8 +103,8 @@ return true;
             label: 'Reports Financial',
             roles: ['Owner', 'Admin'],
             items: [
-                { title: 'Laporan Penjualan', href: admin.reports.index(), icon: BarChart3 },
-                { title: 'Menu & Varian Terlaris', href: admin.reports.topMenus(), icon: BarChart3 },
+                { title: 'Laporan Penjualan', href: admin.reports.index(), icon: ChartCandlestick },
+                { title: 'Menu & Varian Terlaris', href: admin.reports.topMenus(), icon: HandPlatter },
                 { title: 'Rekonsiliasi', href: admin.reports.reconciliation(), icon: BarChart3 },
             ],
         },
@@ -114,6 +113,13 @@ return true;
             roles: ['Owner', 'Admin'],
             items: [
                 { title: 'Log Aktivitas', href: admin.activityLogs.index(), icon: ListTodo },
+            ],
+        },
+        {
+            label: 'Settings',
+            roles: ['Owner', 'Admin'],
+            items: [
+                { title: 'Pengaturan Outlet', href: '/admin/outlet-settings', icon: MapPin },
             ],
         },
     ];

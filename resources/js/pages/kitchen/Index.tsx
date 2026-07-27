@@ -74,7 +74,7 @@ playBeep();
 
                 {!hasOrders ? (
                     <div className="flex flex-col items-center justify-center py-32 text-white/30">
-                        <ChefHat className="mb-6 size-20 opacity-20" />
+                        <ChefHat className="mb-6 size-20 opacity-80" />
                         <p className="text-lg font-medium">Belum ada pesanan masuk</p>
                         <p className="mt-1 text-sm">Pesanan akan muncul di sini setelah pembayaran</p>
                     </div>

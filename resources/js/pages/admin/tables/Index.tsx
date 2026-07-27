@@ -1,12 +1,11 @@
-import { Head, router } from '@inertiajs/react';
-import { useForm } from '@inertiajs/react';
-import { Download, Plus, Printer, RefreshCw, Trash2 } from 'lucide-react';
+import { Head, router, useForm } from '@inertiajs/react';
+import { Download, Plus, Printer, RefreshCw, Trash2, Search, Table2, Sparkles, Pencil } from 'lucide-react';
 import QRCode from 'qrcode';
 import { useEffect, useRef, useState } from 'react';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import {
     Dialog,
     DialogContent,
@@ -16,6 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Pagination } from '@/components/ui/pagination';
 import {
     Select,
     SelectContent,
@@ -23,8 +23,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-
-const FLOORS = ['Lantai 1', 'Lantai 2', 'Lantai 3', 'Lantai 4', 'Teras'];
 
 interface TableData {
     id: number;
@@ -35,9 +33,26 @@ interface TableData {
     status: 'available' | 'occupied' | 'reserved';
 }
 
+interface PaginationLink {
+    url: string | null;
+    label: string;
+    active: boolean;
+}
+
+interface PaginationMeta {
+    data: TableData[];
+    links: PaginationLink[];
+    from: number | null;
+    to: number | null;
+    total: number;
+    current_page: number;
+    last_page: number;
+}
+
 interface Props {
-    tables: TableData[];
+    tables: PaginationMeta;
     floors: string[];
+    filters: { floor?: string };
 }
 
 function TableCard({
@@ -65,10 +80,7 @@ function TableCard({
 
     function downloadQR() {
         const canvas = canvasRef.current;
-
-        if (!canvas) {
-return;
-}
+        if (!canvas) return;
 
         const link = document.createElement('a');
         link.download = `meja-${table.code}-qr.png`;
@@ -78,16 +90,10 @@ return;
 
     function printQR() {
         const canvas = canvasRef.current;
-
-        if (!canvas) {
-return;
-}
+        if (!canvas) return;
 
         const win = window.open('', '_blank');
-
-        if (!win) {
-return;
-}
+        if (!win) return;
 
         win.document.write(`
             <html>
@@ -109,59 +115,99 @@ return;
         win.document.close();
     }
 
-    const statusColors: Record<string, 'default' | 'secondary' | 'outline'> = {
-        available: 'default',
-        occupied: 'secondary',
-        reserved: 'outline',
+    const statusConfig: Record<string, { label: string; className: string }> = {
+        available: { label: 'Tersedia', className: 'border border-[oklch(0.80_0.038_88.5)]/30 bg-[oklch(0.48_0.032_195.5)] text-xs font-normal tracking-wide text-white' },
+        occupied: { label: 'Terisi', className: 'border border-slate-200 bg-slate-100 text-xs font-normal text-slate-500' },
+        reserved: { label: 'Reserved', className: 'border border-amber-200 bg-amber-50 text-xs font-normal text-amber-700' },
     };
 
-    const statusLabels: Record<string, string> = {
-        available: 'Tersedia',
-        occupied: 'Terisi',
-        reserved: 'Reserved',
-    };
+    const status = statusConfig[table.status] ?? statusConfig.available;
 
     return (
-        <Card>
-            <CardHeader className="pb-2">
-                <div className="flex items-start justify-between">
-                    <div>
-                        <CardTitle className="text-lg">{table.code}</CardTitle>
-                        <span className="text-xs text-muted-foreground">
-                            {table.capacity} orang
-                        </span>
-                        {table.floor && (
-                            <span className="ml-2 rounded-md bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
-                                {table.floor}
-                            </span>
-                        )}
-                    </div>
-                    <Badge variant={statusColors[table.status]}>
-                        {statusLabels[table.status]}
+        <Card className="group overflow-hidden border-[oklch(0.80_0.038_88.5)]/40 bg-white/80 shadow-sm backdrop-blur-sm transition-all duration-300 hover:border-[oklch(0.80_0.038_88.5)] hover:shadow-md">
+            {/* QR Code Container */}
+            <div className="relative flex items-center justify-center border-b border-[oklch(0.80_0.038_88.5)]/20 bg-gradient-to-br from-[oklch(0.48_0.032_195.5)]/5 to-[oklch(0.80_0.038_88.5)]/10 p-4">
+                <canvas ref={canvasRef} className="size-[140px]" />
+
+                {/* Floating Badge */}
+                <div className="absolute right-3 top-3">
+                    <Badge className={status.className}>
+                        {status.label}
                     </Badge>
                 </div>
-            </CardHeader>
-            <CardContent>
-                <div className="mb-3 flex items-center justify-center rounded-lg border bg-muted/30 p-3">
-                    <canvas ref={canvasRef} className="size-[140px]" />
+            </div>
+
+            {/* Card Header */}
+            <CardHeader className="pb-2 pt-4">
+                <div className="flex items-start justify-between gap-2">
+                    <div>
+                        <Badge className="border border-primary bg-secondary/30 text-xs font-normal text-primary rounded-full">
+                            {table.floor ?? 'Tanpa Lantai'}
+                        </Badge>
+                        <h3 className="font-serif mt-1 text-xl font-medium tracking-tight text-[oklch(0.48_0.032_195.5)] group-hover:text-[oklch(0.38_0.032_195.5)]">
+                            {table.code}
+                        </h3>
+                        <p className="mt-1 text-xs italic text-slate-500">
+                            {table.capacity} orang
+                        </p>
+                    </div>
                 </div>
-                <div className="flex items-center justify-between gap-1">
-                    <Button variant="ghost" size="sm" onClick={downloadQR}>
-                        <Download className="size-3" />
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={printQR}>
-                        <Printer className="size-3" />
-                    </Button>
-                    <div className="flex gap-1">
-                        <Button variant="ghost" size="sm" onClick={() => onRegenerateToken(table.id)}>
-                            <RefreshCw className="mr-1 size-3" />
-                            Token
+            </CardHeader>
+
+            {/* Card Content & Actions */}
+            <CardContent className="pt-2">
+                <div className="flex items-center justify-between border-t border-[oklch(0.80_0.038_88.5)]/20 pt-3">
+                    <div className="flex items-center gap-1">
+                        <Button
+                            variant="secondary"
+                            size="icon"
+                            onClick={downloadQR}
+                            className="size-8"
+                            title="Download QR"
+                        >
+                            <Download className="size-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => onEdit(table)}>
-                            <Plus className="size-4 rotate-45" />
+
+                        <Button
+                            variant="secondary"
+                            size="icon"
+                            onClick={printQR}
+                            className="size-8"
+                            title="Print QR"
+                        >
+                            <Printer className="size-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => onDelete(table.id)}>
-                            <Trash2 className="size-4 text-destructive" />
+
+                        <Button
+                            variant="secondary"
+                            size="icon"
+                            onClick={() => onRegenerateToken(table.id)}
+                            className="size-8"
+                            title="Regenerate Token"
+                        >
+                            <RefreshCw className="size-4" />
+                        </Button>
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => onEdit(table)}
+                            className="size-8 bg-primary text-secondary hover:bg-primary/70 hover:text-secondary transition-colors"
+                            title="Edit Meja"
+                        >
+                            <Pencil className="size-4" />
+                        </Button>
+
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => onDelete(table.id)}
+                            className="size-8 bg-rose-700 text-rose-50 hover:bg-rose-200 hover:text-rose-800"
+                            title="Hapus Meja"
+                        >
+                            <Trash2 className="size-4" />
                         </Button>
                     </div>
                 </div>
@@ -170,10 +216,10 @@ return;
     );
 }
 
-export default function TablesIndex({ tables, floors }: Props) {
+export default function TablesIndex({ tables, floors, filters }: Props) {
     const [open, setOpen] = useState(false);
     const [editing, setEditing] = useState<TableData | null>(null);
-    const [filterFloor, setFilterFloor] = useState<string | null>(null);
+    const [filterFloor, setFilterFloor] = useState<string>(filters.floor ?? '');
 
     const { data, setData, post, put, delete: destroy, processing, errors, reset } = useForm({
         code: '',
@@ -181,6 +227,14 @@ export default function TablesIndex({ tables, floors }: Props) {
         floor: '',
         status: 'available',
     });
+
+    useEffect(() => {
+        router.get(
+            '/admin/tables',
+            { floor: filterFloor || undefined },
+            { preserveScroll: true, preserveState: true },
+        );
+    }, [filterFloor]);
 
     function openCreate() {
         setEditing(null);
@@ -190,13 +244,14 @@ export default function TablesIndex({ tables, floors }: Props) {
 
     function openEdit(table: TableData) {
         setEditing(table);
-        setData({ code: table.code, capacity: String(table.capacity), floor: table.floor ?? '__none__', status: table.status });
+        setData({
+            code: table.code,
+            capacity: String(table.capacity),
+            floor: table.floor ?? '__none__',
+            status: table.status,
+        });
         setOpen(true);
     }
-
-    const filteredTables = filterFloor
-        ? tables.filter(t => t.floor === filterFloor)
-        : tables;
 
     function submit(e: React.FormEvent) {
         e.preventDefault();
@@ -204,14 +259,16 @@ export default function TablesIndex({ tables, floors }: Props) {
         if (editing) {
             put(`/admin/tables/${editing.id}`, {
                 onSuccess: () => {
- setOpen(false); reset(); 
-},
+                    setOpen(false);
+                    reset();
+                },
             });
         } else {
             post('/admin/tables', {
                 onSuccess: () => {
- setOpen(false); reset(); 
-},
+                    setOpen(false);
+                    reset();
+                },
             });
         }
     }
@@ -228,37 +285,37 @@ export default function TablesIndex({ tables, floors }: Props) {
         }
     }
 
-    const statusColors: Record<string, 'default' | 'secondary' | 'outline'> = {
-        available: 'default',
-        occupied: 'secondary',
-        reserved: 'outline',
-    };
-
-    const statusLabels: Record<string, string> = {
-        available: 'Tersedia',
-        occupied: 'Terisi',
-        reserved: 'Reserved',
-    };
-
     return (
-        <>
-            <Head title="Meja" />
+        <div className="min-h-screen bg-[oklch(0.98_0.005_85.0)] p-6 font-sans text-slate-800">
+            <Head title="Meja - European Classic" />
 
-            <div className="mb-6 flex items-center justify-between">
+            {/* Header Section */}
+            <div className="mb-8 flex flex-col justify-between gap-4 border-b border-[oklch(0.80_0.038_88.5)]/40 pb-6 sm:flex-row sm:items-end">
                 <div>
-                    <h1 className="text-2xl font-semibold">Meja</h1>
-                    <p className="mt-1 text-sm text-muted-foreground">Kelola meja restoran</p>
+                    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.80_0.038_88.5)]">
+                        <Table2 className="size-3.5 text-[oklch(0.48_0.032_195.5)]" />
+                        <span>Pengaturan Tempat Duduk</span>
+                    </div>
+                    <h1 className="mt-1 font-serif text-3xl font-bold tracking-tight text-[oklch(0.48_0.032_195.5)]">
+                        Daftar Meja
+                    </h1>
+                    <p className="mt-1 text-sm italic text-slate-500">
+                        Kelola meja dan QR code pemesanan restoran Anda.
+                    </p>
                 </div>
+
                 <Dialog open={open} onOpenChange={setOpen}>
                     <DialogTrigger asChild>
                         <Button onClick={openCreate}>
-                            <Plus className="mr-2 size-4" />
-                            Tambah Meja
+                            <Plus className="size-4 text-[oklch(0.80_0.038_88.5)]" />
+                            <span className="font-medium tracking-wide">Tambah Meja</span>
                         </Button>
                     </DialogTrigger>
-                    <DialogContent>
+                    <DialogContent className="border-[oklch(0.80_0.038_88.5)]/40 bg-[oklch(0.98_0.005_85.0)]">
                         <DialogHeader>
-                            <DialogTitle>{editing ? 'Edit Meja' : 'Tambah Meja'}</DialogTitle>
+                            <DialogTitle className="font-serif text-xl text-[oklch(0.48_0.032_195.5)]">
+                                {editing ? 'Edit Meja' : 'Tambah Meja'}
+                            </DialogTitle>
                         </DialogHeader>
                         <form onSubmit={submit} className="space-y-4">
                             <div className="grid gap-2">
@@ -268,6 +325,7 @@ export default function TablesIndex({ tables, floors }: Props) {
                                     value={data.code}
                                     onChange={(e) => setData('code', e.target.value)}
                                     placeholder="Contoh: A1, B2"
+                                    className="border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 focus-visible:border-[oklch(0.48_0.032_195.5)] focus-visible:ring-[oklch(0.48_0.032_195.5)]"
                                 />
                                 <InputError message={errors.code} />
                             </div>
@@ -280,21 +338,22 @@ export default function TablesIndex({ tables, floors }: Props) {
                                     max="20"
                                     value={data.capacity}
                                     onChange={(e) => setData('capacity', e.target.value)}
+                                    className="border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 focus-visible:border-[oklch(0.48_0.032_195.5)] focus-visible:ring-[oklch(0.48_0.032_195.5)]"
                                 />
                                 <InputError message={errors.capacity} />
                             </div>
                             <div className="grid gap-2">
                                 <Label htmlFor="floor">Lantai / Area</Label>
-                                    <Select
-                                        value={data.floor}
-                                        onValueChange={(v) => setData('floor', v === '__none__' ? '' : v)}
-                                    >
-                                    <SelectTrigger>
+                                <Select
+                                    value={data.floor}
+                                    onValueChange={(v) => setData('floor', v === '__none__' ? '' : v)}
+                                >
+                                    <SelectTrigger className="border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 focus:ring-[oklch(0.48_0.032_195.5)]">
                                         <SelectValue placeholder="Pilih lantai" />
                                     </SelectTrigger>
-                                    <SelectContent>
+                                    <SelectContent className="border-[oklch(0.80_0.038_88.5)]/40 bg-[oklch(0.98_0.005_85.0)]">
                                         <SelectItem value="__none__">Tidak ada</SelectItem>
-                                        {floors.map(f => (
+                                        {floors.map((f) => (
                                             <SelectItem key={f} value={f}>{f}</SelectItem>
                                         ))}
                                     </SelectContent>
@@ -308,10 +367,10 @@ export default function TablesIndex({ tables, floors }: Props) {
                                         value={data.status}
                                         onValueChange={(v) => setData('status', v as any)}
                                     >
-                                        <SelectTrigger>
+                                        <SelectTrigger className="border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 focus:ring-[oklch(0.48_0.032_195.5)]">
                                             <SelectValue />
                                         </SelectTrigger>
-                                        <SelectContent>
+                                        <SelectContent className="border-[oklch(0.80_0.038_88.5)]/40 bg-[oklch(0.98_0.005_85.0)]">
                                             <SelectItem value="available">Tersedia</SelectItem>
                                             <SelectItem value="occupied">Terisi</SelectItem>
                                             <SelectItem value="reserved">Reserved</SelectItem>
@@ -320,7 +379,11 @@ export default function TablesIndex({ tables, floors }: Props) {
                                     <InputError message={errors.status} />
                                 </div>
                             )}
-                            <Button type="submit" disabled={processing} className="w-full">
+                            <Button
+                                type="submit"
+                                disabled={processing}
+                                className="w-full bg-[oklch(0.48_0.032_195.5)] text-white hover:bg-[oklch(0.42_0.032_195.5)]"
+                            >
                                 {editing ? 'Simpan Perubahan' : 'Simpan'}
                             </Button>
                         </form>
@@ -328,13 +391,14 @@ export default function TablesIndex({ tables, floors }: Props) {
                 </Dialog>
             </div>
 
-            <div className="mb-4 inline-flex flex-wrap gap-1.5 rounded-xl bg-muted/50 p-1.5">
+            {/* Floor Filter Tabs */}
+            <div className="mb-8 inline-flex flex-wrap gap-1.5 rounded-xl border border-[oklch(0.80_0.038_88.5)]/30 bg-white/50 p-1.5">
                 <button
-                    onClick={() => setFilterFloor(null)}
+                    onClick={() => setFilterFloor('')}
                     className={`rounded-lg px-3.5 py-1.5 text-xs font-medium transition-all duration-200 ${
                         !filterFloor
-                            ? 'bg-white text-foreground shadow-sm ring-1 ring-black/5'
-                            : 'text-muted-foreground hover:bg-white/60 hover:text-foreground'
+                            ? 'bg-[oklch(0.48_0.032_195.5)] text-white shadow-sm'
+                            : 'text-slate-500 hover:bg-white/60 hover:text-slate-700'
                     }`}
                 >
                     Semua
@@ -348,8 +412,8 @@ export default function TablesIndex({ tables, floors }: Props) {
                             onClick={() => setFilterFloor(f)}
                             className={`rounded-lg px-3.5 py-1.5 text-xs font-medium transition-all duration-200 ${
                                 filterFloor === f
-                                    ? 'bg-white text-foreground shadow-sm ring-1 ring-black/5'
-                                    : 'text-muted-foreground hover:bg-white/60 hover:text-foreground'
+                                    ? 'bg-[oklch(0.48_0.032_195.5)] text-white shadow-sm'
+                                    : 'text-slate-500 hover:bg-white/60 hover:text-slate-700'
                             }`}
                         >
                             <span className="mr-1 opacity-60">{icons[i] ?? ''}</span>
@@ -359,8 +423,9 @@ export default function TablesIndex({ tables, floors }: Props) {
                 })}
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {filteredTables.map((table) => (
+            {/* Grid Table Cards */}
+            <div className="grid gap-6 md:grid-cols-3 lg:grid-cols-4">
+                {tables.data.map((table) => (
                     <TableCard
                         key={table.id}
                         table={table}
@@ -369,13 +434,29 @@ export default function TablesIndex({ tables, floors }: Props) {
                         onRegenerateToken={regenerateToken}
                     />
                 ))}
-                {filteredTables.length === 0 && (
-                    <p className="col-span-full py-8 text-center text-muted-foreground">
-                        Belum ada meja.
-                    </p>
+
+                {/* Empty State */}
+                {tables.data.length === 0 && (
+                    <div className="col-span-full py-16 text-center">
+                        <div className="mx-auto flex max-w-sm flex-col items-center justify-center text-center">
+                            <div className="mb-3 rounded-full bg-[oklch(0.80_0.038_88.5)]/20 p-4 text-[oklch(0.48_0.032_195.5)]">
+                                <Sparkles className="size-6" />
+                            </div>
+                            <h4 className="font-serif text-lg font-medium text-slate-700">Meja Tidak Ditemukan</h4>
+                            <p className="mt-1 text-xs italic text-slate-500">
+                                Cobalah untuk mengganti filter lantai atau tambahkan meja baru.
+                            </p>
+                        </div>
+                    </div>
                 )}
             </div>
-        </>
+
+            {/* Pagination */}
+            <div className="mt-8">
+                <hr className="border border-[oklch(0.80_0.038_88.5)]/40" />
+                <Pagination meta={tables} />
+            </div>
+        </div>
     );
 }
 

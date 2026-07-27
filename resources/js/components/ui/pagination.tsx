@@ -61,7 +61,10 @@ export function Pagination({ meta, onPerPageChange, perPage = 50 }: Props) {
 
             <div className="flex items-center gap-1">
                 {meta.links.map((link, i) => {
-                    if (link.label.includes('Previous')) {
+                    const isPrev = link.label.includes('previous') || link.label.includes('Previous');
+                    const isNext = link.label.includes('next') || link.label.includes('Next');
+
+                    if (isPrev) {
                         return link.url ? (
                             <Link key={i} href={link.url} preserveScroll preserveState>
                                 <Button variant="outline" size="sm" className="h-8 w-8 p-0">
@@ -75,7 +78,7 @@ export function Pagination({ meta, onPerPageChange, perPage = 50 }: Props) {
                         );
                     }
 
-                    if (link.label.includes('Next')) {
+                    if (isNext) {
                         return link.url ? (
                             <Link key={i} href={link.url} preserveScroll preserveState>
                                 <Button variant="outline" size="sm" className="h-8 w-8 p-0">

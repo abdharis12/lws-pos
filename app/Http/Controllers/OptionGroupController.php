@@ -11,16 +11,19 @@ use Inertia\Response;
 
 class OptionGroupController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $outlet = Outlet::first();
         $groups = OptionGroup::where('outlet_id', $outlet?->id)
             ->with('optionItems')
             ->orderBy('name')
-            ->get();
+            ->when($request->search, fn ($q, $search) => $q->where('name', 'like', "%{$search}%"))
+            ->paginate(10)
+            ->withQueryString();
 
         return Inertia::render('admin/option-groups/Index', [
             'groups' => $groups,
+            'filters' => $request->only(['search']),
         ]);
     }
 

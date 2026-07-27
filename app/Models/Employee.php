@@ -20,8 +20,8 @@ class Employee extends Model
     protected function casts(): array
     {
         return [
-            'join_date' => 'date',
-            'resign_date' => 'date',
+            'join_date' => 'date:Y-m-d',
+            'resign_date' => 'date:Y-m-d',
             'base_salary' => 'decimal:2',
             'is_active' => 'boolean',
         ];

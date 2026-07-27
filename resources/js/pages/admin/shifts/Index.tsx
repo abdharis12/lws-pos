@@ -1,14 +1,10 @@
 import { Head, Link } from '@inertiajs/react';
 import { useForm } from '@inertiajs/react';
-import { ChevronLeft, ChevronRight, Plus, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Trash2, Calendar } from 'lucide-react';
 import { useState } from 'react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-
-const PRIMARY = '#4F6B6A';
-const DARK = '#233433';
-const SAND = '#CFC0A4';
 
 interface UserData {
     id: number;
@@ -111,8 +107,8 @@ export default function ShiftsIndex({ shifts, employees, dates, weekStart }: Pro
 
     function handleUpdateShift() {
         if (!editingShift) {
-return;
-}
+            return;
+        }
 
         setData({
             employee_id: String(editingShift.employee_id),
@@ -129,48 +125,66 @@ return;
     }
 
     return (
-        <>
+        <div className="min-h-screen bg-[oklch(0.98_0.005_85.0)] p-6 font-sans text-slate-800">
             <Head title="Shift" />
 
-            <div className="flex flex-col gap-6">
+            {/* Header Section */}
+            <div className="mb-8 flex flex-col justify-between gap-4 border-b border-[oklch(0.80_0.038_88.5)]/40 pb-6 sm:flex-row sm:items-end">
                 <div>
-                    <h1 className="font-display text-2xl font-semibold md:text-3xl" style={{ color: DARK }}>
+                    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.80_0.038_88.5)]">
+                        <Calendar className="size-3.5 text-[oklch(0.48_0.032_195.5)]" />
+                        <span>Jadwal Mingguan</span>
+                    </div>
+                    <h1 className="mt-1 font-serif text-3xl font-bold tracking-tight text-[oklch(0.48_0.032_195.5)]">
                         Jadwal Shift
                     </h1>
-                    <p className="mt-1 text-sm" style={{ color: '#5c6a66' }}>
-                        Kelola jadwal shift karyawan mingguan
+                    <p className="mt-1 text-sm italic text-slate-500">
+                        Kelola jadwal shift karyawan mingguan.
                     </p>
                 </div>
+            </div>
 
+            <div className="flex flex-col gap-6">
+                {/* Week Navigation */}
                 <div className="flex items-center justify-between">
-                    <Button variant="outline" size="sm" onClick={prevWeek} className="gap-1" style={{ borderColor: 'rgba(79,107,106,0.3)', color: PRIMARY }}>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={prevWeek}
+                        className="gap-1 border-[oklch(0.80_0.038_88.5)]/40 text-[oklch(0.48_0.032_195.5)] hover:bg-[oklch(0.80_0.038_88.5)]/10"
+                    >
                         <ChevronLeft className="size-4" />
                         Minggu Sebelumnya
                     </Button>
-                    <span className="font-display text-sm font-semibold" style={{ color: DARK }}>
+                    <span className="font-serif text-sm font-semibold text-[oklch(0.48_0.032_195.5)]">
                         {formatDate(dates[0]).dayName}, {formatDate(dates[0]).dayNum} — {formatDate(dates[6]).dayName}, {formatDate(dates[6]).dayNum}
                     </span>
-                    <Button variant="outline" size="sm" onClick={nextWeek} className="gap-1" style={{ borderColor: 'rgba(79,107,106,0.3)', color: PRIMARY }}>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={nextWeek}
+                        className="gap-1 border-[oklch(0.80_0.038_88.5)]/40 text-[oklch(0.48_0.032_195.5)] hover:bg-[oklch(0.80_0.038_88.5)]/10"
+                    >
                         Minggu Berikutnya
                         <ChevronRight className="size-4" />
                     </Button>
                 </div>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="font-display text-lg" style={{ color: DARK }}>
+                {/* Add Shift Form */}
+                <Card className="border-[oklch(0.80_0.038_88.5)]/40 bg-white/80 shadow-sm backdrop-blur-sm">
+                    <CardHeader className="border-b border-[oklch(0.80_0.038_88.5)]/20">
+                        <CardTitle className="font-serif text-lg font-medium text-[oklch(0.48_0.032_195.5)]">
                             Tambah Shift
                         </CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="pt-5">
                         <div className="flex flex-wrap items-end gap-4">
                             <div className="grid gap-2">
-                                <label className="text-xs font-medium" style={{ color: '#5c6a66' }}>
+                                <label className="text-xs font-semibold uppercase tracking-wider text-[oklch(0.48_0.032_195.5)]">
                                     Karyawan
                                 </label>
                                 <select
-                                    className="flex h-9 rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs"
-                                    style={{ borderColor: 'rgba(37,51,47,0.2)' }}
+                                    className="flex h-9 rounded-md border border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 px-3 py-1 text-sm shadow-xs focus:border-[oklch(0.48_0.032_195.5)] focus:ring-[oklch(0.48_0.032_195.5)]"
                                     value={selectedEmployee}
                                     onChange={(e) => setSelectedEmployee(e.target.value)}
                                 >
@@ -183,12 +197,11 @@ return;
                                 </select>
                             </div>
                             <div className="grid gap-2">
-                                <label className="text-xs font-medium" style={{ color: '#5c6a66' }}>
+                                <label className="text-xs font-semibold uppercase tracking-wider text-[oklch(0.48_0.032_195.5)]">
                                     Tanggal
                                 </label>
                                 <select
-                                    className="flex h-9 rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs"
-                                    style={{ borderColor: 'rgba(37,51,47,0.2)' }}
+                                    className="flex h-9 rounded-md border border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 px-3 py-1 text-sm shadow-xs focus:border-[oklch(0.48_0.032_195.5)] focus:ring-[oklch(0.48_0.032_195.5)]"
                                     value={selectedDate}
                                     onChange={(e) => setSelectedDate(e.target.value)}
                                 >
@@ -200,25 +213,23 @@ return;
                                 </select>
                             </div>
                             <div className="grid gap-2">
-                                <label className="text-xs font-medium" style={{ color: '#5c6a66' }}>
+                                <label className="text-xs font-semibold uppercase tracking-wider text-[oklch(0.48_0.032_195.5)]">
                                     Jam Mulai
                                 </label>
                                 <input
                                     type="time"
-                                    className="flex h-9 rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs"
-                                    style={{ borderColor: 'rgba(37,51,47,0.2)' }}
+                                    className="flex h-9 rounded-md border border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 px-3 py-1 text-sm shadow-xs focus:border-[oklch(0.48_0.032_195.5)] focus:ring-[oklch(0.48_0.032_195.5)]"
                                     value={startTime}
                                     onChange={(e) => setStartTime(e.target.value)}
                                 />
                             </div>
                             <div className="grid gap-2">
-                                <label className="text-xs font-medium" style={{ color: '#5c6a66' }}>
+                                <label className="text-xs font-semibold uppercase tracking-wider text-[oklch(0.48_0.032_195.5)]">
                                     Jam Selesai
                                 </label>
                                 <input
                                     type="time"
-                                    className="flex h-9 rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs"
-                                    style={{ borderColor: 'rgba(37,51,47,0.2)' }}
+                                    className="flex h-9 rounded-md border border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 px-3 py-1 text-sm shadow-xs focus:border-[oklch(0.48_0.032_195.5)] focus:ring-[oklch(0.48_0.032_195.5)]"
                                     value={endTime}
                                     onChange={(e) => setEndTime(e.target.value)}
                                 />
@@ -226,8 +237,7 @@ return;
                             <Button
                                 onClick={handleAddShift}
                                 disabled={!selectedEmployee || processing}
-                                className="gap-2"
-                                style={{ backgroundColor: PRIMARY, color: '#FAF8F5' }}
+                                className="gap-2 bg-[oklch(0.48_0.032_195.5)] font-serif text-white hover:bg-[oklch(0.38_0.032_195.5)]"
                             >
                                 <Plus className="size-4" />
                                 Tambah
@@ -237,6 +247,7 @@ return;
                     </CardContent>
                 </Card>
 
+                {/* Weekly Calendar Grid */}
                 <div className="overflow-x-auto">
                     <div className="grid min-w-[800px] grid-cols-7 gap-3">
                         {dates.map((date) => {
@@ -247,20 +258,17 @@ return;
                             return (
                                 <div
                                     key={date}
-                                    className="rounded-xl border p-3"
-                                    style={{
-                                        borderColor: isToday ? SAND : 'rgba(37,51,47,0.08)',
-                                        backgroundColor: isToday ? 'rgba(207,192,164,0.05)' : '#fff',
-                                    }}
+                                    className={`rounded-xl border p-3 transition-all ${
+                                        isToday
+                                            ? 'border-[oklch(0.80_0.038_88.5)]/60 bg-[oklch(0.80_0.038_88.5)]/5 shadow-sm'
+                                            : 'border-[oklch(0.80_0.038_88.5)]/20 bg-white/60'
+                                    }`}
                                 >
                                     <div className="mb-2 text-center">
-                                        <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#5c6a66' }}>
+                                        <p className="text-xs font-semibold uppercase tracking-wider text-[oklch(0.48_0.032_195.5)]">
                                             {dayName.slice(0, 3)}
                                         </p>
-                                        <p
-                                            className="font-display text-lg font-bold"
-                                            style={{ color: isToday ? SAND : DARK }}
-                                        >
+                                        <p className={`font-serif text-lg font-bold ${isToday ? 'text-[oklch(0.80_0.038_88.5)]' : 'text-slate-800'}`}>
                                             {dayNum}
                                         </p>
                                     </div>
@@ -268,14 +276,13 @@ return;
                                         {dayShifts.map((shift) => (
                                             <div
                                                 key={shift.id}
-                                                className="group relative cursor-pointer rounded-lg p-2 text-xs transition-colors hover:opacity-80"
-                                                style={{ backgroundColor: 'rgba(79,107,106,0.1)', color: DARK }}
+                                                className="group relative cursor-pointer rounded-lg bg-[oklch(0.48_0.032_195.5)]/10 p-2 text-xs transition-colors hover:bg-[oklch(0.48_0.032_195.5)]/20"
                                                 onClick={() => handleEditShift(shift)}
                                             >
-                                                <p className="font-medium truncate">
+                                                <p className="font-medium truncate text-[oklch(0.48_0.032_195.5)]">
                                                     {shift.employee.user.name}
                                                 </p>
-                                                <p style={{ color: '#5c6a66' }}>
+                                                <p className="text-slate-500">
                                                     {shift.start_time.slice(0, 5)} — {shift.end_time.slice(0, 5)}
                                                 </p>
                                                 <button
@@ -296,36 +303,35 @@ return;
                     </div>
                 </div>
 
+                {/* Edit Shift Modal */}
                 {editingShift && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-                        <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
-                            <h3 className="mb-4 font-display text-lg font-semibold" style={{ color: DARK }}>
+                        <div className="w-full max-w-sm rounded-2xl border border-[oklch(0.80_0.038_88.5)]/40 bg-[oklch(0.98_0.005_85.0)] p-6 shadow-xl">
+                            <h3 className="mb-4 font-serif text-lg font-semibold text-[oklch(0.48_0.032_195.5)]">
                                 Edit Shift
                             </h3>
                             <div className="space-y-4">
-                                <p className="text-sm" style={{ color: '#5c6a66' }}>
+                                <p className="text-sm text-slate-600">
                                     {editingShift.employee.user.name} — {formatDate(editingShift.shift_date).dayName}, {editingShift.shift_date}
                                 </p>
                                 <div className="grid gap-2">
-                                    <label className="text-xs font-medium" style={{ color: '#5c6a66' }}>
+                                    <label className="text-xs font-semibold uppercase tracking-wider text-[oklch(0.48_0.032_195.5)]">
                                         Jam Mulai
                                     </label>
                                     <input
                                         type="time"
-                                        className="flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs"
-                                        style={{ borderColor: 'rgba(37,51,47,0.2)' }}
+                                        className="flex h-9 w-full rounded-md border border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 px-3 py-1 text-sm shadow-xs focus:border-[oklch(0.48_0.032_195.5)] focus:ring-[oklch(0.48_0.032_195.5)]"
                                         value={data.start_time}
                                         onChange={(e) => setData('start_time', e.target.value)}
                                     />
                                 </div>
                                 <div className="grid gap-2">
-                                    <label className="text-xs font-medium" style={{ color: '#5c6a66' }}>
+                                    <label className="text-xs font-semibold uppercase tracking-wider text-[oklch(0.48_0.032_195.5)]">
                                         Jam Selesai
                                     </label>
                                     <input
                                         type="time"
-                                        className="flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs"
-                                        style={{ borderColor: 'rgba(37,51,47,0.2)' }}
+                                        className="flex h-9 w-full rounded-md border border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 px-3 py-1 text-sm shadow-xs focus:border-[oklch(0.48_0.032_195.5)] focus:ring-[oklch(0.48_0.032_195.5)]"
                                         value={data.end_time}
                                         onChange={(e) => setData('end_time', e.target.value)}
                                     />
@@ -334,17 +340,17 @@ return;
                                     <Button
                                         onClick={handleUpdateShift}
                                         disabled={processing}
-                                        className="flex-1"
-                                        style={{ backgroundColor: PRIMARY, color: '#FAF8F5' }}
+                                        className="flex-1 bg-[oklch(0.48_0.032_195.5)] font-serif text-white hover:bg-[oklch(0.38_0.032_195.5)]"
                                     >
                                         Simpan
                                     </Button>
                                     <Button
                                         variant="outline"
                                         onClick={() => {
- setEditingShift(null); reset(); 
-}}
-                                        className="flex-1"
+                                            setEditingShift(null);
+                                            reset();
+                                        }}
+                                        className="flex-1 border-[oklch(0.80_0.038_88.5)]/40 text-slate-600 hover:bg-[oklch(0.80_0.038_88.5)]/10"
                                     >
                                         Batal
                                     </Button>
@@ -354,7 +360,7 @@ return;
                     </div>
                 )}
             </div>
-        </>
+        </div>
     );
 }
 

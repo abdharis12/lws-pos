@@ -13,6 +13,33 @@ use Inertia\Response;
 
 class AttendanceController extends Controller
 {
+    private function haversineDistance(float $lat1, float $lng1, float $lat2, float $lng2): float
+    {
+        $earthRadius = 6371000;
+        $dLat = deg2rad($lat2 - $lat1);
+        $dLng = deg2rad($lng2 - $lng1);
+        $a = sin($dLat / 2) ** 2 + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLng / 2) ** 2;
+        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+
+        return $earthRadius * $c;
+    }
+
+    private function validateGeofence(Request $request, Outlet $outlet): void
+    {
+        $lat = $request->input('latitude');
+        $lng = $request->input('longitude');
+
+        if (! $lat || ! $lng || ! $outlet->latitude || ! $outlet->longitude || ! $outlet->geofence_radius_meters) {
+            return;
+        }
+
+        $distance = $this->haversineDistance((float) $lat, (float) $lng, (float) $outlet->latitude, (float) $outlet->longitude);
+
+        if ($distance > $outlet->geofence_radius_meters) {
+            abort(403, 'Anda berada di luar radius geofence ('.number_format($distance, 0).'m dari outlet). Clock-in/out dibatalkan.');
+        }
+    }
+
     public function index(): Response
     {
         $outlet = Outlet::first();
@@ -62,6 +89,12 @@ class AttendanceController extends Controller
 
         if (! $employee->is_active) {
             return redirect()->back()->withErrors(['employee_id' => 'Karyawan tidak aktif.']);
+        }
+
+        $outlet = Outlet::first();
+
+        if ($outlet) {
+            $this->validateGeofence($request, $outlet);
         }
 
         $alreadyClockedIn = Attendance::where('employee_id', $employee->id)
@@ -116,6 +149,12 @@ class AttendanceController extends Controller
 
         if (! $attendance) {
             return redirect()->back()->withErrors(['employee_id' => 'Belum melakukan clock-in hari ini.']);
+        }
+
+        $outlet = Outlet::first();
+
+        if ($outlet) {
+            $this->validateGeofence($request, $outlet);
         }
 
         if ($request->hasFile('photo')) {

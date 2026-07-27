@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { Search, X } from 'lucide-react';
+import { Search, X, ScrollText } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -122,43 +122,59 @@ export default function ActivityLogs({ logs, actions, filters }: Props) {
     const selectedAction = filters.action ?? '';
 
     return (
-        <>
+        <div className="min-h-screen bg-[oklch(0.98_0.005_85.0)] p-6 font-sans text-slate-800">
             <Head title="Log Aktivitas" />
 
-            <div className="mb-6 flex items-center justify-between">
+            {/* Header Section */}
+            <div className="mb-8 flex flex-col justify-between gap-4 border-b border-[oklch(0.80_0.038_88.5)]/40 pb-6 sm:flex-row sm:items-end">
                 <div>
-                    <h1 className="text-2xl font-semibold">Log Aktivitas</h1>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                        Riwayat aksi kritikal dalam sistem
+                    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.80_0.038_88.5)]">
+                        <ScrollText className="size-3.5 text-[oklch(0.48_0.032_195.5)]" />
+                        <span>Riwayat Aktivitas</span>
+                    </div>
+                    <h1 className="mt-1 font-serif text-3xl font-bold tracking-tight text-[oklch(0.48_0.032_195.5)]">
+                        Log Aktivitas
+                    </h1>
+                    <p className="mt-1 text-sm italic text-slate-500">
+                        Pantau riwayat aksi kritikal yang terjadi dalam sistem.
                     </p>
                 </div>
             </div>
 
-            {/* Filter Bar */}
-            <Card className="mb-6">
-                <CardHeader className="pb-3">
+            {/* Filter Controls */}
+            <Card className="mb-8 border-[oklch(0.80_0.038_88.5)]/40 bg-white/80 shadow-sm backdrop-blur-sm">
+                <CardHeader className="border-b border-[oklch(0.80_0.038_88.5)]/20 pb-3">
                     <div className="flex items-center justify-between">
-                        <CardTitle className="text-sm font-medium">Filter</CardTitle>
+                        <CardTitle className="font-serif text-base font-medium text-[oklch(0.48_0.032_195.5)]">
+                            Filter Pencarian
+                        </CardTitle>
                         {hasFilters && (
-                            <Button variant="ghost" size="sm" onClick={resetFilters} className="h-8 text-xs">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={resetFilters}
+                                className="h-8 text-xs text-slate-500 hover:text-[oklch(0.48_0.032_195.5)]"
+                            >
                                 <X className="mr-1 size-3" />
                                 Reset
                             </Button>
                         )}
                     </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="pt-4">
                     <div className="flex flex-wrap items-end gap-4">
                         <div className="grid gap-1.5">
-                            <Label className="text-xs text-muted-foreground">Aksi</Label>
+                            <Label className="text-xs uppercase tracking-wider text-[oklch(0.48_0.032_195.5)] font-semibold">
+                                Aksi
+                            </Label>
                             <Select
                                 value={selectedAction}
                                 onValueChange={(v) => visit({ action: v, page: 1 })}
                             >
-                                <SelectTrigger className="w-48">
+                                <SelectTrigger className="w-48 border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 focus:ring-[oklch(0.48_0.032_195.5)]">
                                     <SelectValue placeholder="Semua aksi" />
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent className="border-[oklch(0.80_0.038_88.5)]/40 bg-[oklch(0.98_0.005_85.0)]">
                                     <SelectItem value="">Semua aksi</SelectItem>
                                     {actions.map((a) => (
                                         <SelectItem key={a} value={a}>
@@ -170,22 +186,26 @@ export default function ActivityLogs({ logs, actions, filters }: Props) {
                         </div>
 
                         <div className="grid gap-1.5">
-                            <Label className="text-xs text-muted-foreground">Dari Tanggal</Label>
+                            <Label className="text-xs uppercase tracking-wider text-[oklch(0.48_0.032_195.5)] font-semibold">
+                                Dari Tanggal
+                            </Label>
                             <Input
                                 type="date"
                                 value={localStartDate}
                                 onChange={(e) => setLocalStartDate(e.target.value)}
-                                className="w-40"
+                                className="w-40 border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 focus-visible:border-[oklch(0.48_0.032_195.5)] focus-visible:ring-[oklch(0.48_0.032_195.5)]"
                             />
                         </div>
 
                         <div className="grid gap-1.5">
-                            <Label className="text-xs text-muted-foreground">Sampai Tanggal</Label>
+                            <Label className="text-xs uppercase tracking-wider text-[oklch(0.48_0.032_195.5)] font-semibold">
+                                Sampai Tanggal
+                            </Label>
                             <Input
                                 type="date"
                                 value={localEndDate}
                                 onChange={(e) => setLocalEndDate(e.target.value)}
-                                className="w-40"
+                                className="w-40 border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 focus-visible:border-[oklch(0.48_0.032_195.5)] focus-visible:ring-[oklch(0.48_0.032_195.5)]"
                             />
                         </div>
                     </div>
@@ -193,11 +213,11 @@ export default function ActivityLogs({ logs, actions, filters }: Props) {
             </Card>
 
             {/* Table */}
-            <Card>
-                <CardHeader className="pb-3">
-                    <CardTitle className="text-base">
+            <Card className="border-[oklch(0.80_0.038_88.5)]/40 bg-white/80 shadow-sm backdrop-blur-sm">
+                <CardHeader className="border-b border-[oklch(0.80_0.038_88.5)]/20 pb-3">
+                    <CardTitle className="font-serif text-base font-medium text-[oklch(0.48_0.032_195.5)]">
                         Riwayat Aktivitas
-                        <span className="ml-2 text-sm font-normal text-muted-foreground">
+                        <span className="ml-2 text-sm font-normal text-slate-500">
                             ({logs.total} entri)
                         </span>
                     </CardTitle>
@@ -206,20 +226,20 @@ export default function ActivityLogs({ logs, actions, filters }: Props) {
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                             <thead>
-                                <tr className="border-b bg-muted/30 text-left text-xs uppercase tracking-wider text-muted-foreground">
-                                    <th className="px-4 py-3 font-medium">Waktu</th>
-                                    <th className="px-4 py-3 font-medium">User</th>
-                                    <th className="px-4 py-3 font-medium">Aksi</th>
-                                    <th className="px-4 py-3 font-medium">Deskripsi</th>
+                                <tr className="border-b border-[oklch(0.80_0.038_88.5)]/20 bg-[oklch(0.48_0.032_195.5)]/5 text-left text-xs uppercase tracking-wider text-[oklch(0.48_0.032_195.5)]">
+                                    <th className="px-6 py-3.5 font-semibold">Waktu</th>
+                                    <th className="px-6 py-3.5 font-semibold">User</th>
+                                    <th className="px-6 py-3.5 font-semibold">Aksi</th>
+                                    <th className="px-6 py-3.5 font-semibold">Deskripsi</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody className="divide-y divide-[oklch(0.80_0.038_88.5)]/15">
                                 {logs.data.map((log) => (
                                     <tr
                                         key={log.id}
-                                        className="border-b last:border-0 hover:bg-muted/50 transition-colors"
+                                        className="transition-colors hover:bg-[oklch(0.80_0.038_88.5)]/5"
                                     >
-                                        <td className="whitespace-nowrap px-4 py-3 text-xs text-muted-foreground">
+                                        <td className="whitespace-nowrap px-6 py-4 text-xs text-slate-500">
                                             {new Date(log.created_at).toLocaleString('id-ID', {
                                                 year: 'numeric',
                                                 month: '2-digit',
@@ -228,20 +248,20 @@ export default function ActivityLogs({ logs, actions, filters }: Props) {
                                                 minute: '2-digit',
                                             })}
                                         </td>
-                                        <td className="px-4 py-3 text-sm">
+                                        <td className="px-6 py-4 text-sm font-medium text-slate-800">
                                             {log.user?.name ?? (
-                                                <span className="italic text-muted-foreground">Sistem</span>
+                                                <span className="italic text-slate-400">Sistem</span>
                                             )}
                                         </td>
-                                        <td className="px-4 py-3">
+                                        <td className="px-6 py-4">
                                             <Badge
                                                 variant="secondary"
-                                                className="whitespace-nowrap rounded-md px-2 py-0.5 text-xs font-medium"
+                                                className="whitespace-nowrap rounded-full border border-[oklch(0.80_0.038_88.5)]/30 bg-[oklch(0.48_0.032_195.5)]/10 px-2.5 py-0.5 text-xs font-medium text-[oklch(0.48_0.032_195.5)]"
                                             >
                                                 {actionLabels[log.action] ?? log.action}
                                             </Badge>
                                         </td>
-                                        <td className="max-w-xs truncate px-4 py-3 text-sm text-muted-foreground">
+                                        <td className="max-w-xs truncate px-6 py-4 text-sm text-slate-500">
                                             {log.description ?? '-'}
                                         </td>
                                     </tr>
@@ -250,7 +270,7 @@ export default function ActivityLogs({ logs, actions, filters }: Props) {
                                     <tr>
                                         <td
                                             colSpan={4}
-                                            className="px-4 py-12 text-center text-sm text-muted-foreground"
+                                            className="px-6 py-12 text-center text-sm text-slate-500"
                                         >
                                             {hasFilters
                                                 ? 'Tidak ada aktivitas yang cocok dengan filter.'
@@ -265,7 +285,7 @@ export default function ActivityLogs({ logs, actions, filters }: Props) {
                     <Pagination meta={logs} onPerPageChange={handlePerPageChange} />
                 </CardContent>
             </Card>
-        </>
+        </div>
     );
 }
 

@@ -1,14 +1,11 @@
 import { Head } from '@inertiajs/react';
 import { useForm } from '@inertiajs/react';
-import { Camera, Clock, MapPin, CheckCircle2, XCircle } from 'lucide-react';
-import { useState } from 'react';
+import { Camera, Clock, MapPin, CheckCircle2, XCircle, UserCheck, Navigation } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-
-const PRIMARY = '#4F6B6A';
-const DARK = '#233433';
 
 interface UserData {
     id: number;
@@ -64,6 +61,12 @@ export default function AttendanceIndex({
     const [selectedEmployee, setSelectedEmployee] = useState<number | null>(null);
     const [photoFile, setPhotoFile] = useState<File | null>(null);
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+    const [userPosition, setUserPosition] = useState<{ lat: number; lng: number } | null>(null);
+    const [distanceToOutlet, setDistanceToOutlet] = useState<number | null>(null);
+    const [geoError, setGeoError] = useState<string | null>(null);
+    const mapRef = useRef<HTMLDivElement>(null);
+    const mapInstanceRef = useRef<unknown>(null);
+    const markerRef = useRef<unknown>(null);
 
     const { data: inData, setData: setInData, post: postIn, processing: inProcessing, errors: inErrors, reset: resetIn } = useForm({
         employee_id: '',
@@ -78,6 +81,84 @@ export default function AttendanceIndex({
         latitude: '',
         longitude: '',
     });
+
+    function haversineDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
+        const R = 6371000;
+        const dLat = ((lat2 - lat1) * Math.PI) / 180;
+        const dLng = ((lng2 - lng1) * Math.PI) / 180;
+        const a =
+            Math.sin(dLat / 2) ** 2 +
+            Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    useEffect(() => {
+        if (!mapRef.current || mapInstanceRef.current || !outlet.latitude || !outlet.longitude) return;
+
+        async function initMap() {
+            const L = (await import('leaflet')).default;
+            const lat = outlet.latitude!;
+            const lng = outlet.longitude!;
+            const radius = outlet.geofence_radius_meters ?? 20;
+
+            const map = L.map(mapRef.current!, { center: [lat, lng], zoom: 18, zoomControl: false });
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap',
+                maxZoom: 19,
+            }).addTo(map);
+
+            L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+            L.circle([lat, lng], {
+                radius,
+                color: '#4F6B6A',
+                fillColor: '#4F6B6A',
+                fillOpacity: 0.08,
+                weight: 2,
+            }).addTo(map);
+
+            L.marker([lat, lng])
+                .addTo(map)
+                .bindPopup(`<b>${outlet.name}</b><br>Radius: ${radius}m`)
+                .openPopup();
+
+            mapInstanceRef.current = map;
+        }
+
+        initMap();
+
+        return () => {
+            if (mapInstanceRef.current) {
+                (mapInstanceRef.current as { remove: () => void }).remove();
+                mapInstanceRef.current = null;
+            }
+        };
+    }, [outlet]);
+
+    useEffect(() => {
+        if (!navigator.geolocation) {
+            setGeoError('Geolocation tidak didukung browser');
+
+            return;
+        }
+
+        const watchId = navigator.geolocation.watchPosition(
+            (pos) => {
+                const { latitude: lat, longitude: lng } = pos.coords;
+                setUserPosition({ lat, lng });
+                setGeoError(null);
+
+                if (outlet.latitude && outlet.longitude) {
+                    setDistanceToOutlet(haversineDistance(lat, lng, outlet.latitude, outlet.longitude));
+                }
+            },
+            () => setGeoError('Gagal mendapatkan lokasi GPS'),
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+        );
+
+        return () => navigator.geolocation.clearWatch(watchId);
+    }, [outlet.latitude, outlet.longitude, outlet.geofence_radius_meters]);
 
     function getLocation() {
         return new Promise<{ lat: string; lng: string } | null>((resolve) => {
@@ -97,8 +178,8 @@ export default function AttendanceIndex({
 
     async function handleClockIn() {
         if (!selectedEmployee) {
-return;
-}
+            return;
+        }
 
         const loc = await getLocation();
         setInData({
@@ -161,82 +242,135 @@ return;
     });
 
     return (
-        <>
+        <div className="min-h-screen bg-[oklch(0.98_0.005_85.0)] p-6 font-sans text-slate-800">
             <Head title="Absensi" />
 
-            <div className="flex flex-col gap-6">
+            {/* Header Section */}
+            <div className="mb-8 flex flex-col justify-between gap-4 border-b border-[oklch(0.80_0.038_88.5)]/40 pb-6 sm:flex-row sm:items-end">
                 <div>
-                    <h1 className="font-display text-2xl font-semibold md:text-3xl" style={{ color: DARK }}>
+                    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.80_0.038_88.5)]">
+                        <UserCheck className="size-3.5 text-[oklch(0.48_0.032_195.5)]" />
+                        <span>Sistem Kehadiran</span>
+                    </div>
+                    <h1 className="mt-1 font-serif text-3xl font-bold tracking-tight text-[oklch(0.48_0.032_195.5)]">
                         Absensi Karyawan
                     </h1>
-                    <p className="mt-1 text-sm" style={{ color: '#5c6a66' }}>
-                        {dateStr} — {timeStr}
+                    <p className="mt-1 text-sm italic text-slate-500">
+                        {dateStr} &mdash; {timeStr}
                     </p>
                 </div>
+            </div>
 
+            <div className="flex flex-col gap-6">
+                {/* Stats Cards */}
                 <div className="grid gap-4 md:grid-cols-3">
-                    <Card>
+                    <Card className="border-[oklch(0.80_0.038_88.5)]/40 bg-white/80 shadow-sm backdrop-blur-sm">
                         <CardHeader className="pb-2">
-                            <CardTitle className="text-sm font-medium" style={{ color: '#5c6a66' }}>
+                            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-[oklch(0.48_0.032_195.5)]">
                                 Hadir
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <p className="font-display text-2xl font-bold" style={{ color: DARK }}>
+                            <p className="font-serif text-3xl font-bold text-[oklch(0.48_0.032_195.5)]">
                                 {stats.hadir}
                             </p>
-                            <p className="text-xs" style={{ color: '#8a968f' }}>
+                            <p className="mt-1 text-xs italic text-slate-500">
                                 Dari {stats.total_karyawan} karyawan
                             </p>
                         </CardContent>
                     </Card>
-                    <Card>
+                    <Card className="border-[oklch(0.80_0.038_88.5)]/40 bg-white/80 shadow-sm backdrop-blur-sm">
                         <CardHeader className="pb-2">
-                            <CardTitle className="text-sm font-medium" style={{ color: '#5c6a66' }}>
+                            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-[oklch(0.48_0.032_195.5)]">
                                 Belum Absen
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <p className="font-display text-2xl font-bold" style={{ color: DARK }}>
+                            <p className="font-serif text-3xl font-bold text-[oklch(0.48_0.032_195.5)]">
                                 {stats.belum_absen}
                             </p>
-                            <p className="text-xs" style={{ color: '#8a968f' }}>
+                            <p className="mt-1 text-xs italic text-slate-500">
                                 Karyawan tanpa clock-in
                             </p>
                         </CardContent>
                     </Card>
-                    <Card>
+                    <Card className="border-[oklch(0.80_0.038_88.5)]/40 bg-white/80 shadow-sm backdrop-blur-sm">
                         <CardHeader className="pb-2">
-                            <CardTitle className="text-sm font-medium" style={{ color: '#5c6a66' }}>
+                            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-[oklch(0.48_0.032_195.5)]">
                                 Total Karyawan
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <p className="font-display text-2xl font-bold" style={{ color: DARK }}>
+                            <p className="font-serif text-3xl font-bold text-[oklch(0.48_0.032_195.5)]">
                                 {stats.total_karyawan}
                             </p>
-                            <p className="text-xs" style={{ color: '#8a968f' }}>
+                            <p className="mt-1 text-xs italic text-slate-500">
                                 Karyawan aktif
                             </p>
                         </CardContent>
                     </Card>
                 </div>
 
+                {/* Geofence Map */}
+                {outlet.latitude && outlet.longitude && (
+                    <Card className="border-[oklch(0.80_0.038_88.5)]/40 bg-white/80 shadow-sm backdrop-blur-sm">
+                        <CardHeader className="border-b border-[oklch(0.80_0.038_88.5)]/20">
+                            <div className="flex items-center justify-between">
+                                <CardTitle className="font-serif text-lg font-medium text-[oklch(0.48_0.032_195.5)]">
+                                    Peta Geofence
+                                </CardTitle>
+                                <div className="flex items-center gap-4 text-xs">
+                                    {distanceToOutlet !== null && (
+                                        <span
+                                            className={`flex items-center gap-1.5 font-medium ${
+                                                distanceToOutlet <= (outlet.geofence_radius_meters ?? 20)
+                                                    ? 'text-emerald-600'
+                                                    : 'text-red-500'
+                                            }`}
+                                        >
+                                            {distanceToOutlet <= (outlet.geofence_radius_meters ?? 20) ? (
+                                                <CheckCircle2 className="size-3.5" />
+                                            ) : (
+                                                <XCircle className="size-3.5" />
+                                            )}
+                                            {distanceToOutlet < 1000
+                                                ? `${Math.round(distanceToOutlet)}m dari outlet`
+                                                : `${(distanceToOutlet / 1000).toFixed(1)}km dari outlet`}
+                                        </span>
+                                    )}
+                                    {geoError && (
+                                        <span className="flex items-center gap-1.5 text-amber-500">
+                                            <Navigation className="size-3.5" />
+                                            {geoError}
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="pt-5">
+                            <div
+                                ref={mapRef}
+                                className="h-[220px] w-full overflow-hidden rounded-lg border border-[oklch(0.80_0.038_88.5)]/30"
+                            />
+                        </CardContent>
+                    </Card>
+                )}
+
                 <div className="grid gap-6 lg:grid-cols-2">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="font-display text-lg" style={{ color: DARK }}>
+                    {/* Clock-In Card */}
+                    <Card className="border-[oklch(0.80_0.038_88.5)]/40 bg-white/80 shadow-sm backdrop-blur-sm">
+                        <CardHeader className="border-b border-[oklch(0.80_0.038_88.5)]/20">
+                            <CardTitle className="font-serif text-lg font-medium text-[oklch(0.48_0.032_195.5)]">
                                 Clock-In
                             </CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-4">
+                        <CardContent className="space-y-4 pt-5">
                             <div className="grid gap-2">
-                                <label className="text-sm font-medium" style={{ color: '#5c6a66' }}>
+                                <label className="text-xs font-semibold uppercase tracking-wider text-[oklch(0.48_0.032_195.5)]">
                                     Pilih Karyawan
                                 </label>
                                 <select
-                                    className="flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs"
-                                    style={{ borderColor: 'rgba(37,51,47,0.2)' }}
+                                    className="flex h-9 w-full rounded-md border border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 px-3 py-1 text-sm shadow-xs focus:border-[oklch(0.48_0.032_195.5)] focus:ring-[oklch(0.48_0.032_195.5)]"
                                     value={selectedEmployee ?? ''}
                                     onChange={(e) => {
                                         const id = e.target.value ? Number(e.target.value) : null;
@@ -260,13 +394,13 @@ return;
                             </div>
 
                             <div className="grid gap-2">
-                                <label className="text-sm font-medium" style={{ color: '#5c6a66' }}>
+                                <label className="text-xs font-semibold uppercase tracking-wider text-[oklch(0.48_0.032_195.5)]">
                                     Foto Selfie
                                 </label>
                                 <div className="flex items-center gap-4">
-                                    <label className="flex cursor-pointer items-center gap-2 rounded-md border px-4 py-2 text-sm transition-colors hover:bg-[#F6F2E9]" style={{ borderColor: 'rgba(37,51,47,0.2)' }}>
-                                        <Camera className="size-4" style={{ color: PRIMARY }} />
-                                        <span style={{ color: '#5c6a66' }}>Ambil Foto</span>
+                                    <label className="flex cursor-pointer items-center gap-2 rounded-md border border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 px-4 py-2 text-sm transition-colors hover:bg-[oklch(0.80_0.038_88.5)]/10">
+                                        <Camera className="size-4 text-[oklch(0.48_0.032_195.5)]" />
+                                        <span className="text-slate-600">Ambil Foto</span>
                                         <input
                                             type="file"
                                             accept="image/*"
@@ -276,13 +410,13 @@ return;
                                         />
                                     </label>
                                     {photoPreview && (
-                                        <img src={photoPreview} alt="Preview" className="h-14 w-14 rounded-full object-cover" />
+                                        <img src={photoPreview} alt="Preview" className="h-14 w-14 rounded-full object-cover border border-[oklch(0.80_0.038_88.5)]/30" />
                                     )}
                                 </div>
                             </div>
 
                             {outlet.latitude && outlet.longitude && (
-                                <div className="flex items-center gap-2 text-xs" style={{ color: '#8a968f' }}>
+                                <div className="flex items-center gap-2 text-xs text-slate-500">
                                     <MapPin className="size-3" />
                                     Geofencing aktif ({outlet.geofence_radius_meters ?? 100}m radius)
                                 </div>
@@ -293,8 +427,7 @@ return;
                             <Button
                                 onClick={handleClockIn}
                                 disabled={!selectedEmployee || inProcessing}
-                                className="w-full gap-2 font-semibold"
-                                style={{ backgroundColor: PRIMARY, color: '#FAF8F5' }}
+                                className="w-full gap-2 bg-[oklch(0.48_0.032_195.5)] font-serif tracking-wider text-white hover:bg-[oklch(0.38_0.032_195.5)]"
                             >
                                 <Clock className="size-4" />
                                 {inProcessing ? 'Memproses...' : 'Clock-In'}
@@ -302,15 +435,16 @@ return;
                         </CardContent>
                     </Card>
 
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="font-display text-lg" style={{ color: DARK }}>
+                    {/* Today's Attendance */}
+                    <Card className="border-[oklch(0.80_0.038_88.5)]/40 bg-white/80 shadow-sm backdrop-blur-sm">
+                        <CardHeader className="border-b border-[oklch(0.80_0.038_88.5)]/20">
+                            <CardTitle className="font-serif text-lg font-medium text-[oklch(0.48_0.032_195.5)]">
                                 Absensi Hari Ini
                             </CardTitle>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="pt-5">
                             {attendances.length === 0 ? (
-                                <p className="py-4 text-center text-sm" style={{ color: '#8a968f' }}>
+                                <p className="py-4 text-center text-sm italic text-slate-500">
                                     Belum ada absensi hari ini.
                                 </p>
                             ) : (
@@ -318,21 +452,17 @@ return;
                                     {attendances.map((att) => (
                                         <div
                                             key={att.id}
-                                            className="flex items-center justify-between rounded-lg border p-3"
-                                            style={{ borderColor: 'rgba(37,51,47,0.08)' }}
+                                            className="flex items-center justify-between rounded-lg border border-[oklch(0.80_0.038_88.5)]/20 p-3 transition-colors hover:bg-[oklch(0.80_0.038_88.5)]/5"
                                         >
                                             <div className="flex items-center gap-3">
-                                                <div
-                                                    className="flex size-9 items-center justify-center rounded-full text-sm font-semibold"
-                                                    style={{ backgroundColor: 'rgba(79,107,106,0.12)', color: PRIMARY }}
-                                                >
+                                                <div className="flex size-9 items-center justify-center rounded-full bg-[oklch(0.48_0.032_195.5)]/10 font-serif text-sm font-semibold text-[oklch(0.48_0.032_195.5)]">
                                                     {att.employee.user.name.charAt(0)}
                                                 </div>
                                                 <div>
-                                                    <p className="text-sm font-medium" style={{ color: DARK }}>
+                                                    <p className="text-sm font-medium text-slate-800">
                                                         {att.employee.user.name}
                                                     </p>
-                                                    <div className="flex items-center gap-2 text-xs" style={{ color: '#8a968f' }}>
+                                                    <div className="flex items-center gap-2 text-xs text-slate-500">
                                                         <Clock className="size-3" />
                                                         {att.clock_in_at ? new Date(att.clock_in_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'}
                                                         {att.clock_out_at && (
@@ -343,11 +473,11 @@ return;
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <Badge
-                                                    className="border-none font-semibold"
-                                                    style={{
-                                                        backgroundColor: att.status === 'late' ? 'rgba(207,192,164,0.2)' : 'rgba(79,107,106,0.12)',
-                                                        color: att.status === 'late' ? '#CFC0A4' : PRIMARY,
-                                                    }}
+                                                    className={`border-none font-semibold rounded-full ${
+                                                        att.status === 'late'
+                                                            ? 'bg-[oklch(0.80_0.038_88.5)]/20 text-[oklch(0.80_0.038_88.5)]'
+                                                            : 'bg-[oklch(0.48_0.032_195.5)]/10 text-[oklch(0.48_0.032_195.5)]'
+                                                    }`}
                                                 >
                                                     {att.status === 'late' ? 'Terlambat' : 'Hadir'}
                                                 </Badge>
@@ -355,10 +485,9 @@ return;
                                                     <Button
                                                         size="sm"
                                                         variant="outline"
-                                                        className="gap-1 text-xs"
+                                                        className="gap-1 text-xs border-[oklch(0.80_0.038_88.5)]/40 text-[oklch(0.80_0.038_88.5)] hover:bg-[oklch(0.80_0.038_88.5)]/10"
                                                         onClick={() => handleClockOut(att.employee_id)}
                                                         disabled={outProcessing}
-                                                        style={{ borderColor: 'rgba(207,192,164,0.4)', color: '#CFC0A4' }}
                                                     >
                                                         Clock-Out
                                                     </Button>
@@ -372,7 +501,7 @@ return;
                     </Card>
                 </div>
             </div>
-        </>
+        </div>
     );
 }
 

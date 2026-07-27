@@ -11,6 +11,7 @@ use App\Http\Controllers\MenuController;
 use App\Http\Controllers\MidtransWebhookController;
 use App\Http\Controllers\OptionGroupController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\OutletController;
 use App\Http\Controllers\OwnerDashboardController;
 use App\Http\Controllers\PayrollController;
 use App\Http\Controllers\PayrollSettingController;
@@ -110,6 +111,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('payroll/thr/{thrSetting}', [PayrollSettingController::class, 'destroyThr'])->name('admin.payroll.thr.destroy');
 
         Route::get('activity-logs', [ActivityLogController::class, 'index'])->name('admin.activity-logs.index');
+
+        Route::get('outlet-settings', [OutletController::class, 'edit'])->name('admin.outlet.edit');
+        Route::put('outlet-settings', [OutletController::class, 'update'])->name('admin.outlet.update');
     });
 
     Route::get('owner/dashboard', [OwnerDashboardController::class, 'index'])->name('owner.dashboard');

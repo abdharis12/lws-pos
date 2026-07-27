@@ -17,14 +17,19 @@ class TableController extends Controller
         return ['Lantai 1', 'Lantai 2', 'Lantai 3', 'Lantai 4', 'Teras'];
     }
 
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $outlet = Outlet::first();
-        $tables = Meja::where('outlet_id', $outlet?->id)->orderBy('code')->get();
+        $tables = Meja::where('outlet_id', $outlet?->id)
+            ->orderBy('code')
+            ->when($request->floor, fn ($q, $floor) => $q->where('floor', $floor))
+            ->paginate(10)
+            ->withQueryString();
 
         return Inertia::render('admin/tables/Index', [
             'tables' => $tables,
             'floors' => self::availableFloors(),
+            'filters' => $request->only(['floor']),
         ]);
     }
 

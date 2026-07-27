@@ -15,13 +15,17 @@ use Inertia\Response;
 
 class MenuController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $outlet = Outlet::first();
+
         $menus = Menu::with(['category', 'optionGroups.optionItems'])
             ->whereHas('category', fn ($q) => $q->where('outlet_id', $outlet?->id))
             ->orderBy('name')
-            ->get();
+            ->when($request->search, fn ($q, $search) => $q->where('name', 'like', "%{$search}%"))
+            ->when($request->category_id, fn ($q, $categoryId) => $q->where('category_id', $categoryId))
+            ->paginate(10)
+            ->withQueryString();
 
         $categories = MenuCategory::where('outlet_id', $outlet?->id)
             ->orderBy('sort_order')
@@ -30,6 +34,7 @@ class MenuController extends Controller
         return Inertia::render('admin/menus/Index', [
             'menus' => $menus,
             'categories' => $categories,
+            'filters' => $request->only(['search', 'category_id']),
         ]);
     }
 

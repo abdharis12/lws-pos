@@ -21,12 +21,12 @@ export default function KitchenHeader({ orderCount, soundEnabled, onSoundToggle 
             style={{
                 backgroundColor: 'rgba(15,23,42,0.92)',
                 backdropFilter: 'blur(16px)',
-                borderBottom: '1px solid rgba(255,255,255,0.05)',
+                borderBottom: '1px solid rgb(177, 163, 125)',
             }}
         >
             <div className="flex items-center gap-3">
                 <div className="flex size-10 items-center justify-center rounded-xl"
-                    style={{ backgroundColor: 'rgba(79,107,106,0.2)' }}
+                    style={{ backgroundColor: '#4F6B6A' }}
                 >
                     <ChefHat className="size-5" style={{ color: '#CFC0A4' }} />
                 </div>

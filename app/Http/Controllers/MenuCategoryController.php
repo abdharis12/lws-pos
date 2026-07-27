@@ -11,15 +11,24 @@ use Inertia\Response;
 
 class MenuCategoryController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $outlet = Outlet::first();
-        $categories = MenuCategory::where('outlet_id', $outlet?->id)
-            ->orderBy('sort_order')
-            ->get();
+
+        $query = MenuCategory::where('outlet_id', $outlet?->id);
+
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where('name', 'like', "%{$search}%");
+        }
+
+        $categories = $query->orderBy('sort_order')
+            ->paginate(10)
+            ->withQueryString();
 
         return Inertia::render('admin/menu-categories/Index', [
             'categories' => $categories,
+            'filters' => $request->only(['search']),
         ]);
     }
 
