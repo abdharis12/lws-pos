@@ -1,8 +1,16 @@
 import { Head, router } from '@inertiajs/react';
-import { Users, AlertTriangle, CheckCircle, XCircle, Clock, ArrowLeft, Calendar } from 'lucide-react';
+import { Users, AlertTriangle, CheckCircle, XCircle, Clock, ArrowLeft, Calendar, ChevronDown, ChevronRight } from 'lucide-react';
+import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
+interface AttendanceDetail {
+    date: string;
+    clock_in: string;
+    clock_out: string | null;
+    status: string;
+}
 
 interface EmployeeSummary {
     employee_id: number;
@@ -14,6 +22,7 @@ interface EmployeeSummary {
     alfa: number;
     total_jam: number;
     persentase: number;
+    attendances: AttendanceDetail[];
 }
 
 interface GrandTotal {
@@ -42,8 +51,26 @@ function generateMonths() {
     return months;
 }
 
+function formatDate(date: string) {
+    const d = new Date(date + 'T00:00:00');
+    return d.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
 export default function AttendanceReport({ summary, month, monthLabel, grandTotal }: Props) {
+    const [expanded, setExpanded] = useState<Set<number>>(new Set());
     const months = generateMonths();
+
+    function toggleExpand(employeeId: number) {
+        setExpanded((prev) => {
+            const next = new Set(prev);
+            if (next.has(employeeId)) {
+                next.delete(employeeId);
+            } else {
+                next.add(employeeId);
+            }
+            return next;
+        });
+    }
 
     function handleMonthChange(e: React.ChangeEvent<HTMLSelectElement>) {
         router.get('/admin/reports/attendance', { month: e.target.value }, { preserveState: true });
@@ -166,6 +193,7 @@ export default function AttendanceReport({ summary, month, monthLabel, grandTota
                             <table className="w-full text-sm">
                                 <thead>
                                     <tr className="border-b border-[oklch(0.80_0.038_88.5)]/20 bg-[oklch(0.48_0.032_195.5)]/5 text-left text-xs uppercase tracking-wider text-[oklch(0.48_0.032_195.5)]">
+                                        <th className="w-10 px-2 py-3.5"></th>
                                         <th className="px-6 py-3.5 font-semibold">Karyawan</th>
                                         <th className="px-6 py-3.5 font-semibold">Posisi</th>
                                         <th className="px-6 py-3.5 font-semibold text-center">Shift</th>
@@ -178,10 +206,23 @@ export default function AttendanceReport({ summary, month, monthLabel, grandTota
                                 </thead>
                                 <tbody className="divide-y divide-[oklch(0.80_0.038_88.5)]/15">
                                     {summary.map((emp) => (
-                                        <tr
-                                            key={emp.employee_id}
-                                            className="transition-colors hover:bg-[oklch(0.80_0.038_88.5)]/5"
-                                        >
+                                        <tr key={emp.employee_id} className="transition-colors hover:bg-[oklch(0.80_0.038_88.5)]/5">
+                                            <td className="px-2 py-4 text-center">
+                                                {emp.attendances.length > 0 && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => toggleExpand(emp.employee_id)}
+                                                        className="size-7 text-slate-400 hover:text-[oklch(0.48_0.032_195.5)]"
+                                                    >
+                                                        {expanded.has(emp.employee_id) ? (
+                                                            <ChevronDown className="size-4" />
+                                                        ) : (
+                                                            <ChevronRight className="size-4" />
+                                                        )}
+                                                    </Button>
+                                                )}
+                                            </td>
                                             <td className="px-6 py-4 font-medium text-slate-800">{emp.name}</td>
                                             <td className="px-6 py-4 text-slate-500">{emp.position}</td>
                                             <td className="px-6 py-4 text-center font-medium text-slate-700">{emp.total_shift_days}</td>
@@ -233,10 +274,82 @@ export default function AttendanceReport({ summary, month, monthLabel, grandTota
                                             <td className="px-6 py-4 text-right font-medium text-slate-700">{emp.total_jam} jam</td>
                                         </tr>
                                     ))}
+                                    {expanded.size > 0 && summary.map((emp) =>
+                                        expanded.has(emp.employee_id) && emp.attendances.length > 0 ? (
+                                            <tr key={`detail-${emp.employee_id}`}>
+                                                <td colSpan={9} className="bg-[oklch(0.48_0.032_195.5)]/[0.02] px-0">
+                                                    <div className="border-t border-[oklch(0.80_0.038_88.5)]/10">
+                                                        <table className="w-full text-xs">
+                                                            <thead>
+                                                                <tr className="text-left text-[10px] uppercase tracking-wider text-slate-400">
+                                                                    <th className="px-6 py-2 pl-16 font-medium">Tanggal</th>
+                                                                    <th className="px-4 py-2 font-medium">Clock In</th>
+                                                                    <th className="px-4 py-2 font-medium">Clock Out</th>
+                                                                    <th className="px-4 py-2 font-medium">Status</th>
+                                                                    <th className="px-4 py-2 font-medium text-right">Durasi</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody className="divide-y divide-[oklch(0.80_0.038_88.5)]/5">
+                                                                {emp.attendances.map((att, i) => {
+                                                                    const durasi =
+                                                                        att.clock_in && att.clock_out
+                                                                            ? (() => {
+                                                                                const [cih, cim] = att.clock_in.split(':').map(Number);
+                                                                                const [coh, com] = att.clock_out.split(':').map(Number);
+                                                                                const diff = coh * 60 + com - (cih * 60 + cim);
+                                                                                const h = Math.floor(diff / 60);
+                                                                                const m = diff % 60;
+                                                                                return `${h}j ${m}m`;
+                                                                            })()
+                                                                            : '—';
+                                                                    return (
+                                                                        <tr key={i} className="hover:bg-[oklch(0.80_0.038_88.5)]/5">
+                                                                            <td className="px-6 py-2.5 pl-16 font-medium text-slate-700">{formatDate(att.date)}</td>
+                                                                            <td className="px-4 py-2.5">
+                                                                                <span className="inline-flex items-center gap-1.5 font-mono text-sm font-medium text-emerald-700">
+                                                                                    <Clock className="size-3" />
+                                                                                    {att.clock_in}
+                                                                                </span>
+                                                                            </td>
+                                                                            <td className="px-4 py-2.5">
+                                                                                {att.clock_out ? (
+                                                                                    <span className="inline-flex items-center gap-1.5 font-mono text-sm font-medium text-slate-700">
+                                                                                        <Clock className="size-3" />
+                                                                                        {att.clock_out}
+                                                                                    </span>
+                                                                                ) : (
+                                                                                    <span className="italic text-slate-400">Belum clock out</span>
+                                                                                )}
+                                                                            </td>
+                                                                            <td className="px-4 py-2.5">
+                                                                                {att.status === 'late' ? (
+                                                                                    <Badge variant="secondary" className="gap-1 border-amber-200 bg-amber-100 text-amber-700 hover:bg-amber-100">
+                                                                                        <AlertTriangle className="size-2.5" />
+                                                                                        Terlambat
+                                                                                    </Badge>
+                                                                                ) : (
+                                                                                    <Badge variant="secondary" className="gap-1 border-emerald-200 bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
+                                                                                        <CheckCircle className="size-2.5" />
+                                                                                        Hadir
+                                                                                    </Badge>
+                                                                                )}
+                                                                            </td>
+                                                                            <td className="px-4 py-2.5 text-right font-mono text-sm text-slate-500">{durasi}</td>
+                                                                        </tr>
+                                                                    );
+                                                                })}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ) : null
+                                    )}
                                 </tbody>
                                 <tfoot className="border-t-2 border-[oklch(0.80_0.038_88.5)]/20 bg-[oklch(0.48_0.032_195.5)]/[0.02]">
                                     <tr className="text-xs font-semibold text-[oklch(0.48_0.032_195.5)]">
-                                        <td colSpan={2} className="px-6 py-3.5">Total</td>
+                                        <td></td>
+                                        <td colSpan={1} className="px-6 py-3.5">Total</td>
                                         <td className="px-6 py-3.5 text-center">{grandTotal.total_shift_days}</td>
                                         <td className="px-6 py-3.5 text-center text-emerald-600">{grandTotal.hadir}</td>
                                         <td className="px-6 py-3.5 text-center text-amber-600">{grandTotal.terlambat}</td>

@@ -31,23 +31,27 @@ export default function OutletSettings({ outlet }: Props) {
     });
 
     const [locating, setLocating] = useState(false);
+    const [geoErrorMessage, setGeoErrorMessage] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<{ lat: string; lon: string; display_name: string }[]>([]);
     const [searching, setSearching] = useState(false);
     const searchTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
     useEffect(() => {
-        if (!mapRef.current || mapInstanceRef.current) return;
+        let cancelled = false;
 
         async function initMap() {
             await import('leaflet/dist/leaflet.css');
             const L = (await import('leaflet')).default;
 
+            const container = mapRef.current;
+            if (cancelled || !container) return;
+
             const lat = data.latitude ?? -3.8467067;
             const lng = data.longitude ?? 103.9615719;
             const radius = data.geofence_radius_meters ?? 20;
 
-            const map = L.map(mapRef.current!, {
+            const map = L.map(container, {
                 center: [lat, lng],
                 zoom: 17,
                 zoomControl: true,
@@ -105,10 +109,13 @@ export default function OutletSettings({ outlet }: Props) {
         initMap();
 
         return () => {
+            cancelled = true;
             if (mapInstanceRef.current) {
                 (mapInstanceRef.current as { remove: () => void }).remove();
                 mapInstanceRef.current = null;
             }
+            markerRef.current = null;
+            circleRef.current = null;
         };
     }, []);
 
@@ -121,7 +128,18 @@ export default function OutletSettings({ outlet }: Props) {
     }, [data.geofence_radius_meters]);
 
     function handleUseMyLocation() {
-        if (!navigator.geolocation) return;
+        setGeoErrorMessage(null);
+
+        if (!navigator.geolocation) {
+            setGeoErrorMessage('Geolocation tidak didukung browser ini.');
+            return;
+        }
+
+        if (!window.isSecureContext) {
+            setGeoErrorMessage('Akses lokasi memerlukan koneksi HTTPS. Gunakan https://lws.test/');
+            return;
+        }
+
         setLocating(true);
 
         function updateLocation(pos: GeolocationPosition) {
@@ -130,6 +148,7 @@ export default function OutletSettings({ outlet }: Props) {
             const lng = Math.round(longitude * 1e7) / 1e7;
             setData('latitude', lat);
             setData('longitude', lng);
+            setGeoErrorMessage(null);
             if (mapInstanceRef.current && markerRef.current && circleRef.current) {
                 (markerRef.current as { setLatLng: (ll: [number, number]) => void }).setLatLng([lat, lng]);
                 (circleRef.current as { setLatLng: (ll: [number, number]) => void }).setLatLng([lat, lng]);
@@ -143,13 +162,24 @@ export default function OutletSettings({ outlet }: Props) {
 
         function onError(err: GeolocationPositionError) {
             if (err.code === err.PERMISSION_DENIED) {
+                setGeoErrorMessage('Izin lokasi ditolak. Izinkan akses lokasi di pengaturan browser.');
                 setLocating(false);
                 return;
             }
+
+            if (err.code === err.TIMEOUT) {
+                setGeoErrorMessage('Waktu permintaan lokasi habis. Coba lagi.');
+                setLocating(false);
+                return;
+            }
+
             // GPS gagal — fallback ke WiFi/cell
             navigator.geolocation.getCurrentPosition(
                 updateLocation,
-                () => setLocating(false),
+                () => {
+                    setGeoErrorMessage('Gagal mendapatkan lokasi. Coba gunakan pencarian alamat.');
+                    setLocating(false);
+                },
                 { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 },
             );
         }
@@ -314,6 +344,9 @@ export default function OutletSettings({ outlet }: Props) {
                                     {processing ? 'Menyimpan...' : 'Simpan'}
                                 </Button>
                             </div>
+                            {geoErrorMessage && (
+                                <p className="mt-2 text-xs text-red-500">{geoErrorMessage}</p>
+                            )}
                         </form>
                     </CardContent>
                 </Card>

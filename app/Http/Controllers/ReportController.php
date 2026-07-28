@@ -235,6 +235,12 @@ class ReportController extends Controller
                 'alfa' => $alfa,
                 'total_jam' => round($totalMinutes / 60, 1),
                 'persentase' => $persentase,
+                'attendances' => $empAttendances->map(fn ($a) => [
+                    'date' => $a->clock_in_at->format('Y-m-d'),
+                    'clock_in' => $a->clock_in_at->format('H:i'),
+                    'clock_out' => $a->clock_out_at?->format('H:i'),
+                    'status' => $a->status,
+                ])->values(),
             ];
         })->values();
 

@@ -50,12 +50,12 @@ export default function CartPanel({
     const tax = useMemo(() => Math.round(subtotal * 0.10), [subtotal]);
     const discountAmount = useMemo(() => {
         if (!discountType || !discountValue) {
-return 0;
-}
+            return 0;
+        }
 
         if (discountType === 'percentage') {
-return Math.min(subtotal * (discountValue / 100), subtotal);
-}
+            return Math.min(subtotal * (discountValue / 100), subtotal);
+        }
 
         return Math.min(discountValue, subtotal);
     }, [subtotal, discountType, discountValue]);
@@ -230,7 +230,7 @@ return Math.min(subtotal * (discountValue / 100), subtotal);
                 <div className="flex flex-col gap-2">
                     {isConfirmMode ? (
                         <>
-                            <Button onClick={onSaveEdits} disabled={items.length === 0 || saveProcessing} variant="outline" className="w-full" size="lg" style={{ borderColor: BORDER, color: INK }}>
+                            <Button onClick={onSaveEdits} disabled={items.length === 0 || saveProcessing} variant="outline" className="w-full" size="lg" style={{ borderColor: BORDER }}>
                                 {saveProcessing ? 'Menyimpan...' : 'Simpan Perubahan'}
                             </Button>
                             <Button onClick={onConfirmPay} disabled={items.length === 0 || confirmPayProcessing} className="w-full" size="lg" style={{ backgroundColor: PRIMARY }}>

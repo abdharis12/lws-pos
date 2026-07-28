@@ -94,19 +94,22 @@ export default function AttendanceIndex({
     }
 
     useEffect(() => {
-        const container = mapRef.current;
-        if (!container || mapInstanceRef.current || !outlet.latitude || !outlet.longitude) return;
+        if (!outlet.latitude || !outlet.longitude) return;
 
         let destroyed = false;
 
         async function initMap() {
             await import('leaflet/dist/leaflet.css');
             const L = (await import('leaflet')).default;
+
+            const container = mapRef.current;
+            if (destroyed || !container) return;
+
             const lat = outlet.latitude!;
             const lng = outlet.longitude!;
             const radius = outlet.geofence_radius_meters ?? 20;
 
-            const mapInstance = L.map(container!, { center: [lat, lng], zoom: 16, zoomControl: false });
+            const mapInstance = L.map(container, { center: [lat, lng], zoom: 16, zoomControl: false });
 
             const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; OpenStreetMap',
@@ -141,8 +144,6 @@ export default function AttendanceIndex({
             if (!destroyed) {
                 mapInstanceRef.current = mapInstance;
             }
-
-            return L;
         }
 
         initMap();
@@ -520,7 +521,7 @@ export default function AttendanceIndex({
                     </div>
 
                     {/* Right Column: Map */}
-                    {outlet.latitude && outlet.longitude && (
+                    {outlet.latitude && outlet.longitude ? (
                         <Card className="h-fit overflow-hidden border-[oklch(0.80_0.038_88.5)]/40 bg-white/80 shadow-sm backdrop-blur-sm">
                             <CardHeader className="border-b border-[oklch(0.80_0.038_88.5)]/20">
                                 <div className="flex items-center justify-between">
@@ -560,6 +561,28 @@ export default function AttendanceIndex({
                                     ref={mapRef}
                                     className="h-[450px] w-full rounded-b-lg"
                                 />
+                            </CardContent>
+                        </Card>
+                    ) : (
+                        <Card className="border-[oklch(0.80_0.038_88.5)]/40 bg-white/80 shadow-sm backdrop-blur-sm">
+                            <CardHeader className="border-b border-[oklch(0.80_0.038_88.5)]/20">
+                                <CardTitle className="font-serif text-lg font-medium text-[oklch(0.48_0.032_195.5)]">
+                                    Peta Geofence
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="flex flex-col items-center justify-center py-12">
+                                <MapPin className="mb-3 size-10 text-slate-300" />
+                                <p className="mb-1 text-sm font-medium text-slate-600">Lokasi outlet belum diatur</p>
+                                <p className="mb-4 text-center text-xs text-slate-400">
+                                    Atur lokasi outlet untuk mengaktifkan peta geofence dan validasi absensi.
+                                </p>
+                                <a
+                                    href="/admin/outlet-settings"
+                                    className="inline-flex items-center gap-1.5 rounded-md bg-[oklch(0.48_0.032_195.5)] px-4 py-2 text-xs font-medium text-white hover:bg-[oklch(0.38_0.032_195.5)]"
+                                >
+                                    <Navigation className="size-3.5" />
+                                    Atur Lokasi Outlet
+                                </a>
                             </CardContent>
                         </Card>
                     )}
