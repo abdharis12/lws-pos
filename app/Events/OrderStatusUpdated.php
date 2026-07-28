@@ -40,7 +40,23 @@ class OrderStatusUpdated implements ShouldBroadcast
 
     public function broadcastWith(): array
     {
-        $order = $this->order->loadMissing(['tableSession.table', 'items.menu']);
+        $order = $this->order->loadMissing([
+            'tableSession.table',
+            'items.menu',
+            'items.options.optionItem',
+            'items.options',
+        ]);
+
+        $items = $order->items->map(fn ($item) => [
+            'id' => $item->id,
+            'menu' => ['name' => $item->menu->name],
+            'qty' => $item->qty,
+            'notes' => $item->notes,
+            'options' => $item->options->map(fn ($opt) => [
+                'quantity' => $opt->quantity,
+                'option_item' => ['name' => $opt->optionItem?->name ?? ''],
+            ]),
+        ]);
 
         return [
             'order' => [
@@ -49,6 +65,10 @@ class OrderStatusUpdated implements ShouldBroadcast
                 'table_code' => $order->tableSession?->table?->code,
                 'customer_name' => $order->customer_name,
                 'item_count' => $order->items->sum('qty'),
+                'items' => $items,
+                'subtotal' => (float) $order->subtotal,
+                'tax' => (float) $order->tax,
+                'total' => (float) $order->total,
             ],
         ];
     }

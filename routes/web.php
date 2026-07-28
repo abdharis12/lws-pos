@@ -121,6 +121,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('pos', [PosController::class, 'index'])->name('pos.index');
     Route::post('pos/orders', [PosController::class, 'store'])->name('pos.orders.store');
     Route::put('pos/orders/{order}/confirm-pay', [PosController::class, 'confirmPay'])->name('pos.orders.confirm-pay');
+    Route::put('pos/orders/{order}/items', [PosController::class, 'updateItems'])->name('pos.orders.update-items');
+    Route::delete('pos/orders/{order}', [PosController::class, 'destroyPending'])->name('pos.orders.destroy-pending');
     Route::post('pos/orders/initiate-payment', [PosController::class, 'initiatePayment'])->name('pos.orders.initiate-payment');
     Route::post('pos/orders/qris-init', [PosController::class, 'initiatePayment'])->name('pos.orders.qris-init');
     Route::get('pos/orders/{order}/qris-status', [PosController::class, 'qrisStatus'])->name('pos.orders.qris-status');

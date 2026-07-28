@@ -1,5 +1,5 @@
 import { Head, useForm, router, usePage } from '@inertiajs/react';
-import { Search, ShoppingCart, Move, ArrowRightLeft, HandPlatter, X } from 'lucide-react';
+import { Search, ShoppingCart, Move, ArrowRightLeft, HandPlatter, Trash2, X } from 'lucide-react';
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -67,6 +67,8 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
     const [moveMergeDialog, setMoveMergeDialog] = useState<{ mode: 'move' | 'merge'; sourceTable: { id: number; code: string } } | null>(null);
     const [orderType, setOrderType] = useState<'dine_in' | 'takeaway'>('dine_in');
     const [customerName, setCustomerName] = useState('');
+    const [editingProcessing, setEditingProcessing] = useState(false);
+    const [deleteConfirmOrder, setDeleteConfirmOrder] = useState<PendingOrder | null>(null);
 
     useEffect(() => {
         if (lastOrder) {
@@ -468,11 +470,34 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
         }
     }
 
+    function handleSaveEdits() {
+        if (!selectedPendingOrderId || cartItems.length === 0) { return; }
+
+        setEditingProcessing(true);
+
+        router.put(`/pos/orders/${selectedPendingOrderId}/items`, {
+            items: cartItems.map(item => ({
+                menu_id: item.menu.id, qty: item.qty, notes: item.notes || null,
+                option_ids: item.selectedOptions.flatMap(o => Array.from({ length: o.quantity }, () => o.itemId)),
+            })),
+        }, {
+            preserveScroll: true,
+            onSuccess: () => setEditingProcessing(false),
+            onError: () => setEditingProcessing(false),
+        });
+    }
+
+    function handleDeletePendingOrder(order: PendingOrder) {
+        setDeleteConfirmOrder(order);
+    }
+
     const cartPanelProps = {
         items: cartItems,
         processing,
         pendingOrderId: selectedPendingOrderId,
         confirmPayProcessing,
+        saveProcessing: editingProcessing,
+        onSaveEdits: handleSaveEdits,
         tableSelected: isDineIn ? selectedTableIds.length > 0 : true,
         onUpdateQty: (i: number, q: number) => setCartItems(prev => q < 1 ? prev : prev.map((item, idx) => idx === i ? { ...item, qty: q } : item)),
         onRemove: (i: number) => setCartItems(prev => prev.filter((_, idx) => idx !== i)),
@@ -493,7 +518,7 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
             <div className="flex h-screen overflow-hidden" style={{ backgroundColor: CREAM }}>
                 <aside className="hidden w-80 flex-shrink-0 flex-col overflow-y-auto p-4 lg:flex" style={{ borderRight: `1px solid ${BORDER}` }}>
                     <div className="flex-1 space-y-4">
-                        <PendingOrdersList orders={pendingOrders} selectedId={selectedPendingOrderId} onSelect={handleSelectPendingOrder} variant="sidebar" />
+                        <PendingOrdersList orders={pendingOrders} selectedId={selectedPendingOrderId} onSelect={handleSelectPendingOrder} onDelete={handleDeletePendingOrder} variant="sidebar" />
                         <OrderTypeSelector orderType={orderType} onChange={handleOrderTypeChange} variant="sidebar" />
                         {!isDineIn && <CustomerNameInput value={customerName} onChange={setCustomerName} variant="sidebar" />}
                         {isDineIn && (
@@ -520,7 +545,7 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
                         isDineIn={isDineIn}
                     />
 
-                    <PendingOrdersList orders={pendingOrders} selectedId={selectedPendingOrderId} onSelect={handleSelectPendingOrder} variant="mobile" />
+                    <PendingOrdersList orders={pendingOrders} selectedId={selectedPendingOrderId} onSelect={handleSelectPendingOrder} onDelete={handleDeletePendingOrder} variant="mobile" />
 
                     <div className="flex gap-2 overflow-x-auto px-4" style={{ borderBottom: `1px solid ${BORDER}` }}>
                         {categories.map(cat => (
@@ -642,6 +667,37 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
                 </Dialog>
 
                 <MoveMergeDialog open={moveMergeDialog !== null} mode={moveMergeDialog?.mode ?? null} sourceTable={moveMergeDialog?.sourceTable ?? { id: 0, code: '' }} tables={tables} onClose={() => setMoveMergeDialog(null)} />
+
+                <Dialog open={deleteConfirmOrder !== null} onOpenChange={(v) => { if (!v) setDeleteConfirmOrder(null); }}>
+                    <DialogContent className="sm:max-w-xs" style={{ backgroundColor: CREAM }}>
+                        <div className="flex flex-col items-center py-4 text-center">
+                            <div className="mb-4 flex size-16 items-center justify-center rounded-full" style={{ backgroundColor: '#fef2f2' }}>
+                                <Trash2 className="size-7 text-red-500" />
+                            </div>
+                            <h3 className="text-lg font-bold" style={{ color: INK }}>Hapus Pesanan</h3>
+                            <p className="mt-1 text-sm" style={{ color: MUTED }}>
+                                Yakin ingin menghapus pesanan{deleteConfirmOrder?.table_session?.table?.code ? ` meja ${deleteConfirmOrder.table_session.table.code}` : ''}?
+                            </p>
+                            <div className="mt-5 flex w-full flex-col gap-2">
+                                <button
+                                    onClick={() => {
+                                        const order = deleteConfirmOrder; setDeleteConfirmOrder(null);
+                                        if (order) {
+                                            router.delete(`/pos/orders/${order.id}`, { preserveScroll: true });
+                                        }
+                                    }}
+                                    className="w-full rounded-xl py-2.5 text-sm font-semibold text-white" style={{ backgroundColor: '#dc2626' }}
+                                >
+                                    Ya, Hapus
+                                </button>
+                                <button onClick={() => setDeleteConfirmOrder(null)} className="w-full rounded-xl py-2 text-xs" style={{ backgroundColor: CREAM, color: MUTED }}>
+                                    Batal
+                                </button>
+                            </div>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+
                 <SuccessDialog open={successDialogOpen} onClose={handleSuccessClose} onPrint={handlePrintReceipt} type={successType} changeAmount={successChange} />
             </div>
 

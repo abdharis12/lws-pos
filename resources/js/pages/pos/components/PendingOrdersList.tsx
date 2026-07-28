@@ -1,15 +1,17 @@
 import { cn } from '@/lib/utils';
 import { BORDER, CREAM, INK, MUTED, PRIMARY } from '../constants';
 import type { PendingOrder } from '../types';
+import { Trash2 } from 'lucide-react';
 
 interface Props {
     orders: PendingOrder[];
     selectedId: number | null;
     onSelect: (order: PendingOrder) => void;
+    onDelete: (order: PendingOrder) => void;
     variant?: 'sidebar' | 'mobile';
 }
 
-export default function PendingOrdersList({ orders, selectedId, onSelect, variant = 'sidebar' }: Props) {
+export default function PendingOrdersList({ orders, selectedId, onSelect, onDelete, variant = 'sidebar' }: Props) {
     if (orders.length === 0) {
 return null;
 }
@@ -23,7 +25,7 @@ return null;
                         <button
                             key={order.id}
                             onClick={() => onSelect(order)}
-                            className="flex-shrink-0 rounded-xl p-3 text-left transition-all"
+                            className="group relative flex-shrink-0 rounded-xl p-3 text-left transition-all"
                             style={{
                                 border: `1px solid ${selectedId === order.id ? PRIMARY : BORDER}`,
                                 backgroundColor: selectedId === order.id ? `${PRIMARY}08` : '#fff',
@@ -41,6 +43,14 @@ return null;
                             <p className="mt-0.5 text-xs" style={{ color: MUTED }}>
                                 {order.customer_name || 'Tanpa nama'}
                             </p>
+                            <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); onDelete(order); }}
+                                className="absolute right-1 top-1 hidden rounded p-0.5 text-red-400 transition-colors hover:bg-red-50 hover:text-red-600 group-hover:block"
+                                title="Hapus pesanan"
+                            >
+                                <Trash2 className="size-3" />
+                            </button>
                         </button>
                     ))}
                 </div>
@@ -58,7 +68,7 @@ return null;
                         key={order.id}
                         onClick={() => onSelect(order)}
                         className={cn(
-                            'w-full rounded-xl p-3 text-left transition-all',
+                            'group relative w-full rounded-xl p-3 text-left transition-all',
                             selectedId === order.id ? 'ring-1' : 'hover:opacity-80'
                         )}
                         style={{
@@ -77,6 +87,14 @@ return null;
                         <p className="mt-0.5 text-xs" style={{ color: MUTED }}>
                             {order.customer_name || 'Tanpa nama'}
                         </p>
+                        <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); onDelete(order); }}
+                            className="absolute right-1 top-1 hidden rounded p-0.5 text-red-400 transition-colors hover:bg-red-50 hover:text-red-600 group-hover:block"
+                            title="Hapus pesanan"
+                        >
+                            <Trash2 className="size-3" />
+                        </button>
                     </button>
                 ))}
             </div>

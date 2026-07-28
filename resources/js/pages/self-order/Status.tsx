@@ -1,6 +1,6 @@
 import { Head, router } from '@inertiajs/react'
 import { useEchoPublic } from '@laravel/echo-react'
-import { Clock, ChefHat, CheckCircle2, CookingPot, UtensilsCrossed, Store, User } from 'lucide-react'
+import { Clock, ChefHat, CheckCircle2, CookingPot, UtensilsCrossed, Store, User, XCircle } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -57,12 +57,12 @@ const stepIndex: Record<string, number> = {
 }
 
 export default function OrderStatus({ table, tableToken, order }: Props) {
-    const [currentStatus, setCurrentStatus] = useState(order.status)
+    const [currentOrder, setCurrentOrder] = useState(order)
     const [elapsed, setElapsed] = useState('0m')
 
     useEffect(() => {
         const update = () => {
-            const diff = Date.now() - new Date(order.created_at).getTime()
+            const diff = Date.now() - new Date(currentOrder.created_at).getTime()
             const mins = Math.floor(diff / 60000)
             setElapsed(mins < 60 ? `${mins}m` : `${Math.floor(mins / 60)}j ${mins % 60}m`)
         }
@@ -70,19 +70,27 @@ export default function OrderStatus({ table, tableToken, order }: Props) {
         const id = setInterval(update, 30000)
 
         return () => clearInterval(id)
-    }, [order.created_at])
+    }, [currentOrder.created_at])
 
-    useEchoPublic<{ order: { id: number; status: string } }>(
+    useEchoPublic<{ order: { id: number; status: string; items: OrderItem[]; subtotal: number; tax: number; total: number } }>(
         `table.${tableToken}`,
         '.OrderStatusUpdated',
         (e) => {
-            if (e.order.id === order.id) {
-                setCurrentStatus(e.order.status)
+            if (e.order.id === currentOrder.id) {
+                setCurrentOrder(prev => ({
+                    ...prev,
+                    status: e.order.status,
+                    items: e.order.items ?? prev.items,
+                    subtotal: (e.order.subtotal as number) ?? prev.subtotal,
+                    tax: (e.order.tax as number) ?? prev.tax,
+                    total: (e.order.total as number) ?? prev.total,
+                }))
             }
         },
     )
 
-    const current = stepIndex[currentStatus] ?? 0
+    const current = stepIndex[currentOrder.status] ?? 0
+    const isCancelled = currentOrder.status === 'cancelled'
 
     return (
         <div className="min-h-screen bg-[#F6F2E9]">
@@ -104,7 +112,11 @@ export default function OrderStatus({ table, tableToken, order }: Props) {
             <div className="bg-white/80 px-6 pb-8 pt-safe backdrop-blur-xl">
                 <div className="mx-auto max-w-lg pt-8 text-center">
                     <div className="mb-5 flex justify-center">
-                        {currentStatus === 'ready' || currentStatus === 'completed' ? (
+                        {isCancelled ? (
+                            <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-red-400 to-red-500 shadow-lg shadow-red-400/30">
+                                <XCircle className="h-12 w-12 text-white" />
+                            </div>
+                        ) : currentOrder.status === 'ready' || currentOrder.status === 'completed' ? (
                             <div className="relative flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-[#4F6B6A] to-[#2C4645] shadow-lg shadow-[#4F6B6A]/30">
                                 <span className="absolute inset-0 -z-10 animate-ping rounded-full bg-[#4F6B6A]/25" />
                                 <CheckCircle2 className="h-12 w-12 text-white" />
@@ -117,9 +129,11 @@ export default function OrderStatus({ table, tableToken, order }: Props) {
                     </div>
 
                     <h1 className="text-2xl font-bold tracking-tight text-gray-900">
-                        {currentStatus === 'ready' || currentStatus === 'completed'
-                            ? 'Pesanan Siap!'
-                            : 'Pesanan Diproses'}
+                        {isCancelled
+                            ? 'Pesanan Dibatalkan'
+                            : currentOrder.status === 'ready' || currentOrder.status === 'completed'
+                                ? 'Pesanan Siap!'
+                                : 'Pesanan Diproses'}
                     </h1>
 
                     <div className="mt-3 flex items-center justify-center gap-3 text-sm text-gray-500">
@@ -127,9 +141,9 @@ export default function OrderStatus({ table, tableToken, order }: Props) {
                             <Store className="h-3.5 w-3.5" />
                             Meja {table.code}
                         </span>
-                        {order.customer_name && (
+                        {currentOrder.customer_name && (
                             <span className="inline-flex items-center gap-1.5 rounded-full bg-[#4F6B6A]/10 px-3 py-1 font-medium text-[#4F6B6A]">
-                                <User className="h-3.5 w-3.5" />{order.customer_name}
+                                <User className="h-3.5 w-3.5" />{currentOrder.customer_name}
                             </span>
                         )}
                     </div>
@@ -140,12 +154,13 @@ export default function OrderStatus({ table, tableToken, order }: Props) {
                             {elapsed}
                         </span>
                         <span className="rounded-md bg-[#F6F2E9] px-2 py-0.5 font-mono text-gray-500 ring-1 ring-[#CFC0A4]/40">
-                            #{order.id}
+                            #{currentOrder.id}
                         </span>
                     </div>
                 </div>
             </div>
 
+            {!isCancelled && (
             <div className="mx-auto max-w-lg px-6 py-8">
                 <div className="space-y-0">
                     {steps.map((step, i) => {
@@ -194,12 +209,12 @@ export default function OrderStatus({ table, tableToken, order }: Props) {
                                     >
                                         {step.label}
                                     </p>
-                                    {active && currentStatus === 'processing' && (
+                                    {active && currentOrder.status === 'processing' && (
                                         <p className="mt-0.5 text-xs font-medium text-[#4F6B6A]">
                                             Chef sedang menyiapkan pesanan Anda
                                         </p>
                                     )}
-                                    {active && currentStatus === 'ready' && (
+                                    {active && currentOrder.status === 'ready' && (
                                         <p className="mt-0.5 text-xs font-medium text-[#4F6B6A]">
                                             Pesanan siap diantar!
                                         </p>
@@ -210,15 +225,16 @@ export default function OrderStatus({ table, tableToken, order }: Props) {
                     })}
                 </div>
             </div>
+            )}
 
             <div className="mx-auto max-w-lg px-6 pb-8">
                 <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-[#CFC0A4]/30">
                     <div className="mb-4 flex items-center justify-between">
                         <h3 className="text-sm font-bold text-gray-900">Pesanan Anda</h3>
-                        <span className="rounded-full bg-[#4F6B6A]/10 px-2.5 py-0.5 text-xs font-semibold text-[#4F6B6A]">{order.items.length} item</span>
+                        <span className="rounded-full bg-[#4F6B6A]/10 px-2.5 py-0.5 text-xs font-semibold text-[#4F6B6A]">{currentOrder.items.length} item</span>
                     </div>
                     <div className="divide-y divide-[#F6F2E9]">
-                        {order.items.map((item) => (
+                        {currentOrder.items.map((item) => (
                             <div
                                 key={item.id}
                                 className="flex items-start justify-between py-2.5 first:pt-0 last:pb-0"
@@ -247,7 +263,7 @@ export default function OrderStatus({ table, tableToken, order }: Props) {
                     </div>
                     <div className="mt-4 flex items-center justify-between border-t border-[#F6F2E9] pt-4">
                         <span className="text-sm font-semibold text-gray-800">Total</span>
-                        <span className="text-lg font-bold text-[#4F6B6A]">{fmt(order.total)}</span>
+                        <span className="text-lg font-bold text-[#4F6B6A]">{fmt(currentOrder.total)}</span>
                     </div>
                 </div>
             </div>

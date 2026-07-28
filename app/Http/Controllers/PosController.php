@@ -848,4 +848,128 @@ class PosController extends Controller
             ]);
         }
     }
+
+    public function updateItems(Request $request, Order $order): RedirectResponse
+    {
+        abort_if($order->status !== 'pending', 403);
+
+        $validated = $request->validate([
+            'items' => 'required|array|min:1',
+            'items.*.id' => 'nullable|exists:order_items,id',
+            'items.*.menu_id' => 'required|exists:menus,id',
+            'items.*.qty' => 'required|integer|min:1',
+            'items.*.notes' => 'nullable|string|max:500',
+            'items.*.option_ids' => 'nullable|array',
+            'items.*.option_ids.*' => 'exists:option_items,id',
+        ]);
+
+        $existingItemIds = $order->items()->pluck('id')->toArray();
+        $keptItemIds = [];
+        $newSubtotal = 0;
+
+        foreach ($validated['items'] as $itemData) {
+            $menu = Menu::findOrFail($itemData['menu_id']);
+            $itemTotal = $menu->price * $itemData['qty'];
+
+            $selectedOptionIds = $itemData['option_ids'] ?? [];
+            $optionAdjustments = [];
+
+            if (! empty($selectedOptionIds)) {
+                $counts = array_count_values($selectedOptionIds);
+                $options = OptionItem::whereIn('id', array_keys($counts))->get()->keyBy('id');
+                $adjustments = 0;
+
+                foreach ($counts as $optionId => $count) {
+                    if (isset($options[$optionId])) {
+                        $opt = $options[$optionId];
+                        $adjustments += $opt->price_adjustment * $count;
+                        $optionAdjustments[] = [
+                            'option_item_id' => $opt->id,
+                            'price_adjustment' => $opt->price_adjustment,
+                            'quantity' => $count,
+                        ];
+                    }
+                }
+
+                $itemTotal += $adjustments * $itemData['qty'];
+            }
+
+            $newSubtotal += $itemTotal;
+
+            if (! empty($itemData['id']) && in_array($itemData['id'], $existingItemIds)) {
+                $keptItemIds[] = $itemData['id'];
+                $orderItem = OrderItem::find($itemData['id']);
+                $orderItem->update([
+                    'qty' => $itemData['qty'],
+                    'total_price' => $itemTotal,
+                    'notes' => $itemData['notes'] ?? null,
+                ]);
+                $orderItem->options()->delete();
+                if (! empty($optionAdjustments)) {
+                    $orderItem->options()->createMany($optionAdjustments);
+                }
+            } else {
+                $orderItem = $order->items()->create([
+                    'menu_id' => $menu->id,
+                    'qty' => $itemData['qty'],
+                    'base_price' => $menu->price,
+                    'total_price' => $itemTotal,
+                    'notes' => $itemData['notes'] ?? null,
+                ]);
+                if (! empty($optionAdjustments)) {
+                    $orderItem->options()->createMany($optionAdjustments);
+                }
+            }
+        }
+
+        $itemsToDelete = array_diff($existingItemIds, $keptItemIds);
+        if (! empty($itemsToDelete)) {
+            OrderItem::whereIn('id', $itemsToDelete)->delete();
+        }
+
+        $taxRate = 0.10;
+        $tax = round($newSubtotal * $taxRate, 2);
+        $discountAmount = $order->discount ?? 0;
+        $serviceCharge = $order->service_charge ?? 0;
+        $total = $newSubtotal + $tax + $serviceCharge - $discountAmount;
+
+        $order->update([
+            'subtotal' => $newSubtotal,
+            'tax' => $tax,
+            'total' => max(0, $total),
+        ]);
+
+        $order->refresh();
+
+        OrderStatusUpdated::dispatch($order);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Pesanan berhasil diperbarui.']);
+
+        return redirect()->back();
+    }
+
+    public function destroyPending(Order $order): RedirectResponse
+    {
+        abort_if($order->status !== 'pending', 403);
+
+        $order->update(['status' => 'cancelled']);
+
+        OrderStatusUpdated::dispatch($order);
+
+        $session = $order->tableSession;
+        if ($session) {
+            $hasOtherPending = $session->orders()
+                ->where('id', '!=', $order->id)
+                ->where('status', 'pending')
+                ->exists();
+
+            if (! $hasOtherPending) {
+                $session->update(['status' => 'closed', 'closed_at' => now()]);
+            }
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Pesanan berhasil dibatalkan.']);
+
+        return redirect()->back();
+    }
 }
