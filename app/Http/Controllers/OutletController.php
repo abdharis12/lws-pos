@@ -36,6 +36,8 @@ class OutletController extends Controller
         $outlet = Outlet::firstOrFail();
         $outlet->update($validated);
 
-        return redirect()->route('admin.outlet.edit')->with('success', 'Pengaturan outlet berhasil disimpan.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Pengaturan outlet berhasil disimpan.']);
+
+        return redirect()->route('admin.outlet.edit');
     }
 }

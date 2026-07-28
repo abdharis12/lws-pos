@@ -85,7 +85,9 @@ class EmployeeController extends Controller
             'is_active' => true,
         ]);
 
-        return redirect()->back()->with('toast', ['type' => 'success', 'message' => 'Karyawan berhasil ditambahkan.']);
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Karyawan berhasil ditambahkan.']);
+
+        return redirect()->back();
     }
 
     public function show(Employee $employee): Response
@@ -128,7 +130,9 @@ class EmployeeController extends Controller
             'salary_type' => $validated['salary_type'],
         ]);
 
-        return redirect()->back()->with('toast', ['type' => 'success', 'message' => 'Karyawan berhasil diperbarui.']);
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Karyawan berhasil diperbarui.']);
+
+        return redirect()->back();
     }
 
     public function destroy(Request $request, Employee $employee): RedirectResponse
@@ -151,6 +155,8 @@ class EmployeeController extends Controller
         $employee->delete();
         $user->delete();
 
-        return redirect()->back()->with('toast', ['type' => 'success', 'message' => 'Karyawan berhasil dihapus.']);
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Karyawan berhasil dihapus.']);
+
+        return redirect()->back();
     }
 }

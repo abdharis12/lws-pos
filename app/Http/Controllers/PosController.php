@@ -258,10 +258,11 @@ class PosController extends Controller
 
         $firstOrder = $createdOrders[0] ?? null;
 
+        Inertia::flash('toast', ['type' => 'success', 'message' => $splitCount > 1
+            ? "Pesanan berhasil dibuat ({$splitCount} bill)."
+            : 'Pesanan berhasil dibuat.']);
+
         return redirect()->route('pos.index')
-            ->with('success', $splitCount > 1
-                ? "Pesanan berhasil dibuat ({$splitCount} bill)."
-                : 'Pesanan berhasil dibuat.')
             ->with('last_order_id', $firstOrder?->id);
     }
 
@@ -394,8 +395,9 @@ class PosController extends Controller
         broadcast(new OrderPaid($order))->toOthers();
         broadcast(new OrderStatusUpdated($order))->toOthers();
 
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Pesanan berhasil dikonfirmasi dan dibayar.']);
+
         return redirect()->route('pos.index')
-            ->with('success', 'Pesanan berhasil dikonfirmasi dan dibayar.')
             ->with('last_order_id', $order->id);
     }
 
@@ -650,8 +652,9 @@ class PosController extends Controller
         $affected = collect([$table->id, ...$groupedIds])->unique();
         Meja::whereIn('id', $affected)->update(['status' => 'available']);
 
-        return redirect()->route('pos.index')
-            ->with('success', "Meja {$table->code} berhasil dikosongkan.");
+        Inertia::flash('toast', ['type' => 'success', 'message' => "Meja {$table->code} berhasil dikosongkan."]);
+
+        return redirect()->route('pos.index');
     }
 
     public function lockTable(Request $request, Meja $table): JsonResponse
@@ -689,20 +692,23 @@ class PosController extends Controller
     public function moveTable(Meja $table, Meja $target): RedirectResponse
     {
         if ($table->status !== 'occupied') {
-            return redirect()->route('pos.index')
-                ->with('error', "Meja {$table->code} tidak sedang digunakan.");
+            Inertia::flash('toast', ['type' => 'error', 'message' => "Meja {$table->code} tidak sedang digunakan."]);
+
+            return redirect()->route('pos.index');
         }
 
         if ($target->status !== 'available') {
-            return redirect()->route('pos.index')
-                ->with('error', "Meja {$target->code} sedang digunakan.");
+            Inertia::flash('toast', ['type' => 'error', 'message' => "Meja {$target->code} sedang digunakan."]);
+
+            return redirect()->route('pos.index');
         }
 
         $sourceSession = $table->sessions()->where('status', 'active')->first();
 
         if (! $sourceSession) {
-            return redirect()->route('pos.index')
-                ->with('error', "Tidak ada sesi aktif untuk meja {$table->code}.");
+            Inertia::flash('toast', ['type' => 'error', 'message' => "Tidak ada sesi aktif untuk meja {$table->code}."]);
+
+            return redirect()->route('pos.index');
         }
 
         $targetSession = $target->sessions()->where('status', 'active')->first()
@@ -721,28 +727,32 @@ class PosController extends Controller
         $table->update(['status' => 'available']);
         $target->update(['status' => 'occupied']);
 
-        return redirect()->route('pos.index')
-            ->with('success', "Meja {$table->code} dipindah ke Meja {$target->code}.");
+        Inertia::flash('toast', ['type' => 'success', 'message' => "Meja {$table->code} dipindah ke Meja {$target->code}."]);
+
+        return redirect()->route('pos.index');
     }
 
     public function mergeTable(Meja $table, Meja $target): RedirectResponse
     {
         if ($table->status !== 'occupied') {
-            return redirect()->route('pos.index')
-                ->with('error', "Meja {$table->code} tidak sedang digunakan.");
+            Inertia::flash('toast', ['type' => 'error', 'message' => "Meja {$table->code} tidak sedang digunakan."]);
+
+            return redirect()->route('pos.index');
         }
 
         if ($target->status !== 'occupied') {
-            return redirect()->route('pos.index')
-                ->with('error', "Meja {$target->code} tidak sedang digunakan.");
+            Inertia::flash('toast', ['type' => 'error', 'message' => "Meja {$target->code} tidak sedang digunakan."]);
+
+            return redirect()->route('pos.index');
         }
 
         $sourceSession = $table->sessions()->where('status', 'active')->first();
         $targetSession = $target->sessions()->where('status', 'active')->first();
 
         if (! $sourceSession || ! $targetSession) {
-            return redirect()->route('pos.index')
-                ->with('error', 'Sesi meja tidak ditemukan.');
+            Inertia::flash('toast', ['type' => 'error', 'message' => 'Sesi meja tidak ditemukan.']);
+
+            return redirect()->route('pos.index');
         }
 
         $movedOrders = $sourceSession->orders()
@@ -768,8 +778,9 @@ class PosController extends Controller
         $target->update(['status' => 'occupied', 'locked_by' => null]);
         $table->update(['status' => 'occupied', 'locked_by' => null]);
 
-        return redirect()->route('pos.index')
-            ->with('success', "Meja {$table->code} digabung ke Meja {$target->code}.");
+        Inertia::flash('toast', ['type' => 'success', 'message' => "Meja {$table->code} digabung ke Meja {$target->code}."]);
+
+        return redirect()->route('pos.index');
     }
 
     public function verifyApproval(Request $request): JsonResponse

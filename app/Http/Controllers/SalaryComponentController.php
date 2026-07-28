@@ -35,7 +35,9 @@ class SalaryComponentController extends Controller
             $validated
         );
 
-        return redirect()->back()->with('success', 'Komponen gaji berhasil disimpan.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Komponen gaji berhasil disimpan.']);
+
+        return redirect()->back();
     }
 
     public function update(Request $request, SalaryComponent $salaryComponent): RedirectResponse
@@ -50,13 +52,17 @@ class SalaryComponentController extends Controller
 
         $salaryComponent->update($validated);
 
-        return redirect()->back()->with('success', 'Komponen gaji berhasil diperbarui.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Komponen gaji berhasil diperbarui.']);
+
+        return redirect()->back();
     }
 
     public function destroy(SalaryComponent $salaryComponent): RedirectResponse
     {
         $salaryComponent->delete();
 
-        return redirect()->back()->with('success', 'Komponen gaji berhasil dihapus.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Komponen gaji berhasil dihapus.']);
+
+        return redirect()->back();
     }
 }

@@ -39,7 +39,7 @@ test('employee can clock in', function () {
 
     $this->actingAs($this->owner)->post(route('admin.attendance.clock-in'), [
         'employee_id' => $this->employee->id,
-    ])->assertSessionHas('success');
+    ])->assertSessionHas('inertia.flash_data');
 
     $this->assertDatabaseHas('attendances', [
         'employee_id' => $this->employee->id,
@@ -67,7 +67,7 @@ test('employee can clock out', function () {
 
     $this->actingAs($this->owner)->post(route('admin.attendance.clock-out'), [
         'employee_id' => $this->employee->id,
-    ])->assertSessionHas('success');
+    ])->assertSessionHas('inertia.flash_data');
 
     $this->assertNotNull($attendance->fresh()->clock_out_at);
 });

@@ -54,7 +54,9 @@ class TableController extends Controller
             'status' => 'available',
         ]);
 
-        return redirect()->back()->with('success', 'Meja berhasil ditambahkan.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Meja berhasil ditambahkan.']);
+
+        return redirect()->back();
     }
 
     public function update(Request $request, Meja $table): RedirectResponse
@@ -70,7 +72,9 @@ class TableController extends Controller
 
         $table->update($validated);
 
-        return redirect()->back()->with('success', 'Meja berhasil diperbarui.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Meja berhasil diperbarui.']);
+
+        return redirect()->back();
     }
 
     public function destroy(Meja $table): RedirectResponse
@@ -78,7 +82,9 @@ class TableController extends Controller
         $this->authorize('delete', $table);
         $table->delete();
 
-        return redirect()->back()->with('success', 'Meja berhasil dihapus.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Meja berhasil dihapus.']);
+
+        return redirect()->back();
     }
 
     public function regenerateToken(Meja $table): RedirectResponse
@@ -86,6 +92,8 @@ class TableController extends Controller
         $this->authorize('regenerateToken', $table);
         $table->update(['table_token' => Str::random(40)]);
 
-        return redirect()->back()->with('success', 'Token QR meja berhasil diperbarui.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Token QR meja berhasil diperbarui.']);
+
+        return redirect()->back();
     }
 }

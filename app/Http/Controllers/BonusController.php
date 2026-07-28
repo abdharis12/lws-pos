@@ -33,7 +33,9 @@ class BonusController extends Controller
             'approved_by' => $request->user()->id,
         ]);
 
-        return redirect()->back()->with('success', 'Bonus berhasil ditambahkan.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Bonus berhasil ditambahkan.']);
+
+        return redirect()->back();
     }
 
     public function update(Request $request, Bonus $bonus): RedirectResponse
@@ -45,13 +47,17 @@ class BonusController extends Controller
 
         $bonus->update($validated);
 
-        return redirect()->back()->with('success', 'Bonus berhasil diperbarui.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Bonus berhasil diperbarui.']);
+
+        return redirect()->back();
     }
 
     public function destroy(Bonus $bonus): RedirectResponse
     {
         $bonus->delete();
 
-        return redirect()->back()->with('success', 'Bonus berhasil dihapus.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Bonus berhasil dihapus.']);
+
+        return redirect()->back();
     }
 }

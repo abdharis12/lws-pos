@@ -107,7 +107,7 @@ class AttendanceController extends Controller
         }
 
         if ($request->hasFile('photo')) {
-            $photoPath = $request->file('photo')->store('attendance/photos', 'private');
+            $photoPath = $request->file('photo')->store('attendance/photos', 'public');
         }
 
         $outlet = Outlet::first();
@@ -130,7 +130,9 @@ class AttendanceController extends Controller
 
         AttendanceUpdated::dispatch($attendance);
 
-        return redirect()->back()->with('success', 'Clock-in berhasil.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Clock-in berhasil.']);
+
+        return redirect()->back();
     }
 
     public function clockOut(Request $request): RedirectResponse
@@ -170,7 +172,9 @@ class AttendanceController extends Controller
 
         AttendanceUpdated::dispatch($attendance);
 
-        return redirect()->back()->with('success', 'Clock-out berhasil.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Clock-out berhasil.']);
+
+        return redirect()->back();
     }
 
     public function recap(Request $request): Response

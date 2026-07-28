@@ -48,7 +48,9 @@ class PayslipController extends Controller
 
         $payrollService->generatePayslips($period);
 
-        return redirect()->back()->with('success', 'Slip gaji periode '.$period.' berhasil digenerate.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Slip gaji periode '.$period.' berhasil digenerate.']);
+
+        return redirect()->back();
     }
 
     public function generateSingle(Request $request, Employee $employee, PayrollService $payrollService): RedirectResponse
@@ -57,14 +59,18 @@ class PayslipController extends Controller
 
         $payrollService->generateForEmployee($employee, $period);
 
-        return redirect()->back()->with('success', 'Slip gaji berhasil digenerate.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Slip gaji berhasil digenerate.']);
+
+        return redirect()->back();
     }
 
     public function approve(Payslip $payslip): RedirectResponse
     {
         $payslip->update(['status' => 'approved']);
 
-        return redirect()->back()->with('success', 'Slip gaji telah disetujui.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Slip gaji telah disetujui.']);
+
+        return redirect()->back();
     }
 
     public function markPaid(Request $request, Payslip $payslip): RedirectResponse
@@ -79,6 +85,8 @@ class PayslipController extends Controller
             'paid_method' => $validated['paid_method'],
         ]);
 
-        return redirect()->back()->with('success', 'Slip gaji telah ditandai dibayar.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Slip gaji telah ditandai dibayar.']);
+
+        return redirect()->back();
     }
 }

@@ -49,7 +49,9 @@ class MenuCategoryController extends Controller
             'sort_order' => $validated['sort_order'] ?? 0,
         ]);
 
-        return redirect()->back()->with('success', 'Kategori berhasil ditambahkan.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Kategori berhasil ditambahkan.']);
+
+        return redirect()->back();
     }
 
     public function update(Request $request, MenuCategory $menuCategory): RedirectResponse
@@ -63,7 +65,9 @@ class MenuCategoryController extends Controller
 
         $menuCategory->update($validated);
 
-        return redirect()->back()->with('success', 'Kategori berhasil diperbarui.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Kategori berhasil diperbarui.']);
+
+        return redirect()->back();
     }
 
     public function destroy(MenuCategory $menuCategory): RedirectResponse
@@ -71,6 +75,8 @@ class MenuCategoryController extends Controller
         $this->authorize('delete', $menuCategory);
         $menuCategory->delete();
 
-        return redirect()->back()->with('success', 'Kategori berhasil dihapus.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Kategori berhasil dihapus.']);
+
+        return redirect()->back();
     }
 }

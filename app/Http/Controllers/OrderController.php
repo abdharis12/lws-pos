@@ -7,6 +7,7 @@ use App\Models\ActivityLog;
 use App\Models\Order;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class OrderController extends Controller
 {
@@ -35,6 +36,8 @@ class OrderController extends Controller
             ],
         ]);
 
-        return redirect()->back()->with('success', 'Status pesanan berhasil diperbarui.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Status pesanan berhasil diperbarui.']);
+
+        return redirect()->back();
     }
 }

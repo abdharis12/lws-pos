@@ -94,21 +94,37 @@ export default function AttendanceIndex({
     }
 
     useEffect(() => {
-        if (!mapRef.current || mapInstanceRef.current || !outlet.latitude || !outlet.longitude) return;
+        const container = mapRef.current;
+        if (!container || mapInstanceRef.current || !outlet.latitude || !outlet.longitude) return;
+
+        let destroyed = false;
 
         async function initMap() {
+            await import('leaflet/dist/leaflet.css');
             const L = (await import('leaflet')).default;
             const lat = outlet.latitude!;
             const lng = outlet.longitude!;
             const radius = outlet.geofence_radius_meters ?? 20;
 
-            const map = L.map(mapRef.current!, { center: [lat, lng], zoom: 18, zoomControl: false });
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            const mapInstance = L.map(container!, { center: [lat, lng], zoom: 16, zoomControl: false });
+
+            const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; OpenStreetMap',
                 maxZoom: 19,
-            }).addTo(map);
+            });
 
-            L.control.zoom({ position: 'bottomright' }).addTo(map);
+            const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: '&copy; Esri',
+                maxZoom: 19,
+            });
+
+            satelliteLayer.addTo(mapInstance);
+
+            L.control.layers({ 'Satelit': satelliteLayer, 'Street': streetLayer }, undefined, { position: 'topleft' }).addTo(mapInstance);
+
+            L.control.zoom({ position: 'bottomright' }).addTo(mapInstance);
+
+            setTimeout(() => mapInstance.invalidateSize(), 200);
 
             L.circle([lat, lng], {
                 radius,
@@ -116,25 +132,70 @@ export default function AttendanceIndex({
                 fillColor: '#4F6B6A',
                 fillOpacity: 0.08,
                 weight: 2,
-            }).addTo(map);
+            }).addTo(mapInstance);
 
             L.marker([lat, lng])
-                .addTo(map)
-                .bindPopup(`<b>${outlet.name}</b><br>Radius: ${radius}m`)
-                .openPopup();
+                .addTo(mapInstance)
+                .bindPopup(`<b>${outlet.name}</b><br>Radius: ${radius}m`);
 
-            mapInstanceRef.current = map;
+            if (!destroyed) {
+                mapInstanceRef.current = mapInstance;
+            }
+
+            return L;
         }
 
         initMap();
 
         return () => {
+            destroyed = true;
             if (mapInstanceRef.current) {
                 (mapInstanceRef.current as { remove: () => void }).remove();
                 mapInstanceRef.current = null;
             }
         };
     }, [outlet]);
+
+    useEffect(() => {
+        const map = mapInstanceRef.current;
+        if (!map || !userPosition) return;
+
+        const { lat: userLat, lng: userLng } = userPosition;
+
+        async function addUserMarker() {
+            await import('leaflet/dist/leaflet.css');
+            const L = (await import('leaflet')).default;
+
+            const existing = (map as Record<string, unknown>).userMarker as L.Marker | undefined;
+            if (existing) {
+                existing.setLatLng([userLat, userLng]);
+                return;
+            }
+
+            const blueIcon = L.divIcon({
+                className: '',
+                html: '<div style="width:24px;height:24px;background:#3b82f6;border:3px solid #fff;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.3);"></div>',
+                iconSize: [24, 24],
+                iconAnchor: [12, 12],
+            });
+
+            const marker = L.marker([userLat, userLng], { icon: blueIcon })
+                .addTo(map as L.Map)
+                .bindPopup('<b>Lokasi Anda</b>');
+
+            (map as Record<string, unknown>).userMarker = marker;
+
+            if (outlet.latitude && outlet.longitude) {
+                const bounds = L.latLngBounds(
+                    [userLat, userLng],
+                    [outlet.latitude, outlet.longitude],
+                );
+                (map as L.Map).fitBounds(bounds.pad(0.3));
+            }
+        }
+
+        addUserMarker();
+    }, [userPosition, outlet.latitude, outlet.longitude]);
 
     useEffect(() => {
         if (!navigator.geolocation) {
@@ -311,194 +372,197 @@ export default function AttendanceIndex({
                     </Card>
                 </div>
 
-                {/* Geofence Map */}
-                {outlet.latitude && outlet.longitude && (
-                    <Card className="border-[oklch(0.80_0.038_88.5)]/40 bg-white/80 shadow-sm backdrop-blur-sm">
-                        <CardHeader className="border-b border-[oklch(0.80_0.038_88.5)]/20">
-                            <div className="flex items-center justify-between">
-                                <CardTitle className="font-serif text-lg font-medium text-[oklch(0.48_0.032_195.5)]">
-                                    Peta Geofence
-                                </CardTitle>
-                                <div className="flex items-center gap-4 text-xs">
-                                    {distanceToOutlet !== null && (
-                                        <span
-                                            className={`flex items-center gap-1.5 font-medium ${
-                                                distanceToOutlet <= (outlet.geofence_radius_meters ?? 20)
-                                                    ? 'text-emerald-600'
-                                                    : 'text-red-500'
-                                            }`}
-                                        >
-                                            {distanceToOutlet <= (outlet.geofence_radius_meters ?? 20) ? (
-                                                <CheckCircle2 className="size-3.5" />
-                                            ) : (
-                                                <XCircle className="size-3.5" />
-                                            )}
-                                            {distanceToOutlet < 1000
-                                                ? `${Math.round(distanceToOutlet)}m dari outlet`
-                                                : `${(distanceToOutlet / 1000).toFixed(1)}km dari outlet`}
-                                        </span>
-                                    )}
-                                    {geoError && (
-                                        <span className="flex items-center gap-1.5 text-amber-500">
-                                            <Navigation className="size-3.5" />
-                                            {geoError}
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
-                        </CardHeader>
-                        <CardContent className="pt-5">
-                            <div
-                                ref={mapRef}
-                                className="h-[220px] w-full overflow-hidden rounded-lg border border-[oklch(0.80_0.038_88.5)]/30"
-                            />
-                        </CardContent>
-                    </Card>
-                )}
-
                 <div className="grid gap-6 lg:grid-cols-2">
-                    {/* Clock-In Card */}
-                    <Card className="border-[oklch(0.80_0.038_88.5)]/40 bg-white/80 shadow-sm backdrop-blur-sm">
-                        <CardHeader className="border-b border-[oklch(0.80_0.038_88.5)]/20">
-                            <CardTitle className="font-serif text-lg font-medium text-[oklch(0.48_0.032_195.5)]">
-                                Clock-In
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4 pt-5">
-                            <div className="grid gap-2">
-                                <label className="text-xs font-semibold uppercase tracking-wider text-[oklch(0.48_0.032_195.5)]">
-                                    Pilih Karyawan
-                                </label>
-                                <select
-                                    className="flex h-9 w-full rounded-md border border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 px-3 py-1 text-sm shadow-xs focus:border-[oklch(0.48_0.032_195.5)] focus:ring-[oklch(0.48_0.032_195.5)]"
-                                    value={selectedEmployee ?? ''}
-                                    onChange={(e) => {
-                                        const id = e.target.value ? Number(e.target.value) : null;
-                                        setSelectedEmployee(id);
-                                        setInData('employee_id', e.target.value);
-                                    }}
-                                >
-                                    <option value="">Pilih karyawan...</option>
-                                    {employees.map((emp) => {
-                                        const alreadyIn = todayAttendance[emp.id] && !todayAttendance[emp.id].clock_out_at;
-
-                                        return (
-                                            <option key={emp.id} value={emp.id} disabled={!!alreadyIn}>
-                                                {emp.user.name} — {emp.position}
-                                                {alreadyIn ? ' (sudah clock-in)' : ''}
-                                            </option>
-                                        );
-                                    })}
-                                </select>
-                                <InputError message={inErrors.employee_id} />
-                            </div>
-
-                            <div className="grid gap-2">
-                                <label className="text-xs font-semibold uppercase tracking-wider text-[oklch(0.48_0.032_195.5)]">
-                                    Foto Selfie
-                                </label>
-                                <div className="flex items-center gap-4">
-                                    <label className="flex cursor-pointer items-center gap-2 rounded-md border border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 px-4 py-2 text-sm transition-colors hover:bg-[oklch(0.80_0.038_88.5)]/10">
-                                        <Camera className="size-4 text-[oklch(0.48_0.032_195.5)]" />
-                                        <span className="text-slate-600">Ambil Foto</span>
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            capture="user"
-                                            className="hidden"
-                                            onChange={handlePhotoChange}
-                                        />
+                    {/* Left Column: Clock-In + Daftar Absensi */}
+                    <div className="flex flex-col gap-6">
+                        {/* Clock-In Card */}
+                        <Card className="border-[oklch(0.80_0.038_88.5)]/40 bg-white/80 shadow-sm backdrop-blur-sm">
+                            <CardHeader className="border-b border-[oklch(0.80_0.038_88.5)]/20">
+                                <CardTitle className="font-serif text-lg font-medium text-[oklch(0.48_0.032_195.5)]">
+                                    Clock-In
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4 pt-5">
+                                <div className="grid gap-2">
+                                    <label className="text-xs font-semibold uppercase tracking-wider text-[oklch(0.48_0.032_195.5)]">
+                                        Pilih Karyawan
                                     </label>
-                                    {photoPreview && (
-                                        <img src={photoPreview} alt="Preview" className="h-14 w-14 rounded-full object-cover border border-[oklch(0.80_0.038_88.5)]/30" />
-                                    )}
+                                    <select
+                                        className="flex h-9 w-full rounded-md border border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 px-3 py-1 text-sm shadow-xs focus:border-[oklch(0.48_0.032_195.5)] focus:ring-[oklch(0.48_0.032_195.5)]"
+                                        value={selectedEmployee ?? ''}
+                                        onChange={(e) => {
+                                            const id = e.target.value ? Number(e.target.value) : null;
+                                            setSelectedEmployee(id);
+                                            setInData('employee_id', e.target.value);
+                                        }}
+                                    >
+                                        <option value="">Pilih karyawan...</option>
+                                        {employees.map((emp) => {
+                                            const alreadyIn = todayAttendance[emp.id] && !todayAttendance[emp.id].clock_out_at;
+
+                                            return (
+                                                <option key={emp.id} value={emp.id} disabled={!!alreadyIn}>
+                                                    {emp.user.name} — {emp.position}
+                                                    {alreadyIn ? ' (sudah clock-in)' : ''}
+                                                </option>
+                                            );
+                                        })}
+                                    </select>
+                                    <InputError message={inErrors.employee_id} />
                                 </div>
-                            </div>
 
-                            {outlet.latitude && outlet.longitude && (
-                                <div className="flex items-center gap-2 text-xs text-slate-500">
-                                    <MapPin className="size-3" />
-                                    Geofencing aktif ({outlet.geofence_radius_meters ?? 100}m radius)
+                                <div className="grid gap-2">
+                                    <label className="text-xs font-semibold uppercase tracking-wider text-[oklch(0.48_0.032_195.5)]">
+                                        Foto Selfie
+                                    </label>
+                                    <div className="flex items-center gap-4">
+                                        <label className="flex cursor-pointer items-center gap-2 rounded-md border border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 px-4 py-2 text-sm transition-colors hover:bg-[oklch(0.80_0.038_88.5)]/10">
+                                            <Camera className="size-4 text-[oklch(0.48_0.032_195.5)]" />
+                                            <span className="text-slate-600">Ambil Foto</span>
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                capture="user"
+                                                className="hidden"
+                                                onChange={handlePhotoChange}
+                                            />
+                                        </label>
+                                        {photoPreview && (
+                                            <img src={photoPreview} alt="Preview" className="h-14 w-14 rounded-full object-cover border border-[oklch(0.80_0.038_88.5)]/30" />
+                                        )}
+                                    </div>
                                 </div>
-                            )}
 
-                            <InputError message={inErrors.photo} />
+                                {outlet.latitude && outlet.longitude && (
+                                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                                        <MapPin className="size-3" />
+                                        Geofencing aktif ({outlet.geofence_radius_meters ?? 100}m radius)
+                                    </div>
+                                )}
 
-                            <Button
-                                onClick={handleClockIn}
-                                disabled={!selectedEmployee || inProcessing}
-                                className="w-full gap-2 bg-[oklch(0.48_0.032_195.5)] font-serif tracking-wider text-white hover:bg-[oklch(0.38_0.032_195.5)]"
-                            >
-                                <Clock className="size-4" />
-                                {inProcessing ? 'Memproses...' : 'Clock-In'}
-                            </Button>
-                        </CardContent>
-                    </Card>
+                                <InputError message={inErrors.photo} />
 
-                    {/* Today's Attendance */}
-                    <Card className="border-[oklch(0.80_0.038_88.5)]/40 bg-white/80 shadow-sm backdrop-blur-sm">
-                        <CardHeader className="border-b border-[oklch(0.80_0.038_88.5)]/20">
-                            <CardTitle className="font-serif text-lg font-medium text-[oklch(0.48_0.032_195.5)]">
-                                Absensi Hari Ini
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="pt-5">
-                            {attendances.length === 0 ? (
-                                <p className="py-4 text-center text-sm italic text-slate-500">
-                                    Belum ada absensi hari ini.
-                                </p>
-                            ) : (
-                                <div className="space-y-3">
-                                    {attendances.map((att) => (
-                                        <div
-                                            key={att.id}
-                                            className="flex items-center justify-between rounded-lg border border-[oklch(0.80_0.038_88.5)]/20 p-3 transition-colors hover:bg-[oklch(0.80_0.038_88.5)]/5"
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <div className="flex size-9 items-center justify-center rounded-full bg-[oklch(0.48_0.032_195.5)]/10 font-serif text-sm font-semibold text-[oklch(0.48_0.032_195.5)]">
-                                                    {att.employee.user.name.charAt(0)}
-                                                </div>
-                                                <div>
-                                                    <p className="text-sm font-medium text-slate-800">
-                                                        {att.employee.user.name}
-                                                    </p>
-                                                    <div className="flex items-center gap-2 text-xs text-slate-500">
-                                                        <Clock className="size-3" />
-                                                        {att.clock_in_at ? new Date(att.clock_in_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'}
-                                                        {att.clock_out_at && (
-                                                            <> → {new Date(att.clock_out_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</>
-                                                        )}
+                                <Button
+                                    onClick={handleClockIn}
+                                    disabled={!selectedEmployee || inProcessing}
+                                    className="w-full gap-2 bg-[oklch(0.48_0.032_195.5)] font-serif tracking-wider text-white hover:bg-[oklch(0.38_0.032_195.5)]"
+                                >
+                                    <Clock className="size-4" />
+                                    {inProcessing ? 'Memproses...' : 'Clock-In'}
+                                </Button>
+                            </CardContent>
+                        </Card>
+
+                        {/* Today's Attendance */}
+                        <Card className="border-[oklch(0.80_0.038_88.5)]/40 bg-white/80 shadow-sm backdrop-blur-sm">
+                            <CardHeader className="border-b border-[oklch(0.80_0.038_88.5)]/20">
+                                <CardTitle className="font-serif text-lg font-medium text-[oklch(0.48_0.032_195.5)]">
+                                    Absensi Hari Ini
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="pt-5">
+                                {attendances.length === 0 ? (
+                                    <p className="py-4 text-center text-sm italic text-slate-500">
+                                        Belum ada absensi hari ini.
+                                    </p>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {attendances.map((att) => (
+                                            <div
+                                                key={att.id}
+                                                className="flex items-center justify-between rounded-lg border border-[oklch(0.80_0.038_88.5)]/20 p-3 transition-colors hover:bg-[oklch(0.80_0.038_88.5)]/5"
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className="flex size-9 items-center justify-center rounded-full bg-[oklch(0.48_0.032_195.5)]/10 font-serif text-sm font-semibold text-[oklch(0.48_0.032_195.5)]">
+                                                        {att.employee.user.name.charAt(0)}
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm font-medium text-slate-800">
+                                                            {att.employee.user.name}
+                                                        </p>
+                                                        <div className="flex items-center gap-2 text-xs text-slate-500">
+                                                            <Clock className="size-3" />
+                                                            {att.clock_in_at ? new Date(att.clock_in_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'}
+                                                            {att.clock_out_at && (
+                                                                <> → {new Date(att.clock_out_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <Badge
-                                                    className={`border-none font-semibold rounded-full ${
-                                                        att.status === 'late'
-                                                            ? 'bg-[oklch(0.80_0.038_88.5)]/20 text-[oklch(0.80_0.038_88.5)]'
-                                                            : 'bg-[oklch(0.48_0.032_195.5)]/10 text-[oklch(0.48_0.032_195.5)]'
-                                                    }`}
-                                                >
-                                                    {att.status === 'late' ? 'Terlambat' : 'Hadir'}
-                                                </Badge>
-                                                {!att.clock_out_at && (
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        className="gap-1 text-xs border-[oklch(0.80_0.038_88.5)]/40 text-[oklch(0.80_0.038_88.5)] hover:bg-[oklch(0.80_0.038_88.5)]/10"
-                                                        onClick={() => handleClockOut(att.employee_id)}
-                                                        disabled={outProcessing}
+                                                <div className="flex items-center gap-2">
+                                                    <Badge
+                                                        className={`border-none font-semibold rounded-full ${
+                                                            att.status === 'late'
+                                                                ? 'bg-[oklch(0.80_0.038_88.5)]/20 text-[oklch(0.80_0.038_88.5)]'
+                                                                : 'bg-[oklch(0.48_0.032_195.5)]/10 text-[oklch(0.48_0.032_195.5)]'
+                                                        }`}
                                                     >
-                                                        Clock-Out
-                                                    </Button>
-                                                )}
+                                                        {att.status === 'late' ? 'Terlambat' : 'Hadir'}
+                                                    </Badge>
+                                                    {!att.clock_out_at && (
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            className="gap-1 text-xs border-[oklch(0.80_0.038_88.5)]/40 text-[oklch(0.80_0.038_88.5)] hover:bg-[oklch(0.80_0.038_88.5)]/10"
+                                                            onClick={() => handleClockOut(att.employee_id)}
+                                                            disabled={outProcessing}
+                                                        >
+                                                            Clock-Out
+                                                        </Button>
+                                                    )}
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        ))}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    {/* Right Column: Map */}
+                    {outlet.latitude && outlet.longitude && (
+                        <Card className="h-fit overflow-hidden border-[oklch(0.80_0.038_88.5)]/40 bg-white/80 shadow-sm backdrop-blur-sm">
+                            <CardHeader className="border-b border-[oklch(0.80_0.038_88.5)]/20">
+                                <div className="flex items-center justify-between">
+                                    <CardTitle className="font-serif text-lg font-medium text-[oklch(0.48_0.032_195.5)]">
+                                        Peta Geofence
+                                    </CardTitle>
+                                    <div className="flex items-center gap-4 text-xs">
+                                        {distanceToOutlet !== null && (
+                                            <span
+                                                className={`flex items-center gap-1.5 font-medium ${
+                                                    distanceToOutlet <= (outlet.geofence_radius_meters ?? 20)
+                                                        ? 'text-emerald-600'
+                                                        : 'text-red-500'
+                                                }`}
+                                            >
+                                                {distanceToOutlet <= (outlet.geofence_radius_meters ?? 20) ? (
+                                                    <CheckCircle2 className="size-3.5" />
+                                                ) : (
+                                                    <XCircle className="size-3.5" />
+                                                )}
+                                                {distanceToOutlet < 1000
+                                                    ? `${Math.round(distanceToOutlet)}m dari outlet`
+                                                    : `${(distanceToOutlet / 1000).toFixed(1)}km dari outlet`}
+                                            </span>
+                                        )}
+                                        {geoError && (
+                                            <span className="flex items-center gap-1.5 text-amber-500">
+                                                <Navigation className="size-3.5" />
+                                                {geoError}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
-                            )}
-                        </CardContent>
-                    </Card>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                <div
+                                    ref={mapRef}
+                                    className="h-[450px] w-full rounded-b-lg"
+                                />
+                            </CardContent>
+                        </Card>
+                    )}
                 </div>
             </div>
         </div>

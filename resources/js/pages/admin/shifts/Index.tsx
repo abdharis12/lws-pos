@@ -1,6 +1,5 @@
-import { Head, Link } from '@inertiajs/react';
-import { useForm } from '@inertiajs/react';
-import { ChevronLeft, ChevronRight, Plus, Trash2, Calendar } from 'lucide-react';
+import { Head, router, useForm } from '@inertiajs/react';
+import { ChevronLeft, ChevronRight, Plus, Trash2, Pencil, Calendar, Users, ClipboardList } from 'lucide-react';
 import { useState } from 'react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -26,11 +25,26 @@ interface ShiftData {
     employee: EmployeeData;
 }
 
+interface MonthlyEmployeeSummary {
+    employee: EmployeeData;
+    total: number;
+}
+
+interface MonthlyDaySummary {
+    date: string;
+    total: number;
+}
+
 interface Props {
     shifts: Record<string, ShiftData[]>;
     employees: EmployeeData[];
     dates: string[];
     weekStart: string;
+    monthlyPerEmployee: MonthlyEmployeeSummary[];
+    monthlyPerDay: MonthlyDaySummary[];
+    monthlyGrandTotal: number;
+    activeEmployeeCount: number;
+    monthLabel: string;
 }
 
 function formatDate(dateStr: string) {
@@ -43,49 +57,71 @@ function formatDate(dateStr: string) {
     };
 }
 
-export default function ShiftsIndex({ shifts, employees, dates, weekStart }: Props) {
-    const [selectedEmployee, setSelectedEmployee] = useState('');
-    const [selectedDate, setSelectedDate] = useState(dates[0]);
-    const [startTime, setStartTime] = useState('08:00');
-    const [endTime, setEndTime] = useState('16:00');
+function formatDateShort(dateStr: string) {
+    const d = new Date(dateStr + 'T12:00:00');
+
+    return {
+        dayName: d.toLocaleDateString('id-ID', { weekday: 'short' }),
+        dayNum: d.getDate(),
+        month: d.toLocaleDateString('id-ID', { month: 'short' }),
+        year: d.getFullYear(),
+        full: dateStr,
+    };
+}
+
+function formatDateLong(dateStr: string) {
+    const d = new Date(dateStr + 'T12:00:00');
+
+    return d.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+export default function ShiftsIndex({ shifts, employees, dates, weekStart, monthlyPerEmployee, monthlyPerDay, monthlyGrandTotal, activeEmployeeCount, monthLabel }: Props) {
     const [editingShift, setEditingShift] = useState<ShiftData | null>(null);
+    const [showMonthly, setShowMonthly] = useState(false);
+    const [selectedDayShifts, setSelectedDayShifts] = useState<{ date: string; shifts: ShiftData[] } | null>(null);
 
     const { data, setData, post, put, delete: destroy, processing, errors, reset } = useForm({
         employee_id: '',
-        shift_date: '',
-        start_time: '',
-        end_time: '',
-    });
-
-    const { data: bulkData, setData: setBulkData, post: bulkPost, processing: bulkProcessing } = useForm({
-        shifts: [] as { employee_id: string; shift_date: string; start_time: string; end_time: string }[],
+        shift_date: dates[0] ?? '',
+        start_time: '08:00',
+        end_time: '16:00',
     });
 
     function prevWeek() {
         const prev = new Date(weekStart + 'T12:00:00');
         prev.setDate(prev.getDate() - 7);
-        window.location.href = `/admin/shifts?week_start=${prev.toISOString().slice(0, 10)}`;
+        router.get('/admin/shifts', { week_start: prev.toISOString().slice(0, 10) }, { preserveScroll: true, preserveState: false });
     }
 
     function nextWeek() {
         const next = new Date(weekStart + 'T12:00:00');
         next.setDate(next.getDate() + 7);
-        window.location.href = `/admin/shifts?week_start=${next.toISOString().slice(0, 10)}`;
+        router.get('/admin/shifts', { week_start: next.toISOString().slice(0, 10) }, { preserveScroll: true, preserveState: false });
     }
 
     function handleAddShift() {
-        setData({
-            employee_id: selectedEmployee,
-            shift_date: selectedDate,
-            start_time: startTime,
-            end_time: endTime,
-        });
         post('/admin/shifts', {
-            onSuccess: () => {
-                setSelectedEmployee('');
-                setStartTime('08:00');
-                setEndTime('16:00');
-            },
+            onSuccess: () => reset('start_time', 'end_time', 'employee_id'),
+        });
+    }
+
+    function handleBulkAssign() {
+        const payload = employees
+            .filter((emp) => {
+                const dayShifts = shifts[data.shift_date] ?? [];
+                return !dayShifts.some((s) => s.employee_id === emp.id);
+            })
+            .map((emp) => ({
+                employee_id: String(emp.id),
+                shift_date: data.shift_date,
+                start_time: data.start_time,
+                end_time: data.end_time,
+            }));
+
+        if (payload.length === 0) return;
+
+        router.post('/admin/shifts/bulk', { shifts: payload }, {
+            onSuccess: () => {},
         });
     }
 
@@ -157,7 +193,7 @@ export default function ShiftsIndex({ shifts, employees, dates, weekStart }: Pro
                         Minggu Sebelumnya
                     </Button>
                     <span className="font-serif text-sm font-semibold text-[oklch(0.48_0.032_195.5)]">
-                        {formatDate(dates[0]).dayName}, {formatDate(dates[0]).dayNum} — {formatDate(dates[6]).dayName}, {formatDate(dates[6]).dayNum}
+                        {formatDateShort(dates[0]).dayName}, {formatDateShort(dates[0]).dayNum} {formatDateShort(dates[0]).month} {formatDateShort(dates[0]).year} — {formatDateShort(dates[6]).dayName}, {formatDateShort(dates[6]).dayNum} {formatDateShort(dates[6]).month} {formatDateShort(dates[6]).year}
                     </span>
                     <Button
                         variant="outline"
@@ -185,8 +221,8 @@ export default function ShiftsIndex({ shifts, employees, dates, weekStart }: Pro
                                 </label>
                                 <select
                                     className="flex h-9 rounded-md border border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 px-3 py-1 text-sm shadow-xs focus:border-[oklch(0.48_0.032_195.5)] focus:ring-[oklch(0.48_0.032_195.5)]"
-                                    value={selectedEmployee}
-                                    onChange={(e) => setSelectedEmployee(e.target.value)}
+                                    value={data.employee_id}
+                                    onChange={(e) => setData('employee_id', e.target.value)}
                                 >
                                     <option value="">Pilih karyawan...</option>
                                     {employees.map((emp) => (
@@ -202,12 +238,12 @@ export default function ShiftsIndex({ shifts, employees, dates, weekStart }: Pro
                                 </label>
                                 <select
                                     className="flex h-9 rounded-md border border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 px-3 py-1 text-sm shadow-xs focus:border-[oklch(0.48_0.032_195.5)] focus:ring-[oklch(0.48_0.032_195.5)]"
-                                    value={selectedDate}
-                                    onChange={(e) => setSelectedDate(e.target.value)}
+                                    value={data.shift_date}
+                                    onChange={(e) => setData('shift_date', e.target.value)}
                                 >
                                     {dates.map((d) => (
                                         <option key={d} value={d}>
-                                            {formatDate(d).dayName}, {formatDate(d).dayNum}
+                                            {formatDateShort(d).dayName}, {formatDateShort(d).dayNum} {formatDateShort(d).month} {formatDateShort(d).year}
                                         </option>
                                     ))}
                                 </select>
@@ -219,8 +255,8 @@ export default function ShiftsIndex({ shifts, employees, dates, weekStart }: Pro
                                 <input
                                     type="time"
                                     className="flex h-9 rounded-md border border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 px-3 py-1 text-sm shadow-xs focus:border-[oklch(0.48_0.032_195.5)] focus:ring-[oklch(0.48_0.032_195.5)]"
-                                    value={startTime}
-                                    onChange={(e) => setStartTime(e.target.value)}
+                                    value={data.start_time}
+                                    onChange={(e) => setData('start_time', e.target.value)}
                                 />
                             </div>
                             <div className="grid gap-2">
@@ -230,17 +266,28 @@ export default function ShiftsIndex({ shifts, employees, dates, weekStart }: Pro
                                 <input
                                     type="time"
                                     className="flex h-9 rounded-md border border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 px-3 py-1 text-sm shadow-xs focus:border-[oklch(0.48_0.032_195.5)] focus:ring-[oklch(0.48_0.032_195.5)]"
-                                    value={endTime}
-                                    onChange={(e) => setEndTime(e.target.value)}
+                                    value={data.end_time}
+                                    onChange={(e) => setData('end_time', e.target.value)}
                                 />
                             </div>
                             <Button
                                 onClick={handleAddShift}
-                                disabled={!selectedEmployee || processing}
+                                disabled={!data.employee_id || processing}
                                 className="gap-2 bg-[oklch(0.48_0.032_195.5)] font-serif text-white hover:bg-[oklch(0.38_0.032_195.5)]"
                             >
                                 <Plus className="size-4" />
                                 Tambah
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={handleBulkAssign}
+                                disabled={false}
+                                className="gap-2 border-[oklch(0.80_0.038_88.5)]/40 text-[oklch(0.48_0.032_195.5)] hover:bg-[oklch(0.80_0.038_88.5)]/10"
+                                title="Terapkan jam yang sama ke semua karyawan yang belum memiliki shift di tanggal ini"
+                            >
+                                <Users className="size-4" />
+                                Terapkan
                             </Button>
                         </div>
                         <InputError message={errors.shift_date} />
@@ -264,14 +311,25 @@ export default function ShiftsIndex({ shifts, employees, dates, weekStart }: Pro
                                             : 'border-[oklch(0.80_0.038_88.5)]/20 bg-white/60'
                                     }`}
                                 >
-                                    <div className="mb-2 text-center">
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedDayShifts({ date, shifts: dayShifts })}
+                                        className="mb-2 w-full text-center"
+                                    >
                                         <p className="text-xs font-semibold uppercase tracking-wider text-[oklch(0.48_0.032_195.5)]">
                                             {dayName.slice(0, 3)}
                                         </p>
                                         <p className={`font-serif text-lg font-bold ${isToday ? 'text-[oklch(0.80_0.038_88.5)]' : 'text-slate-800'}`}>
                                             {dayNum}
                                         </p>
-                                    </div>
+                                        <span className={`inline-flex items-center justify-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                                            dayShifts.length > 0
+                                                ? 'bg-[oklch(0.48_0.032_195.5)]/10 text-[oklch(0.48_0.032_195.5)]'
+                                                : 'bg-slate-100 text-slate-400'
+                                        }`}>
+                                            {dayShifts.length} shift
+                                        </span>
+                                    </button>
                                     <div className="space-y-1.5">
                                         {dayShifts.map((shift) => (
                                             <div
@@ -303,6 +361,259 @@ export default function ShiftsIndex({ shifts, employees, dates, weekStart }: Pro
                     </div>
                 </div>
 
+                {/* Employee × Day Matrix Table */}
+                <div className="overflow-x-auto">
+                    <div className="rounded-xl border border-[oklch(0.80_0.038_88.5)]/20 bg-white/60">
+                        <table className="w-full text-left text-xs">
+                            <thead>
+                                <tr className="bg-[oklch(0.48_0.032_195.5)]/5">
+                                    <th className="sticky left-0 z-10 min-w-[160px] bg-[oklch(0.48_0.032_195.5)]/5 px-3 py-2.5 font-semibold text-[oklch(0.48_0.032_195.5)]">
+                                        Karyawan
+                                    </th>
+                                    {dates.map((date) => {
+                                        const { dayName, dayNum, month, year } = formatDateShort(date);
+                                        const isToday = date === new Date().toISOString().slice(0, 10);
+                                        return (
+                                            <th
+                                                key={date}
+                                                className={`min-w-[110px] px-2 py-2.5 text-center font-semibold ${
+                                                    isToday ? 'text-[oklch(0.80_0.038_88.5)]' : 'text-[oklch(0.48_0.032_195.5)]'
+                                                }`}
+                                            >
+                                                <p>{dayName.slice(0, 3)}</p>
+                                                <p className={`font-serif text-base ${isToday ? 'font-bold' : ''}`}>{dayNum}</p>
+                                                <p className="text-[10px] font-normal text-slate-400">{month} {year}</p>
+                                            </th>
+                                        );
+                                    })}
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[oklch(0.80_0.038_88.5)]/10">
+                                {employees.length === 0 && (
+                                    <tr>
+                                        <td colSpan={dates.length + 1} className="px-3 py-8 text-center text-slate-400">
+                                            Belum ada karyawan
+                                        </td>
+                                    </tr>
+                                )}
+                                {employees.map((emp) => {
+                                    const empShifts = dates.map((date) => {
+                                        const dayShifts = shifts[date] ?? [];
+                                        return dayShifts.find((s) => s.employee_id === emp.id) ?? null;
+                                    });
+                                    const hasAnyShift = empShifts.some((s) => s !== null);
+                                    return (
+                                        <tr key={emp.id} className="transition-colors hover:bg-[oklch(0.48_0.032_195.5)]/[0.02]">
+                                            <td className="sticky left-0 z-10 bg-white px-3 py-2.5">
+                                                <p className="font-medium text-slate-800">{emp.user.name}</p>
+                                                <p className="text-[10px] text-slate-400">{emp.position}</p>
+                                            </td>
+                                            {empShifts.map((shift, i) => (
+                                                <td key={dates[i]} className="px-2 py-2.5 text-center align-middle">
+                                                    {shift ? (
+                                                        <div className="inline-flex items-center gap-1 rounded-md bg-[oklch(0.48_0.032_195.5)]/8 px-2 py-1.5">
+                                                            <span className="whitespace-nowrap font-medium text-[oklch(0.48_0.032_195.5)]">
+                                                                {shift.start_time.slice(0, 5)}–{shift.end_time.slice(0, 5)}
+                                                            </span>
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleEditShift(shift);
+                                                                }}
+                                                                className="ml-0.5 rounded p-0.5 text-slate-400 transition-colors hover:bg-[oklch(0.48_0.032_195.5)]/10 hover:text-[oklch(0.48_0.032_195.5)]"
+                                                                title="Edit shift"
+                                                            >
+                                                                <Pencil className="size-3" />
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleDeleteShift(shift.id);
+                                                                }}
+                                                                className="rounded p-0.5 text-slate-400 transition-colors hover:bg-red-100 hover:text-red-500"
+                                                                title="Hapus shift"
+                                                            >
+                                                                <Trash2 className="size-3" />
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-slate-300">—</span>
+                                                    )}
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                {/* Monthly Summary Toggle */}
+                <Card className="border-[oklch(0.80_0.038_88.5)]/40 bg-white/80 shadow-sm backdrop-blur-sm">
+                    <CardHeader
+                        className="cursor-pointer border-b border-[oklch(0.80_0.038_88.5)]/20 transition-colors hover:bg-[oklch(0.80_0.038_88.5)]/5"
+                        onClick={() => setShowMonthly(!showMonthly)}
+                    >
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <ClipboardList className="size-4 text-[oklch(0.48_0.032_195.5)]" />
+                                <CardTitle className="font-serif text-lg font-medium text-[oklch(0.48_0.032_195.5)]">
+                                    Rekapitulasi Bulanan — {monthLabel}
+                                </CardTitle>
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <span className="text-xs text-slate-500">
+                                    {monthlyGrandTotal} shift dari {activeEmployeeCount} karyawan aktif
+                                </span>
+                                <ChevronRight className={`size-4 text-slate-400 transition-transform ${showMonthly ? 'rotate-90' : ''}`} />
+                            </div>
+                        </div>
+                    </CardHeader>
+                    {showMonthly && (
+                        <CardContent className="pt-5">
+                            <div className="grid gap-6 lg:grid-cols-2">
+                                {/* Per Day Table */}
+                                <div>
+                                    <h4 className="mb-3 font-serif text-sm font-semibold text-[oklch(0.48_0.032_195.5)]">
+                                        Per Hari
+                                    </h4>
+                                    <div className="overflow-x-auto rounded-lg border border-[oklch(0.80_0.038_88.5)]/20">
+                                        <table className="w-full text-left text-xs">
+                                            <thead>
+                                                <tr className="bg-[oklch(0.48_0.032_195.5)]/5">
+                                                    <th className="px-3 py-2 font-semibold text-[oklch(0.48_0.032_195.5)]">Tanggal</th>
+                                                    <th className="px-3 py-2 text-right font-semibold text-[oklch(0.48_0.032_195.5)]">Jumlah Shift</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-[oklch(0.80_0.038_88.5)]/10">
+                                                {monthlyPerDay.map((row) => {
+                                                    const { dayName, dayNum, month, year } = formatDateShort(row.date);
+                                                    return (
+                                                        <tr key={row.date} className="transition-colors hover:bg-[oklch(0.48_0.032_195.5)]/[0.02]">
+                                                            <td className="px-3 py-2 text-slate-700">
+                                                                {dayName}, {dayNum} {month} {year}
+                                                            </td>
+                                                            <td className="px-3 py-2 text-right font-medium text-slate-800">
+                                                                {row.total}
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                            <tfoot className="bg-[oklch(0.48_0.032_195.5)]/5">
+                                                <tr>
+                                                    <td className="px-3 py-2 font-semibold text-[oklch(0.48_0.032_195.5)]">
+                                                        Total
+                                                    </td>
+                                                    <td className="px-3 py-2 text-right font-semibold text-[oklch(0.48_0.032_195.5)]">
+                                                        {monthlyGrandTotal}
+                                                    </td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                {/* Per Employee Table */}
+                                <div>
+                                    <h4 className="mb-3 font-serif text-sm font-semibold text-[oklch(0.48_0.032_195.5)]">
+                                        Per Karyawan
+                                    </h4>
+                                    <div className="overflow-x-auto rounded-lg border border-[oklch(0.80_0.038_88.5)]/20">
+                                        <table className="w-full text-left text-xs">
+                                            <thead>
+                                                <tr className="bg-[oklch(0.48_0.032_195.5)]/5">
+                                                    <th className="px-3 py-2 font-semibold text-[oklch(0.48_0.032_195.5)]">Karyawan</th>
+                                                    <th className="px-3 py-2 text-right font-semibold text-[oklch(0.48_0.032_195.5)]">Jumlah Shift</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-[oklch(0.80_0.038_88.5)]/10">
+                                                {monthlyPerEmployee.map((row) => (
+                                                    <tr key={row.employee.id} className="transition-colors hover:bg-[oklch(0.48_0.032_195.5)]/[0.02]">
+                                                        <td className="px-3 py-2 text-slate-700">
+                                                            {row.employee.user.name}
+                                                        </td>
+                                                        <td className="px-3 py-2 text-right font-medium text-slate-800">
+                                                            {row.total}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                            <tfoot className="bg-[oklch(0.48_0.032_195.5)]/5">
+                                                <tr>
+                                                    <td className="px-3 py-2 font-semibold text-[oklch(0.48_0.032_195.5)]">
+                                                        Total
+                                                    </td>
+                                                    <td className="px-3 py-2 text-right font-semibold text-[oklch(0.48_0.032_195.5)]">
+                                                        {monthlyGrandTotal}
+                                                    </td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </CardContent>
+                    )}
+                </Card>
+
+                {/* Day Shift Popup */}
+                {selectedDayShifts && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={() => setSelectedDayShifts(null)}>
+                        <div className="mx-4 w-full max-w-md rounded-2xl border border-[oklch(0.80_0.038_88.5)]/40 bg-[oklch(0.98_0.005_85.0)] p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+                            <h3 className="mb-1 font-serif text-lg font-semibold text-[oklch(0.48_0.032_195.5)]">
+                                Daftar Shift
+                            </h3>
+                            <p className="mb-4 text-sm text-slate-500">{formatDateLong(selectedDayShifts.date)}</p>
+                            {selectedDayShifts.shifts.length === 0 ? (
+                                <p className="py-4 text-center text-sm text-slate-400">Tidak ada shift di hari ini.</p>
+                            ) : (
+                                <div className="space-y-2">
+                                    {selectedDayShifts.shifts.map((shift) => (
+                                        <div
+                                            key={shift.id}
+                                            className="flex items-center justify-between rounded-lg border border-[oklch(0.80_0.038_88.5)]/20 bg-white/80 px-3 py-2.5 text-sm"
+                                        >
+                                            <div>
+                                                <p className="font-medium text-slate-800">{shift.employee.user.name}</p>
+                                                <p className="text-xs text-slate-400">{shift.employee.position}</p>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="whitespace-nowrap rounded-md bg-[oklch(0.48_0.032_195.5)]/10 px-2.5 py-1 font-medium text-[oklch(0.48_0.032_195.5)]">
+                                                    {shift.start_time.slice(0, 5)} – {shift.end_time.slice(0, 5)}
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setSelectedDayShifts(null);
+                                                        handleEditShift(shift);
+                                                    }}
+                                                    className="rounded p-1 text-slate-400 transition-colors hover:bg-[oklch(0.48_0.032_195.5)]/10 hover:text-[oklch(0.48_0.032_195.5)]"
+                                                    title="Edit shift"
+                                                >
+                                                    <Pencil className="size-3.5" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            <div className="mt-4 text-center">
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setSelectedDayShifts(null)}
+                                    className="border-[oklch(0.80_0.038_88.5)]/40 text-slate-600 hover:bg-[oklch(0.80_0.038_88.5)]/10"
+                                >
+                                    Tutup
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Edit Shift Modal */}
                 {editingShift && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
@@ -310,10 +621,17 @@ export default function ShiftsIndex({ shifts, employees, dates, weekStart }: Pro
                             <h3 className="mb-4 font-serif text-lg font-semibold text-[oklch(0.48_0.032_195.5)]">
                                 Edit Shift
                             </h3>
-                            <div className="space-y-4">
-                                <p className="text-sm text-slate-600">
-                                    {editingShift.employee.user.name} — {formatDate(editingShift.shift_date).dayName}, {editingShift.shift_date}
-                                </p>
+                            <div className="space-y-3">
+                                <div className="rounded-lg border border-[oklch(0.80_0.038_88.5)]/20 bg-[oklch(0.48_0.032_195.5)]/[0.02] p-3 text-sm">
+                                    <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5">
+                                        <span className="text-slate-400">Nama Karyawan</span>
+                                        <span className="font-medium text-slate-800">{editingShift.employee.user.name}</span>
+                                        <span className="text-slate-400">Posisi</span>
+                                        <span className="text-slate-600">{editingShift.employee.position}</span>
+                                        <span className="text-slate-400">Tanggal</span>
+                                        <span className="text-slate-600">{formatDateLong(editingShift.shift_date)}</span>
+                                    </div>
+                                </div>
                                 <div className="grid gap-2">
                                     <label className="text-xs font-semibold uppercase tracking-wider text-[oklch(0.48_0.032_195.5)]">
                                         Jam Mulai

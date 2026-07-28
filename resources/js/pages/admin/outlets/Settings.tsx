@@ -1,6 +1,6 @@
 import { Head, useForm } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
-import { MapPin, Navigation, Save } from 'lucide-react';
+import { MapPin, Navigation, Save, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import InputError from '@/components/input-error';
@@ -31,11 +31,16 @@ export default function OutletSettings({ outlet }: Props) {
     });
 
     const [locating, setLocating] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState<{ lat: string; lon: string; display_name: string }[]>([]);
+    const [searching, setSearching] = useState(false);
+    const searchTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
     useEffect(() => {
         if (!mapRef.current || mapInstanceRef.current) return;
 
         async function initMap() {
+            await import('leaflet/dist/leaflet.css');
             const L = (await import('leaflet')).default;
 
             const lat = data.latitude ?? -3.8467067;
@@ -48,10 +53,19 @@ export default function OutletSettings({ outlet }: Props) {
                 zoomControl: true,
             });
 
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; OpenStreetMap contributors',
+            const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap',
                 maxZoom: 19,
-            }).addTo(map);
+            });
+
+            const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: '&copy; Esri',
+                maxZoom: 19,
+            });
+
+            satelliteLayer.addTo(map);
+
+            L.control.layers({ 'Satelit': satelliteLayer, 'Street': streetLayer }, undefined, { position: 'topleft' }).addTo(map);
 
             const marker = L.marker([lat, lng], { draggable: true }).addTo(map);
             const circle = L.circle([lat, lng], {
@@ -109,23 +123,85 @@ export default function OutletSettings({ outlet }: Props) {
     function handleUseMyLocation() {
         if (!navigator.geolocation) return;
         setLocating(true);
-        navigator.geolocation.getCurrentPosition(
-            (pos) => {
-                const lat = Math.round(pos.coords.latitude * 1e7) / 1e7;
-                const lng = Math.round(pos.coords.longitude * 1e7) / 1e7;
-                setData('latitude', lat);
-                setData('longitude', lng);
-                if (mapInstanceRef.current && markerRef.current && circleRef.current) {
-                    const L = (mapInstanceRef.current as { _leaflet_id: unknown }).constructor;
-                    (markerRef.current as { setLatLng: (ll: [number, number]) => void }).setLatLng([lat, lng]);
-                    (circleRef.current as { setLatLng: (ll: [number, number]) => void }).setLatLng([lat, lng]);
-                    (mapInstanceRef.current as { setView: (ll: [number, number], z: number) => void }).setView([lat, lng], 17);
-                }
+
+        function updateLocation(pos: GeolocationPosition) {
+            const { latitude, longitude, accuracy } = pos.coords;
+            const lat = Math.round(latitude * 1e7) / 1e7;
+            const lng = Math.round(longitude * 1e7) / 1e7;
+            setData('latitude', lat);
+            setData('longitude', lng);
+            if (mapInstanceRef.current && markerRef.current && circleRef.current) {
+                (markerRef.current as { setLatLng: (ll: [number, number]) => void }).setLatLng([lat, lng]);
+                (circleRef.current as { setLatLng: (ll: [number, number]) => void }).setLatLng([lat, lng]);
+                (mapInstanceRef.current as { setView: (ll: [number, number], z: number) => void }).setView([lat, lng], 17);
+                const m = markerRef.current as { setPopupContent: (c: string) => void; openPopup: () => void };
+                m.setPopupContent(`Lat: ${lat}, Lng: ${lng} (akurasi ±${accuracy?.toFixed(0) ?? '?'}m)`);
+                m.openPopup();
+            }
+            setLocating(false);
+        }
+
+        function onError(err: GeolocationPositionError) {
+            if (err.code === err.PERMISSION_DENIED) {
                 setLocating(false);
-            },
-            () => setLocating(false),
-            { timeout: 10000 },
-        );
+                return;
+            }
+            // GPS gagal — fallback ke WiFi/cell
+            navigator.geolocation.getCurrentPosition(
+                updateLocation,
+                () => setLocating(false),
+                { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 },
+            );
+        }
+
+        navigator.geolocation.getCurrentPosition(updateLocation, onError, {
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 0,
+        });
+    }
+
+    function handleSearchInput(e: React.ChangeEvent<HTMLInputElement>) {
+        const q = e.target.value;
+        setSearchQuery(q);
+        if (searchTimer.current) clearTimeout(searchTimer.current);
+        if (q.trim().length < 3) {
+            setSearchResults([]);
+            return;
+        }
+        searchTimer.current = setTimeout(async () => {
+            setSearching(true);
+            try {
+                const res = await fetch(
+                    `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5&bounded=0`,
+                    { headers: { 'Accept-Language': 'id' } },
+                );
+                if (!res.ok) return;
+                const data = await res.json();
+                setSearchResults(data);
+            } catch {
+                setSearchResults([]);
+            } finally {
+                setSearching(false);
+            }
+        }, 400);
+    }
+
+    function selectSearchResult(result: { lat: string; lon: string; display_name: string }) {
+        const lat = Math.round(parseFloat(result.lat) * 1e7) / 1e7;
+        const lng = Math.round(parseFloat(result.lon) * 1e7) / 1e7;
+        setData('latitude', lat);
+        setData('longitude', lng);
+        setSearchQuery('');
+        setSearchResults([]);
+        if (mapInstanceRef.current && markerRef.current && circleRef.current) {
+            (markerRef.current as { setLatLng: (ll: [number, number]) => void }).setLatLng([lat, lng]);
+            (circleRef.current as { setLatLng: (ll: [number, number]) => void }).setLatLng([lat, lng]);
+            (mapInstanceRef.current as { setView: (ll: [number, number], z: number) => void }).setView([lat, lng], 17);
+            const m = markerRef.current as { setPopupContent: (c: string) => void; openPopup: () => void };
+            m.setPopupContent(result.display_name);
+            m.openPopup();
+        }
     }
 
     function handleSubmit(e: React.FormEvent) {
@@ -249,7 +325,37 @@ export default function OutletSettings({ outlet }: Props) {
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="pt-5">
-                        <p className="mb-3 text-xs text-slate-400">Klik pada peta atau geser marker untuk mengatur lokasi outlet</p>
+                        <div className="relative mb-3">
+                            <div className="relative">
+                                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+                                <input
+                                    type="text"
+                                    value={searchQuery}
+                                    onChange={handleSearchInput}
+                                    placeholder="Cari alamat…"
+                                    className="flex h-10 w-full rounded-md border border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 pl-9 pr-3 py-2 text-sm shadow-xs focus:border-[oklch(0.48_0.032_195.5)] focus:ring-[oklch(0.48_0.032_195.5)] focus:outline-none"
+                                />
+                                {searching && (
+                                    <div className="absolute right-3 top-1/2 size-4 -translate-y-1/2 animate-spin rounded-full border-2 border-[oklch(0.48_0.032_195.5)] border-t-transparent" />
+                                )}
+                            </div>
+                            {searchResults.length > 0 && (
+                                <ul className="absolute z-10 mt-1 w-full rounded-lg border border-[oklch(0.80_0.038_88.5)]/30 bg-white shadow-lg">
+                                    {searchResults.map((r, i) => (
+                                        <li key={i}>
+                                            <button
+                                                type="button"
+                                                onClick={() => selectSearchResult(r)}
+                                                className="w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-[oklch(0.48_0.032_195.5)]/10 focus:bg-[oklch(0.48_0.032_195.5)]/10 focus:outline-none"
+                                            >
+                                                {r.display_name}
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
+                        <p className="mb-3 text-xs text-slate-400">Klik pada peta, geser marker, atau cari alamat untuk mengatur lokasi outlet</p>
                         <div
                             ref={mapRef}
                             className="h-[400px] w-full overflow-hidden rounded-lg border border-[oklch(0.80_0.038_88.5)]/30"

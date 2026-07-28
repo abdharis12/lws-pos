@@ -37,7 +37,9 @@ class PayrollSettingController extends Controller
             'is_active' => true,
         ]);
 
-        return redirect()->back()->with('success', 'Pengaturan THR berhasil disimpan.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Pengaturan THR berhasil disimpan.']);
+
+        return redirect()->back();
     }
 
     public function updateThr(Request $request, ThrSetting $thrSetting): RedirectResponse
@@ -51,13 +53,17 @@ class PayrollSettingController extends Controller
 
         $thrSetting->update($validated);
 
-        return redirect()->back()->with('success', 'Pengaturan THR berhasil diperbarui.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Pengaturan THR berhasil diperbarui.']);
+
+        return redirect()->back();
     }
 
     public function destroyThr(ThrSetting $thrSetting): RedirectResponse
     {
         $thrSetting->delete();
 
-        return redirect()->back()->with('success', 'Pengaturan THR berhasil dihapus.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Pengaturan THR berhasil dihapus.']);
+
+        return redirect()->back();
     }
 }

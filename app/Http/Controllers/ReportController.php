@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Exports\SalesReportExport;
+use App\Models\Attendance;
 use App\Models\Employee;
 use App\Models\Order;
 use App\Models\Outlet;
 use App\Models\Payment;
+use App\Models\Shift;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -184,22 +186,40 @@ class ReportController extends Controller
         $month = $request->input('month', today()->format('Y-m'));
         $year = (int) substr($month, 0, 4);
         $monthNum = (int) substr($month, 5, 2);
+        $monthStart = Carbon::create($year, $monthNum, 1)->format('Y-m-d');
+        $monthEnd = Carbon::create($year, $monthNum, 1)->endOfMonth()->format('Y-m-d');
 
         $employees = Employee::with('user')
             ->where('outlet_id', $outlet?->id)
-            ->with(['attendances' => function ($q) use ($year, $monthNum) {
-                $q->whereYear('clock_in_at', $year)
-                    ->whereMonth('clock_in_at', $monthNum);
-            }])
+            ->where('is_active', true)
             ->get();
 
-        $summary = $employees->map(function ($employee) {
-            $attendances = $employee->attendances;
-            $totalDays = $attendances->count();
-            $lateDays = $attendances->where('status', 'late')->count();
-            $totalHours = $attendances->sum(function ($a) {
+        $employeeIds = $employees->pluck('id');
+
+        $attendances = Attendance::whereIn('employee_id', $employeeIds)
+            ->whereYear('clock_in_at', $year)
+            ->whereMonth('clock_in_at', $monthNum)
+            ->get()
+            ->groupBy('employee_id');
+
+        $shifts = Shift::whereIn('employee_id', $employeeIds)
+            ->whereBetween('shift_date', [$monthStart, $monthEnd])
+            ->get()
+            ->groupBy('employee_id');
+
+        $summary = $employees->map(function ($employee) use ($attendances, $shifts) {
+            $empAttendances = $attendances->get($employee->id, collect());
+            $empShifts = $shifts->get($employee->id, collect());
+
+            $totalShiftDays = $empShifts->count();
+            $hadir = $empAttendances->count();
+            $terlambat = $empAttendances->where('status', 'late')->count();
+            $alfa = max(0, $totalShiftDays - $hadir);
+            $persentase = $totalShiftDays > 0 ? round(($hadir / $totalShiftDays) * 100, 1) : 0;
+
+            $totalMinutes = $empAttendances->sum(function ($a) {
                 if ($a->clock_in_at && $a->clock_out_at) {
-                    return $a->clock_in_at->diffInHours($a->clock_out_at);
+                    return $a->clock_in_at->diffInMinutes($a->clock_out_at);
                 }
 
                 return 0;
@@ -209,15 +229,27 @@ class ReportController extends Controller
                 'employee_id' => $employee->id,
                 'name' => $employee->user?->name ?? 'Unknown',
                 'position' => $employee->position,
-                'total_days' => $totalDays,
-                'late_days' => $lateDays,
-                'total_hours' => $totalHours,
+                'total_shift_days' => $totalShiftDays,
+                'hadir' => $hadir,
+                'terlambat' => $terlambat,
+                'alfa' => $alfa,
+                'total_jam' => round($totalMinutes / 60, 1),
+                'persentase' => $persentase,
             ];
-        });
+        })->values();
+
+        $grandTotal = [
+            'total_shift_days' => $summary->sum('total_shift_days'),
+            'hadir' => $summary->sum('hadir'),
+            'terlambat' => $summary->sum('terlambat'),
+            'alfa' => $summary->sum('alfa'),
+        ];
 
         return Inertia::render('admin/reports/Attendance', [
             'summary' => $summary,
             'month' => $month,
+            'monthLabel' => Carbon::create($year, $monthNum, 1)->locale('id')->translatedFormat('F Y'),
+            'grandTotal' => $grandTotal,
         ]);
     }
 

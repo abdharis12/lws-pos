@@ -66,7 +66,9 @@ class OptionGroupController extends Controller
             }
         }
 
-        return redirect()->back()->with('success', 'Grup opsi berhasil ditambahkan.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Grup opsi berhasil ditambahkan.']);
+
+        return redirect()->back();
     }
 
     public function update(Request $request, OptionGroup $optionGroup): RedirectResponse
@@ -83,7 +85,9 @@ class OptionGroupController extends Controller
 
         $optionGroup->update($validated);
 
-        return redirect()->back()->with('success', 'Grup opsi berhasil diperbarui.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Grup opsi berhasil diperbarui.']);
+
+        return redirect()->back();
     }
 
     public function destroy(OptionGroup $optionGroup): RedirectResponse
@@ -91,6 +95,8 @@ class OptionGroupController extends Controller
         $this->authorize('delete', $optionGroup);
         $optionGroup->delete();
 
-        return redirect()->back()->with('success', 'Grup opsi berhasil dihapus.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Grup opsi berhasil dihapus.']);
+
+        return redirect()->back();
     }
 }

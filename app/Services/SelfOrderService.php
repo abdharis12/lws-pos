@@ -6,7 +6,6 @@ use App\Models\Meja;
 use App\Models\Menu;
 use App\Models\OptionItem;
 use App\Models\Order;
-use App\Models\OrderItem;
 use App\Models\TableSession;
 
 class SelfOrderService

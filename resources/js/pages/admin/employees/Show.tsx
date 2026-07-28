@@ -97,7 +97,7 @@ export default function EmployeesShow({ employee }: Props) {
                             <h3 className="font-serif text-xl font-semibold tracking-tight text-[oklch(0.48_0.032_195.5)]">
                                 {employee.user.name}
                             </h3>
-                            <p className="mt-1 text-sm italic text-slate-500">{employee.position}</p>
+                            <p className="mt-1 text-lg italic text-slate-500 font-bold">{employee.position}</p>
 
                             <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
                                 <Badge

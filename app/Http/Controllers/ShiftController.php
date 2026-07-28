@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Employee;
 use App\Models\Outlet;
 use App\Models\Shift;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -24,7 +25,7 @@ class ShiftController extends Controller
             ->orderBy('shift_date')
             ->orderBy('start_time')
             ->get()
-            ->groupBy('shift_date');
+            ->groupBy(fn ($shift) => $shift->shift_date->format('Y-m-d'));
 
         $employees = Employee::with('user')
             ->where('outlet_id', $outlet?->id)
@@ -37,11 +38,44 @@ class ShiftController extends Controller
             $dates[] = date('Y-m-d', strtotime($weekStart." +{$i} days"));
         }
 
+        $monthStart = now()->startOfMonth()->format('Y-m-d');
+        $monthEnd = now()->endOfMonth()->format('Y-m-d');
+
+        $monthlyAllShifts = Shift::with('employee.user')
+            ->whereHas('employee', fn ($q) => $q->where('outlet_id', $outlet?->id))
+            ->whereBetween('shift_date', [$monthStart, $monthEnd])
+            ->get();
+
+        $monthlyPerEmployee = $monthlyAllShifts
+            ->groupBy('employee_id')
+            ->map(fn ($shifts) => [
+                'employee' => $shifts->first()->employee,
+                'total' => $shifts->count(),
+            ])
+            ->values();
+
+        $monthlyPerDay = $monthlyAllShifts
+            ->groupBy(fn ($shift) => $shift->shift_date->format('Y-m-d'))
+            ->map(fn ($shifts, $date) => [
+                'date' => $date,
+                'total' => $shifts->count(),
+            ])
+            ->sortBy('date')
+            ->values();
+
+        $monthlyGrandTotal = $monthlyAllShifts->count();
+        $activeEmployeeCount = $employees->count();
+
         return Inertia::render('admin/shifts/Index', [
             'shifts' => $shifts,
             'employees' => $employees,
             'dates' => $dates,
             'weekStart' => $weekStart,
+            'monthlyPerEmployee' => $monthlyPerEmployee,
+            'monthlyPerDay' => $monthlyPerDay,
+            'monthlyGrandTotal' => $monthlyGrandTotal,
+            'activeEmployeeCount' => $activeEmployeeCount,
+            'monthLabel' => now()->locale('id')->translatedFormat('F Y'),
         ]);
     }
 
@@ -62,9 +96,19 @@ class ShiftController extends Controller
             return redirect()->back()->withErrors(['shift_date' => 'Karyawan sudah memiliki shift di tanggal ini.']);
         }
 
-        Shift::create($validated);
+        try {
+            Shift::create($validated);
+        } catch (QueryException $e) {
+            if (str_contains($e->getMessage(), 'shifts_employee_date_unique')) {
+                return redirect()->back()->withErrors(['shift_date' => 'Karyawan sudah memiliki shift di tanggal ini.']);
+            }
 
-        return redirect()->back()->with('success', 'Shift berhasil ditambahkan.');
+            throw $e;
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Shift berhasil ditambahkan.']);
+
+        return redirect()->back();
     }
 
     public function update(Request $request, Shift $shift): RedirectResponse
@@ -76,14 +120,18 @@ class ShiftController extends Controller
 
         $shift->update($validated);
 
-        return redirect()->back()->with('success', 'Shift berhasil diperbarui.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Shift berhasil diperbarui.']);
+
+        return redirect()->back();
     }
 
     public function destroy(Shift $shift): RedirectResponse
     {
         $shift->delete();
 
-        return redirect()->back()->with('success', 'Shift berhasil dihapus.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Shift berhasil dihapus.']);
+
+        return redirect()->back();
     }
 
     public function bulkStore(Request $request): RedirectResponse
@@ -103,11 +151,19 @@ class ShiftController extends Controller
                 ->exists();
 
             if (! $exists) {
-                Shift::create($shiftData);
-                $created++;
+                try {
+                    Shift::create($shiftData);
+                    $created++;
+                } catch (QueryException $e) {
+                    if (! str_contains($e->getMessage(), 'shifts_employee_date_unique')) {
+                        throw $e;
+                    }
+                }
             }
         }
 
-        return redirect()->back()->with('success', "{$created} shift berhasil ditambahkan.");
+        Inertia::flash('toast', ['type' => 'success', 'message' => "{$created} shift berhasil ditambahkan."]);
+
+        return redirect()->back();
     }
 }

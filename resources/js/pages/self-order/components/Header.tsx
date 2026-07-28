@@ -44,7 +44,7 @@ export function Header({
     onCartOpen,
 }: Props) {
     return (
-        <div className="sticky top-0 z-10 bg-[#F6F2E9]/85 px-4 pb-3 pt-14 backdrop-blur-lg">
+        <div className="sticky top-0 z-10 bg-[#F6F2E9]/85 px-4 pb-3 md:pt-10 lg:pt-14 backdrop-blur-lg">
             <div className="mx-auto max-w-2xl">
                 <div className="flex items-center justify-between pt-10 sm:pt-4">
                     <div className="flex items-center gap-2.5">

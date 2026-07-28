@@ -34,7 +34,7 @@ test('owner can create shift', function () {
         'shift_date' => today()->format('Y-m-d'),
         'start_time' => '08:00',
         'end_time' => '16:00',
-    ])->assertSessionHas('success');
+    ])->assertSessionHas('inertia.flash_data');
 
     $this->assertDatabaseHas('shifts', [
         'employee_id' => $this->employee->id,
@@ -70,7 +70,7 @@ test('owner can update shift', function () {
     $this->actingAs($this->owner)->put(route('admin.shifts.update', $shift), [
         'start_time' => '09:00',
         'end_time' => '17:00',
-    ])->assertSessionHas('success');
+    ])->assertSessionHas('inertia.flash_data');
 
     expect($shift->fresh())
         ->start_time->toEqual('09:00')
@@ -84,7 +84,7 @@ test('owner can delete shift', function () {
 
     $this->actingAs($this->owner)
         ->delete(route('admin.shifts.destroy', $shift))
-        ->assertSessionHas('success');
+        ->assertSessionHas('inertia.flash_data');
 
     $this->assertModelMissing($shift);
 });
@@ -110,7 +110,7 @@ test('bulk store shifts', function () {
                 'end_time' => '22:00',
             ],
         ],
-    ])->assertSessionHas('success');
+    ])->assertSessionHas('inertia.flash_data');
 
     $this->assertDatabaseCount('shifts', 2);
 });

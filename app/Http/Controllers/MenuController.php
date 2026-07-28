@@ -94,7 +94,9 @@ class MenuController extends Controller
             'metadata' => $validated,
         ]);
 
-        return redirect()->route('admin.menus.index')->with('success', 'Menu berhasil ditambahkan.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Menu berhasil ditambahkan.']);
+
+        return redirect()->route('admin.menus.index');
     }
 
     public function show(Menu $menu): Response
@@ -163,7 +165,9 @@ class MenuController extends Controller
             'metadata' => $validated,
         ]);
 
-        return redirect()->route('admin.menus.index')->with('success', 'Menu berhasil diperbarui.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Menu berhasil diperbarui.']);
+
+        return redirect()->route('admin.menus.index');
     }
 
     public function destroy(Request $request, Menu $menu): RedirectResponse
@@ -181,7 +185,9 @@ class MenuController extends Controller
 
         $menu->delete();
 
-        return redirect()->route('admin.menus.index')->with('success', 'Menu berhasil dihapus.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Menu berhasil dihapus.']);
+
+        return redirect()->route('admin.menus.index');
     }
 
     public function toggleAvailability(Request $request, Menu $menu): RedirectResponse
@@ -199,6 +205,8 @@ class MenuController extends Controller
             'description' => ($newAvailability ? 'Mengaktifkan' : 'Menonaktifkan')." menu {$menu->name}",
         ]);
 
-        return redirect()->back()->with('success', 'Status ketersediaan menu berhasil diubah.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Status ketersediaan menu berhasil diubah.']);
+
+        return redirect()->back();
     }
 }

@@ -72,7 +72,7 @@ export default function SelfOrderMenu({ table, tableToken, categories, outlet }:
                 onCartOpen={() => cart.setIsCartOpen(true)}
             />
 
-            <div className="mx-auto max-w-2xl px-4 pb-28 pt-10">
+            <div className="mx-auto max-w-2xl px-4 pb-28 pt-5 md:pt-8 lg:pt-10">
                 {activeMenus.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-20 text-[#8C8577]">
                         <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#CFC0A4]/25">

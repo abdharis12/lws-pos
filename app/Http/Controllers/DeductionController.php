@@ -31,7 +31,9 @@ class DeductionController extends Controller
 
         Deduction::create($validated);
 
-        return redirect()->back()->with('success', 'Potongan berhasil ditambahkan.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Potongan berhasil ditambahkan.']);
+
+        return redirect()->back();
     }
 
     public function update(Request $request, Deduction $deduction): RedirectResponse
@@ -44,13 +46,17 @@ class DeductionController extends Controller
 
         $deduction->update($validated);
 
-        return redirect()->back()->with('success', 'Potongan berhasil diperbarui.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Potongan berhasil diperbarui.']);
+
+        return redirect()->back();
     }
 
     public function destroy(Deduction $deduction): RedirectResponse
     {
         $deduction->delete();
 
-        return redirect()->back()->with('success', 'Potongan berhasil dihapus.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Potongan berhasil dihapus.']);
+
+        return redirect()->back();
     }
 }
