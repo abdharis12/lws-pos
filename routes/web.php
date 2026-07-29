@@ -116,7 +116,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::put('outlet-settings', [OutletController::class, 'update'])->name('admin.outlet.update');
     });
 
-    Route::get('owner/dashboard', [OwnerDashboardController::class, 'index'])->name('owner.dashboard');
+    Route::get('owner/dashboard', [OwnerDashboardController::class, 'index'])->name('owner.dashboard')->middleware('can:viewOwnerDashboard');
 
     Route::get('pos', [PosController::class, 'index'])->name('pos.index');
     Route::post('pos/orders', [PosController::class, 'store'])->name('pos.orders.store');

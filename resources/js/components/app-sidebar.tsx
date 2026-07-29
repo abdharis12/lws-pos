@@ -43,6 +43,12 @@ return true;
             roles: null,
             items: [
                 { title: 'Dashboard', href: dashboard(), icon: LayoutGrid },
+            ],
+        },
+        {
+            label: 'Owner',
+            roles: ['Owner', 'Admin'],
+            items: [
                 { title: 'Dashboard Owner', href: owner.dashboard(), icon: LayoutGrid },
             ],
         },
