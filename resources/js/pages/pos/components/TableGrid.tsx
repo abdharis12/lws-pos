@@ -68,10 +68,13 @@ function TableCard({
     const textColor = isSelected || table.status !== 'available' ? '#fff' : INK;
 
     return (
-        <button
+        <div
             onClick={onSelect}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSelect(); }}
             className={cn(
-                'relative flex flex-col items-center rounded-xl p-3 text-sm font-medium transition-all hover:opacity-90',
+                'relative flex cursor-pointer flex-col items-center rounded-xl p-3 text-sm font-medium transition-all hover:opacity-90',
                 isSelected && 'ring-1',
             )}
             style={{
@@ -105,7 +108,7 @@ function TableCard({
                     <Check className="size-3" />
                 </span>
             )}
-        </button>
+        </div>
     );
 }
 

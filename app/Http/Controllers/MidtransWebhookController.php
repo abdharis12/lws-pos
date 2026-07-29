@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\OrderStatus;
 use App\Events\OrderPaid;
 use App\Models\Order;
 use App\Models\Payment;
@@ -12,7 +13,11 @@ use Illuminate\Support\Facades\Log;
 
 class MidtransWebhookController extends Controller
 {
-    public function notification(Request $request, MidtransService $midtrans): JsonResponse
+    public function __construct(
+        private readonly MidtransService $midtrans,
+    ) {}
+
+    public function notification(Request $request): JsonResponse
     {
         $payload = $request->all();
 
@@ -25,14 +30,13 @@ class MidtransWebhookController extends Controller
             return response()->json(['error' => 'Invalid payload'], 400);
         }
 
-        if (! $midtrans->verifySignature($orderId, $statusCode, $grossAmount, $signatureKey)) {
+        if (! $this->midtrans->verifySignature($orderId, $statusCode, $grossAmount, $signatureKey)) {
             Log::warning('Midtrans webhook: invalid signature', ['order_id' => $orderId]);
 
             return response()->json(['error' => 'Invalid signature'], 403);
         }
 
-        // Double-check with Midtrans API
-        $statusFromApi = $midtrans->getTransactionStatus($orderId);
+        $statusFromApi = $this->midtrans->getTransactionStatus($orderId);
         $transactionStatus = $statusFromApi['transaction_status'] ?? $payload['transaction_status'] ?? '';
         $fraudStatus = $statusFromApi['fraud_status'] ?? $payload['fraud_status'] ?? '';
 
@@ -41,7 +45,6 @@ class MidtransWebhookController extends Controller
             return response()->json(['error' => 'Order not found'], 404);
         }
 
-        // Idempotency check
         $existingPayment = Payment::where('midtrans_transaction_id', $payload['transaction_id'] ?? null)->first();
         if ($existingPayment && $existingPayment->status === 'success') {
             return response()->json(['message' => 'Already processed'], 200);
@@ -63,15 +66,15 @@ class MidtransWebhookController extends Controller
                 'gross_amount' => $grossAmount,
                 'status' => $paymentStatus,
                 'signature_verified_at' => now(),
-                'raw_payload' => $payload,
+                'raw_payload' => json_encode($payload),
             ]
         );
 
         if ($paymentStatus === 'success') {
-            $order->update(['status' => 'paid']);
+            $order->update(['status' => OrderStatus::Paid]);
             broadcast(new OrderPaid($order))->toOthers();
         } elseif ($paymentStatus === 'failed') {
-            $order->update(['status' => 'cancelled']);
+            $order->update(['status' => OrderStatus::Cancelled]);
         }
 
         return response()->json(['message' => 'OK']);

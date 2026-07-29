@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\OrderStatus;
 use App\Models\Menu;
 use App\Models\Order;
 use Inertia\Inertia;
@@ -12,7 +13,7 @@ class KitchenDisplayController extends Controller
     public function index(): Response
     {
         $orders = Order::with(['items.menu', 'tableSession.table'])
-            ->whereIn('status', ['paid', 'processing'])
+            ->whereIn('status', [OrderStatus::Paid, OrderStatus::Processing])
             ->orderBy('created_at', 'asc')
             ->get();
 

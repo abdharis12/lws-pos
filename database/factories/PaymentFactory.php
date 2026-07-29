@@ -19,7 +19,7 @@ class PaymentFactory extends Factory
             'midtrans_transaction_id' => fake()->optional()->uuid(),
             'gross_amount' => fake()->randomFloat(2, 15000, 300000),
             'status' => fake()->randomElement(['pending', 'success', 'failed', 'refund']),
-            'raw_payload' => [],
+            'raw_payload' => '[]',
         ];
     }
 }

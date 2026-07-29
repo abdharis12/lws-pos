@@ -3,11 +3,12 @@
 namespace App\Services;
 
 use App\Models\ActivityLog;
-use Illuminate\Support\Facades\Request;
+use App\Models\User;
 
 class ActivityLogService
 {
-    public static function log(
+    public function log(
+        ?User $user,
         string $action,
         ?string $subjectType = null,
         ?int $subjectId = null,
@@ -15,7 +16,7 @@ class ActivityLogService
         ?array $metadata = null,
     ): ActivityLog {
         return ActivityLog::create([
-            'user_id' => Request::user()?->id,
+            'user_id' => $user?->id,
             'action' => $action,
             'subject_type' => $subjectType,
             'subject_id' => $subjectId,

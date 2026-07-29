@@ -499,6 +499,8 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
         saveProcessing: editingProcessing,
         onSaveEdits: handleSaveEdits,
         tableSelected: isDineIn ? selectedTableIds.length > 0 : true,
+        customerName,
+        orderType,
         onUpdateQty: (i: number, q: number) => setCartItems(prev => q < 1 ? prev : prev.map((item, idx) => idx === i ? { ...item, qty: q } : item)),
         onRemove: (i: number) => setCartItems(prev => prev.filter((_, idx) => idx !== i)),
         onOrder: handleOrder,
@@ -635,7 +637,7 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
                                         setMoveMergeDialog({ mode: 'move', sourceTable: t });
                                     }
                                 }}
-                                    className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold" style={{ backgroundColor: PRIMARY, color: '#fff' }}>
+                                    className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold cursor-pointer hover:opacity-95" style={{ backgroundColor: PRIMARY, color: '#fff' }}>
                                     <Move className="size-4" /> Pindah Meja
                                 </button>
                                 {(tables.filter(t => t.status === 'occupied' && t.id !== releaseDialogTable?.id).length > 0) && (
@@ -646,7 +648,7 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
                                             setMoveMergeDialog({ mode: 'merge', sourceTable: t });
                                         }
                                     }}
-                                        className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold" style={{ backgroundColor: PRIMARY, color: '#fff' }}>
+                                        className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold cursor-pointer hover:opacity-95" style={{ backgroundColor: PRIMARY, color: '#fff' }}>
                                         <ArrowRightLeft className="size-4" /> Gabung Meja
                                     </button>
                                 )}
@@ -657,10 +659,10 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
 
                                     router.post(`/pos/tables/${releaseDialogTable.id}/release`);
                                 }}
-                                    className="w-full rounded-xl py-2.5 text-sm font-semibold" style={{ backgroundColor: PRIMARY, color: '#fff' }}>
+                                    className="w-full rounded-xl py-2.5 text-sm font-semibold cursor-pointer hover:opacity-95" style={{ backgroundColor: PRIMARY, color: '#fff' }}>
                                     Kosongkan Meja
                                 </button>
-                                <button onClick={() => setReleaseDialogTable(null)} className="w-full rounded-xl py-2 text-xs bg-rose-700 text-white hover:bg-rose-800 transition-colors">Batal</button>
+                                <button onClick={() => setReleaseDialogTable(null)} className="w-full rounded-xl py-2.5 text-sm font-semibold transition-all hover:opacity-70 cursor-pointer" style={{ backgroundColor: 'oklch(58.6% 0.253 17.585)', color: 'oklch(96.9% 0.015 12.422)' }}>Batal</button>
                             </div>
                         </div>
                     </DialogContent>
@@ -671,8 +673,8 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
                 <Dialog open={deleteConfirmOrder !== null} onOpenChange={(v) => { if (!v) setDeleteConfirmOrder(null); }}>
                     <DialogContent className="sm:max-w-xs" style={{ backgroundColor: CREAM }}>
                         <div className="flex flex-col items-center py-4 text-center">
-                            <div className="mb-4 flex size-16 items-center justify-center rounded-full" style={{ backgroundColor: '#fef2f2' }}>
-                                <Trash2 className="size-7 text-red-500" />
+                            <div className="mb-4 flex size-16 items-center justify-center rounded-full" style={{ backgroundColor: `${PRIMARY}12` }}>
+                                <Trash2 className="size-7" style={{ color: '#dc2626' }} />
                             </div>
                             <h3 className="text-lg font-bold" style={{ color: INK }}>Hapus Pesanan</h3>
                             <p className="mt-1 text-sm" style={{ color: MUTED }}>
@@ -686,11 +688,11 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
                                             router.delete(`/pos/orders/${order.id}`, { preserveScroll: true });
                                         }
                                     }}
-                                    className="w-full rounded-xl py-2.5 text-sm font-semibold text-white" style={{ backgroundColor: '#dc2626' }}
+                                    className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold text-white transition-all hover:opacity-90" style={{ backgroundColor: '#dc2626' }}
                                 >
-                                    Ya, Hapus
+                                    <Trash2 className="size-4" /> Ya, Hapus
                                 </button>
-                                <button onClick={() => setDeleteConfirmOrder(null)} className="w-full rounded-xl py-2 text-xs" style={{ backgroundColor: CREAM, color: MUTED }}>
+                                <button onClick={() => setDeleteConfirmOrder(null)} className="w-full rounded-xl py-2.5 text-sm font-semibold transition-all hover:opacity-70" style={{ backgroundColor: PRIMARY, color: CREAM }}>
                                     Batal
                                 </button>
                             </div>

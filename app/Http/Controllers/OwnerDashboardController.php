@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\OrderStatus;
 use App\Models\Attendance;
 use App\Models\Employee;
 use App\Models\Order;
@@ -20,23 +21,25 @@ class OwnerDashboardController extends Controller
         $today = today();
         $comparePeriod = $request->input('compare', 'previous'); // previous, same
 
-        $todaySales = (float) Order::whereIn('status', ['paid', 'completed', 'settled'])
+        $paidStatuses = [OrderStatus::Paid, OrderStatus::Completed];
+
+        $todaySales = (float) Order::whereIn('status', $paidStatuses)
             ->whereDate('created_at', $today)
             ->sum('total');
 
-        $todayOrdersCount = Order::whereIn('status', ['paid', 'completed', 'settled'])
+        $todayOrdersCount = Order::whereIn('status', $paidStatuses)
             ->whereDate('created_at', $today)
             ->count();
 
-        $yesterdaySales = (float) Order::whereIn('status', ['paid', 'completed', 'settled'])
+        $yesterdaySales = (float) Order::whereIn('status', $paidStatuses)
             ->whereDate('created_at', $today->copy()->subDay())
             ->sum('total');
 
-        $thisWeekSales = (float) Order::whereIn('status', ['paid', 'completed', 'settled'])
+        $thisWeekSales = (float) Order::whereIn('status', $paidStatuses)
             ->whereDate('created_at', '>=', $today->copy()->startOfWeek())
             ->sum('total');
 
-        $lastWeekSales = (float) Order::whereIn('status', ['paid', 'completed', 'settled'])
+        $lastWeekSales = (float) Order::whereIn('status', $paidStatuses)
             ->whereDate('created_at', '>=', $today->copy()->subWeek()->startOfWeek())
             ->whereDate('created_at', '<', $today->copy()->startOfWeek())
             ->sum('total');
@@ -46,7 +49,7 @@ class OwnerDashboardController extends Controller
         $employeeCount = Employee::where('outlet_id', $outlet?->id)->count();
         $attendanceToday = Attendance::whereDate('clock_in_at', $today)->count();
 
-        $activeOrders = Order::whereIn('status', ['paid', 'in_progress', 'preparing'])
+        $activeOrders = Order::whereIn('status', [OrderStatus::Paid, OrderStatus::Processing])
             ->with('tableSession.table')
             ->get()
             ->map(fn ($o) => [
@@ -60,7 +63,7 @@ class OwnerDashboardController extends Controller
         $topMenus = DB::table('order_items')
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
             ->join('menus', 'menus.id', '=', 'order_items.menu_id')
-            ->whereIn('orders.status', ['paid', 'completed', 'settled'])
+            ->whereIn('orders.status', [OrderStatus::Paid, OrderStatus::Completed])
             ->whereDate('orders.created_at', $today)
             ->select('menus.name', DB::raw('SUM(order_items.qty) as total_qty'))
             ->groupBy('menus.name')
@@ -68,7 +71,7 @@ class OwnerDashboardController extends Controller
             ->limit(5)
             ->get();
 
-        $avgCookingTime = Order::whereIn('status', ['ready', 'completed'])
+        $avgCookingTime = Order::whereIn('status', [OrderStatus::Ready, OrderStatus::Completed])
             ->whereNotNull('updated_at')
             ->get(['created_at', 'updated_at'])
             ->avg(fn (Order $o) => $o->created_at->diffInMinutes($o->updated_at));
@@ -80,7 +83,7 @@ class OwnerDashboardController extends Controller
 
         $salesTrend = collect(range(6, 0))->map(function ($daysAgo) {
             $date = today()->subDays($daysAgo);
-            $total = (float) Order::whereIn('status', ['paid', 'completed', 'settled'])
+            $total = (float) Order::whereIn('status', [OrderStatus::Paid, OrderStatus::Completed])
                 ->whereDate('created_at', $date)
                 ->sum('total');
 

@@ -58,7 +58,7 @@ test('owner can update table', function () {
     ])->assertRedirect();
 
     expect($table->fresh()->capacity)->toBe(8);
-    expect($table->fresh()->status)->toBe('occupied');
+    expect($table->fresh()->status->value)->toBe('occupied');
 });
 
 test('owner can delete table', function () {

@@ -305,7 +305,7 @@ return Store;
 
     return (
         <Dialog open={open} onOpenChange={handleClose}>
-            <DialogContent className="sm:max-w-md" style={{ backgroundColor: CREAM }}>
+            <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto" style={{ backgroundColor: CREAM }}>
                 <DialogHeader>
                     <DialogTitle style={{ color: INK }}>
                         {step === 'select' ? 'Pilih Metode Pembayaran' : `Bayar dengan ${selectedMethod?.name ?? ''}`}
@@ -319,7 +319,7 @@ return Store;
                                 <p className="mb-2 text-xs font-semibold uppercase tracking-wider" style={{ color: MUTED }}>
                                     {CATEGORY_NAMES[category]}
                                 </p>
-                                <div className="grid grid-cols-2 gap-2">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                     {methods.map(method => {
                                         const Icon = getIcon(method);
 
@@ -348,7 +348,8 @@ return Store;
 
                 {step === 'pay' && (
                     <div className="flex flex-col items-center space-y-4 py-2">
-                        <div className="w-full rounded-xl p-3" style={{ border: `1px solid ${BORDER}`, backgroundColor: '#fff' }}>
+                        <div className="w-full max-w-sm space-y-4">
+                        <div className="rounded-xl p-3" style={{ border: `1px solid ${BORDER}`, backgroundColor: '#fff' }}>
                             <p className="mb-2 text-xs font-semibold" style={{ color: MUTED }}>Rincian Pembayaran</p>
                             <div className="space-y-1 text-sm">
                                 <div className="flex justify-between">
@@ -377,12 +378,12 @@ return Store;
                         {selectedMethod && error && (
                             <div className="flex flex-col items-center gap-3 py-4">
                                 <AlertCircle className="size-12 text-amber-500" />
-                                <p className="text-sm text-center" style={{ color: MUTED }}>{error}</p>
-                                <div className="flex gap-2">
-                                    <Button onClick={handleBack} variant="outline" style={{ borderColor: BORDER, color: INK }}>
+                                <p className="text-sm text-center break-words" style={{ color: MUTED }}>{error}</p>
+                                <div className="flex flex-wrap gap-2">
+                                    <Button onClick={handleBack} variant="outline">
                                         Pilih Metode Lain
                                     </Button>
-                                    <Button onClick={handleClose} variant="outline" style={{ borderColor: BORDER, color: INK }}>
+                                    <Button onClick={handleClose} variant="outline">
                                         Tutup
                                     </Button>
                                 </div>
@@ -442,7 +443,7 @@ return Store;
                                                     {response.bank?.toUpperCase()} Virtual Account
                                                 </p>
                                                 <div className="mt-2 flex items-center justify-between gap-2 rounded-lg p-3" style={{ backgroundColor: `${CREAM}80` }}>
-                                                    <span className="font-mono text-lg font-bold tracking-wider" style={{ color: INK }}>
+                                                    <span className="font-mono text-lg font-bold tracking-wider break-all" style={{ color: INK }}>
                                                         {response.va_number}
                                                     </span>
                                                     <button
@@ -468,7 +469,7 @@ return Store;
                                                     <div>
                                                         <p className="text-xs" style={{ color: MUTED }}>Bill Key</p>
                                                         <div className="flex items-center gap-2 rounded-lg p-3" style={{ backgroundColor: `${CREAM}80` }}>
-                                                            <span className="font-mono text-lg font-bold tracking-wider" style={{ color: INK }}>
+                                                            <span className="font-mono text-lg font-bold tracking-wider break-all" style={{ color: INK }}>
                                                                 {response.bill_key}
                                                             </span>
                                                             <button
@@ -499,7 +500,7 @@ return Store;
                                                     {response.store ?? 'Pembayaran'} Kode
                                                 </p>
                                                 <div className="mt-2 flex items-center justify-between gap-2 rounded-lg p-3" style={{ backgroundColor: `${CREAM}80` }}>
-                                                    <span className="font-mono text-lg font-bold tracking-wider" style={{ color: INK }}>
+                                                    <span className="font-mono text-lg font-bold tracking-wider break-all" style={{ color: INK }}>
                                                         {response.payment_code}
                                                     </span>
                                                     <button
@@ -547,6 +548,7 @@ return Store;
                                 )}
                             </>
                         )}
+                    </div>
                     </div>
                 )}
             </DialogContent>

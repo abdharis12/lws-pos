@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\TableStatus;
 use App\Models\Meja;
 
 class PosTableService
@@ -30,7 +31,7 @@ class PosTableService
         }
 
         $affected = collect([$table->id, ...$groupedIds])->unique();
-        Meja::whereIn('id', $affected)->update(['status' => 'available']);
+        Meja::whereIn('id', $affected)->update(['status' => TableStatus::Available->value]);
     }
 
     public function move(Meja $source, Meja $target): void
@@ -50,8 +51,8 @@ class PosTableService
             'closed_at' => now(),
         ]);
 
-        $source->update(['status' => 'available']);
-        $target->update(['status' => 'occupied']);
+        $source->update(['status' => TableStatus::Available]);
+        $target->update(['status' => TableStatus::Occupied]);
     }
 
     public function merge(Meja $source, Meja $target): void
@@ -79,14 +80,14 @@ class PosTableService
             'closed_at' => now(),
         ]);
 
-        $target->update(['status' => 'occupied', 'locked_by' => null]);
-        $source->update(['status' => 'occupied', 'locked_by' => null]);
+        $target->update(['status' => TableStatus::Occupied, 'locked_by' => null]);
+        $source->update(['status' => TableStatus::Occupied, 'locked_by' => null]);
     }
 
     public function lock(Meja $table, int $userId): void
     {
         $table->update([
-            'status' => 'locked',
+            'status' => TableStatus::Locked,
             'locked_by' => $userId,
         ]);
     }
@@ -94,7 +95,7 @@ class PosTableService
     public function unlock(Meja $table): void
     {
         $table->update([
-            'status' => 'available',
+            'status' => TableStatus::Available,
             'locked_by' => null,
         ]);
     }

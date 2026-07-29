@@ -20,7 +20,7 @@ class Payment extends Model
         return [
             'gross_amount' => 'decimal:2',
             'signature_verified_at' => 'datetime',
-            'raw_payload' => 'array',
+            'raw_payload' => 'encrypted',
         ];
     }
 

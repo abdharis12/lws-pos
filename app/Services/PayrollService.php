@@ -15,20 +15,20 @@ class PayrollService
         [$year, $month] = explode('-', $period);
         $startDate = Carbon::create((int) $year, (int) $month, 1);
         $endDate = $startDate->copy()->endOfMonth();
-        $payslips = collect();
 
-        $employees = Employee::with(['salaryComponent', 'bonuses', 'deductions', 'attendances', 'shifts'])
+        $employees = Employee::with([
+            'salaryComponent',
+            'bonuses' => fn ($q) => $q->where('period', $period),
+            'deductions' => fn ($q) => $q->where('period', $period),
+            'attendances' => fn ($q) => $q->whereBetween('clock_in_at', [$startDate, $endDate]),
+            'shifts' => fn ($q) => $q->whereYear('shift_date', (int) $year)->whereMonth('shift_date', (int) $month),
+        ])
             ->where('is_active', true)
             ->get();
 
-        foreach ($employees as $employee) {
-            $payslip = $this->generateForEmployee($employee, $period, $startDate, $endDate);
-            if ($payslip) {
-                $payslips->push($payslip);
-            }
-        }
-
-        return $payslips;
+        return $employees
+            ->map(fn (Employee $employee) => $this->buildForEmployee($employee, $period, $startDate, $endDate))
+            ->filter();
     }
 
     public function generateForEmployee(Employee $employee, string $period, ?Carbon $startDate = null, ?Carbon $endDate = null): ?Payslip
@@ -39,8 +39,20 @@ class PayrollService
             $endDate = $startDate->copy()->endOfMonth();
         }
 
-        $salaryComponent = $employee->salaryComponent;
+        $employee->load([
+            'salaryComponent',
+            'bonuses' => fn ($q) => $q->where('period', $period),
+            'deductions' => fn ($q) => $q->where('period', $period),
+            'attendances' => fn ($q) => $q->whereBetween('clock_in_at', [$startDate, $endDate]),
+            'shifts' => fn ($q) => $q->whereYear('shift_date', (int) $startDate->year)->whereMonth('shift_date', (int) $startDate->month),
+        ]);
 
+        return $this->buildForEmployee($employee, $period, $startDate, $endDate);
+    }
+
+    protected function buildForEmployee(Employee $employee, string $period, Carbon $startDate, Carbon $endDate): ?Payslip
+    {
+        $salaryComponent = $employee->salaryComponent;
         if (! $salaryComponent) {
             return null;
         }
@@ -48,11 +60,7 @@ class PayrollService
         $baseSalary = (float) $salaryComponent->base_salary;
         $salaryType = $salaryComponent->salary_type;
 
-        $attendances = $employee->attendances()
-            ->whereDate('clock_in_at', '>=', $startDate)
-            ->whereDate('clock_in_at', '<=', $endDate)
-            ->get();
-
+        $attendances = $employee->attendances;
         $totalWorkDays = $attendances->count();
         $totalWorkHours = $attendances->sum(fn ($a) => $a->clock_in_at && $a->clock_out_at
             ? $a->clock_in_at->diffInHours($a->clock_out_at) : 0);
@@ -61,13 +69,8 @@ class PayrollService
 
         $overtimeTotal = $this->calculateOvertime($employee, $attendances, $salaryComponent, $period);
 
-        $bonusTotal = (float) $employee->bonuses()
-            ->where('period', $period)
-            ->sum('amount');
-
-        $deductionTotal = (float) $employee->deductions()
-            ->where('period', $period)
-            ->sum('amount');
+        $bonusTotal = (float) $employee->bonuses->sum('amount');
+        $deductionTotal = (float) $employee->deductions->sum('amount');
 
         $takeHomePay = $baseSalary + $allowancesTotal + $overtimeTotal + $bonusTotal - $deductionTotal;
 
@@ -104,12 +107,8 @@ class PayrollService
             return 0;
         }
 
+        $shifts = $employee->shifts->keyBy(fn ($s) => $s->shift_date->format('Y-m-d'));
         $totalOvertimeHours = 0;
-        $shifts = $employee->shifts()
-            ->whereYear('shift_date', explode('-', $period)[0])
-            ->whereMonth('shift_date', explode('-', $period)[1])
-            ->get()
-            ->keyBy(fn ($s) => $s->shift_date->format('Y-m-d'));
 
         foreach ($attendances as $attendance) {
             if (! $attendance->clock_in_at || ! $attendance->clock_out_at) {
@@ -118,16 +117,13 @@ class PayrollService
 
             $dateKey = $attendance->clock_in_at->format('Y-m-d');
             $shift = $shifts->get($dateKey);
-
             if (! $shift) {
                 continue;
             }
 
             $scheduledEnd = Carbon::parse($dateKey.' '.$shift->end_time);
-            $actualEnd = $attendance->clock_out_at;
-
-            if ($actualEnd->gt($scheduledEnd)) {
-                $totalOvertimeHours += $scheduledEnd->diffInHours($actualEnd, false);
+            if ($attendance->clock_out_at->gt($scheduledEnd)) {
+                $totalOvertimeHours += $scheduledEnd->diffInHours($attendance->clock_out_at, false);
             }
         }
 

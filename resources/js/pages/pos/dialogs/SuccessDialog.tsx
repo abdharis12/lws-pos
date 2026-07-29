@@ -2,7 +2,7 @@ import { Printer, Check } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { CREAM, INK, MUTED, PRIMARY, SAND } from '../constants';
+import { BORDER, CREAM, INK, MUTED, PRIMARY } from '../constants';
 
 interface Props {
     open: boolean;
@@ -67,7 +67,7 @@ onClose();
                         <Button onClick={onPrint} className="w-full" size="lg" style={{ backgroundColor: PRIMARY }}>
                             <Printer className="mr-2 size-4" /> Cetak Struk
                         </Button>
-                        <Button onClick={onClose} variant="outline" className="w-full" size="lg" style={{ borderColor: SAND, color: INK }}>
+                        <Button onClick={onClose} variant="outline" className="w-full" size="lg" style={{ borderColor: BORDER, color: INK }}>
                             Selesai
                         </Button>
                     </div>

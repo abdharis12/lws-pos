@@ -21,6 +21,8 @@ interface Props {
     confirmPayProcessing?: boolean;
     saveProcessing?: boolean;
     tableSelected?: boolean;
+    customerName?: string;
+    orderType?: 'dine_in' | 'takeaway';
     discountType: string | null;
     discountValue: number;
     discountApprovedBy: number | null;
@@ -35,11 +37,13 @@ interface Props {
 export default function CartPanel({
     items, processing, onUpdateQty, onRemove, onOrder, onConfirmPay,
     onSaveEdits, pendingOrderId, confirmPayProcessing, saveProcessing,
-    tableSelected = true,
+    tableSelected = true, customerName = '', orderType = 'dine_in',
     discountType, discountValue, discountApprovedBy,
     onDiscountChange, onOpenApproval, splitCount, onOpenSplitBill,
     onPrintReceipt, showPrintButton,
 }: Props) {
+    const isTakeaway = orderType === 'takeaway';
+    const takeawayNoName = isTakeaway && !customerName.trim();
     const [showDiscount, setShowDiscount] = useState(false);
     const subtotal = useMemo(() => items.reduce((sum, item) => {
         const optAdj = item.selectedOptions.reduce((s, o) => s + o.adjustment * (o.quantity || 1), 0);
@@ -133,11 +137,11 @@ export default function CartPanel({
                     <div className="mb-3 flex gap-2">
                         {items.length > 0 && (
                             <>
-                                <Button variant="outline" size="sm" className="flex-1" onClick={() => setShowDiscount(!showDiscount)} style={{ borderColor: BORDER, color: INK }}>
+                                <Button variant="outline" size="sm" className="flex-1" onClick={() => setShowDiscount(!showDiscount)}>
                                     <Percent className="mr-1 size-3" /> Diskon
                                 </Button>
                                 {!pendingOrderId && splitCount === 1 && (
-                                    <Button variant="outline" size="sm" className="flex-1" onClick={onOpenSplitBill} style={{ borderColor: BORDER, color: INK }}>
+                                    <Button variant="outline" size="sm" className="flex-1" onClick={onOpenSplitBill}>
                                         <SplitSquareVertical className="mr-1 size-3" /> Split
                                     </Button>
                                 )}
@@ -233,7 +237,7 @@ export default function CartPanel({
                             <Button onClick={onSaveEdits} disabled={items.length === 0 || saveProcessing} variant="outline" className="w-full" size="lg" style={{ borderColor: BORDER }}>
                                 {saveProcessing ? 'Menyimpan...' : 'Simpan Perubahan'}
                             </Button>
-                            <Button onClick={onConfirmPay} disabled={items.length === 0 || confirmPayProcessing} className="w-full" size="lg" style={{ backgroundColor: PRIMARY }}>
+                            <Button onClick={onConfirmPay} disabled={items.length === 0 || confirmPayProcessing || takeawayNoName} className="w-full" size="lg" style={{ backgroundColor: PRIMARY }}>
                                 {confirmPayProcessing ? 'Memproses...' : 'Konfirmasi & Bayar'}
                             </Button>
                         </>
@@ -249,10 +253,10 @@ export default function CartPanel({
                                 </Button>
                             ) : (
                                 <>
-                                    <Button onClick={() => onOrder('cash')} disabled={items.length === 0 || processing || !tableSelected} className="w-full" size="lg" style={{ backgroundColor: PRIMARY }}>
+                                    <Button onClick={() => onOrder('cash')} disabled={items.length === 0 || processing || !tableSelected || takeawayNoName} className="w-full" size="lg" style={{ backgroundColor: PRIMARY }}>
                                         <Wallet className="mr-2 size-4" /> Bayar Cash
                                     </Button>
-                                    <Button onClick={() => onOrder('online')} disabled={items.length === 0 || processing || !tableSelected} variant="secondary" className="w-full" size="lg" style={{ backgroundColor: SAND, color: INK }}>
+                                    <Button onClick={() => onOrder('online')} disabled={items.length === 0 || processing || !tableSelected || takeawayNoName} variant="secondary" className="w-full" size="lg" style={{ backgroundColor: SAND, color: INK }}>
                                         <Globe className="mr-2 size-4" /> Bayar Online
                                     </Button>
                                 </>
@@ -262,6 +266,11 @@ export default function CartPanel({
                     {!isConfirmMode && !tableSelected && items.length > 0 && !showPrintButton && (
                         <p className="mt-1 text-center text-xs" style={{ color: '#d97706' }}>
                             Pilih meja terlebih dahulu
+                        </p>
+                    )}
+                    {takeawayNoName && items.length > 0 && (
+                        <p className="mt-1 text-center text-xs" style={{ color: '#d97706' }}>
+                            Masukkan nama pelanggan terlebih dahulu
                         </p>
                     )}
                 </div>

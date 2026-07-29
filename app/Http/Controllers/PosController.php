@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\OrderStatus;
+use App\Enums\TableStatus;
 use App\Events\OrderPaid;
 use App\Events\OrderStatusUpdated;
 use App\Http\Requests\Pos\ConfirmPayRequest;
@@ -14,13 +16,17 @@ use App\Models\MenuCategory;
 use App\Models\Order;
 use App\Models\Outlet;
 use App\Models\TableSession;
+use App\Services\ActivityLogService;
+use App\Services\DiscountService;
 use App\Services\MidtransService;
+use App\Services\PaymentService;
 use App\Services\PosOrderService;
 use App\Services\PosTableService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -29,19 +35,24 @@ class PosController extends Controller
     public function __construct(
         private readonly PosOrderService $orderService,
         private readonly PosTableService $tableService,
+        private readonly ActivityLogService $activityLog,
+        private readonly DiscountService $discountService,
+        private readonly PaymentService $paymentService,
     ) {}
 
     public function index(): Response
     {
         $outlet = Outlet::first();
-        $categories = MenuCategory::where('outlet_id', $outlet?->id)
+        $outletId = $outlet?->id;
+
+        $categories = MenuCategory::where('outlet_id', $outletId)
             ->where('is_active', true)
             ->with(['menus' => fn ($q) => $q->with('optionGroups.optionItems')])
             ->orderBy('sort_order')
             ->get();
 
         $tables = Meja::with('lockedBy')
-            ->where('outlet_id', $outlet?->id)
+            ->where('outlet_id', $outletId)
             ->orderBy('code')
             ->get();
 
@@ -59,7 +70,7 @@ class PosController extends Controller
             }
         }
 
-        $pendingOrders = Order::where('status', 'pending')
+        $pendingOrders = Order::whereIn('status', [OrderStatus::Pending, OrderStatus::PendingPayment])
             ->where('order_type', 'dine_in_qr')
             ->with(['tableSession.table', 'items.menu', 'items.options.optionItem'])
             ->orderByDesc('created_at')
@@ -91,15 +102,17 @@ class PosController extends Controller
 
         if ($validated['table_id'] ?? false) {
             $table = Meja::find($validated['table_id']);
+            $this->authorize('create', [Order::class, $table]);
+
             $session = $this->orderService->getOrCreateSession($table);
-            $table->update(['status' => 'occupied', 'locked_by' => null]);
+            $table->update(['status' => TableStatus::Occupied, 'locked_by' => null]);
 
             if (! empty($validated['table_ids'])) {
                 $groupedTableIds = $this->orderService->prepareGroupedTables(
                     $validated['table_ids'], $validated['table_id'],
                 );
                 if (! empty($groupedTableIds)) {
-                    Meja::whereIn('id', $groupedTableIds)->update(['status' => 'occupied']);
+                    Meja::whereIn('id', $groupedTableIds)->update(['status' => TableStatus::Occupied]);
                 }
             }
         }
@@ -107,10 +120,13 @@ class PosController extends Controller
         $orderItems = $this->orderService->buildOrderItems($validated['items']);
         $subtotal = array_sum(array_column($orderItems, 'total_price'));
 
-        $discountAmount = $this->orderService->calculateDiscount($subtotal, $validated);
-        if ($discountAmount > 0 && $this->orderService->needsApproval($subtotal, $validated)) {
+        if ($this->orderService->needsApproval($subtotal, $validated)) {
             $this->orderService->validateApproval($validated);
-            $this->orderService->logDiscountActivity($user->id, $validated, '');
+            $this->activityLog->log(
+                $user, 'large_discount', null, null,
+                'Diskon besar diterapkan: '.($validated['discount_type'] ?? '').' '.($validated['discount_value'] ?? ''),
+                $validated,
+            );
         }
 
         $createdOrders = $this->orderService->createSplitOrders(
@@ -130,7 +146,8 @@ class PosController extends Controller
 
     public function confirmPay(ConfirmPayRequest $request, Order $order): RedirectResponse
     {
-        abort_if($order->status !== 'pending', 403);
+        $this->authorize('update', $order);
+        abort_if($order->status !== OrderStatus::Pending, 403);
 
         $validated = $request->validated();
         $user = $request->user();
@@ -138,70 +155,85 @@ class PosController extends Controller
         $orderItems = $this->orderService->buildOrderItems($validated['items']);
         $newSubtotal = array_sum(array_column($orderItems, 'total_price'));
 
-        $discountAmount = $this->orderService->calculateDiscount($newSubtotal, $validated);
-        if ($discountAmount > 0 && $this->orderService->needsApproval($newSubtotal, $validated)) {
+        if ($this->orderService->needsApproval($newSubtotal, $validated)) {
             $this->orderService->validateApproval($validated);
-            $this->orderService->logDiscountActivity($user->id, $validated, ' (confirm pay)');
+            $this->activityLog->log(
+                $user, 'large_discount', 'order', $order->id,
+                'Diskon besar diterapkan (confirm pay): '.($validated['discount_type'] ?? '').' '.($validated['discount_value'] ?? ''),
+                $validated,
+            );
         }
 
         $this->orderService->confirmAndFinalizeOrder($order, $validated, $user->id);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Pesanan berhasil dikonfirmasi dan dibayar.']);
 
-        return redirect()->route('pos.index')
-            ->with('last_order_id', $order->id);
+        return redirect()->route('pos.index')->with('last_order_id', $order->id);
     }
 
     public function initiatePayment(InitiatePaymentRequest $request, MidtransService $midtrans): JsonResponse
     {
-        $validated = $request->validated();
-        $user = $request->user();
+        try {
+            $validated = $request->validated();
+            $user = $request->user();
 
-        $orderItems = $this->orderService->buildOrderItems($validated['items']);
-        $subtotal = array_sum(array_column($orderItems, 'total_price'));
+            $orderItems = $this->orderService->buildOrderItems($validated['items']);
+            $subtotal = array_sum(array_column($orderItems, 'total_price'));
 
-        $discountAmount = $this->orderService->calculateDiscount($subtotal, $validated);
-        if ($discountAmount > 0 && $this->orderService->needsApproval($subtotal, $validated)) {
-            $this->orderService->validateApproval($validated);
+            if ($this->orderService->needsApproval($subtotal, $validated)) {
+                $this->orderService->validateApproval($validated);
+            }
+
+            $session = null;
+            if ($validated['table_id'] ?? false) {
+                $table = Meja::find($validated['table_id']);
+                $session = $this->orderService->getOrCreateSession($table);
+                $table->update(['status' => TableStatus::Occupied, 'locked_by' => null]);
+            }
+
+            $order = $this->orderService->getOrCreatePaymentOrder($user, $validated, $orderItems, $session);
+
+            $midtransResponse = $midtrans->createCharge(
+                (string) $order->id,
+                (int) round((float) $order->total),
+                $validated['payment_type'],
+            );
+
+            $paymentData = $this->paymentService->extractPaymentResponse($midtransResponse);
+            $this->paymentService->createPaymentRecord($order, $midtransResponse, $validated['payment_type'], (float) $order->total);
+
+            $orderNumber = config('pos.order_number_prefix', 'TRX-LW-').$order->id;
+
+            return response()->json([
+                'order_id' => $order->id,
+                'order_number' => $orderNumber,
+                'subtotal' => $order->subtotal,
+                'tax' => $order->tax,
+                'service_charge' => $order->service_charge,
+                'midtrans_charge' => $order->midtrans_charge,
+                'total' => $order->total,
+                'payment_type' => $validated['payment_type'],
+                'transaction_id' => $midtransResponse['transaction_id'] ?? null,
+                ...$paymentData,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Payment initiation failed', [
+                'message' => $e->getMessage(),
+                'user_id' => $request->user()?->id,
+                'payment_type' => $request->validated('payment_type'),
+            ]);
+
+            return response()->json([
+                'message' => 'Gagal memproses pembayaran. Silakan coba lagi.',
+            ], 500);
         }
-
-        $session = null;
-        if ($validated['table_id'] ?? false) {
-            $table = Meja::find($validated['table_id']);
-            $session = $this->orderService->getOrCreateSession($table);
-            $table->update(['status' => 'occupied', 'locked_by' => null]);
-        }
-
-        $order = $this->orderService->getOrCreatePaymentOrder($user, $validated, $orderItems, $session);
-
-        $midtransResponse = $midtrans->createCharge(
-            (string) $order->id,
-            (int) round($order->total),
-            $validated['payment_type'],
-        );
-
-        $midtransTransactionId = $midtransResponse['transaction_id'] ?? null;
-        $paymentData = $this->orderService->extractPaymentResponse($midtransResponse);
-
-        $this->orderService->createPaymentRecord($order, $midtransResponse, $validated['payment_type'], $order->total);
-
-        return response()->json([
-            'order_id' => $order->id,
-            'order_number' => "TRX-LW-{$order->id}",
-            'subtotal' => $order->subtotal,
-            'tax' => $order->tax,
-            'service_charge' => $order->service_charge,
-            'midtrans_charge' => $order->midtrans_charge,
-            'total' => $order->total,
-            'payment_type' => $validated['payment_type'],
-            'transaction_id' => $midtransTransactionId,
-            ...$paymentData,
-        ]);
     }
 
     public function qrisStatus(Order $order, MidtransService $midtrans): JsonResponse
     {
-        if ($order->status === 'paid') {
+        $this->authorize('view', $order);
+
+        if ($order->status === OrderStatus::Paid) {
             return response()->json(['status' => 'settlement']);
         }
 
@@ -218,16 +250,12 @@ class PosController extends Controller
         if ($mapped !== 'pending' && $order->payment) {
             $order->payment->update(['status' => $mapped]);
 
-            match ($mapped) {
-                'settlement' => tap($order)->update(['status' => 'paid']),
-                'failed' => tap($order)->update(['status' => 'cancelled']),
-                default => null,
-            };
-
             if ($mapped === 'settlement') {
+                $order->update(['status' => OrderStatus::Paid]);
                 broadcast(new OrderPaid($order))->toOthers();
                 broadcast(new OrderStatusUpdated($order))->toOthers();
             } elseif ($mapped === 'failed') {
+                $order->update(['status' => OrderStatus::Cancelled]);
                 broadcast(new OrderStatusUpdated($order))->toOthers();
             }
         }
@@ -237,6 +265,7 @@ class PosController extends Controller
 
     public function releaseTable(Meja $table): RedirectResponse
     {
+        $this->authorize('update', $table);
         $this->tableService->release($table);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => "Meja {$table->code} berhasil dikosongkan."]);
@@ -246,7 +275,9 @@ class PosController extends Controller
 
     public function lockTable(Request $request, Meja $table): JsonResponse
     {
-        if ($table->status !== 'available') {
+        $this->authorize('update', $table);
+
+        if ($table->status !== TableStatus::Available) {
             return response()->json([
                 'message' => "Meja {$table->code} tidak tersedia.",
             ], 422);
@@ -262,6 +293,7 @@ class PosController extends Controller
 
     public function unlockTable(Meja $table): JsonResponse
     {
+        $this->authorize('update', $table);
         $this->tableService->unlock($table);
 
         return response()->json([
@@ -272,13 +304,16 @@ class PosController extends Controller
 
     public function moveTable(Meja $table, Meja $target): RedirectResponse
     {
-        if ($table->status !== 'occupied') {
+        $this->authorize('update', $table);
+        $this->authorize('update', $target);
+
+        if ($table->status !== TableStatus::Occupied) {
             Inertia::flash('toast', ['type' => 'error', 'message' => "Meja {$table->code} tidak sedang digunakan."]);
 
             return redirect()->route('pos.index');
         }
 
-        if ($target->status !== 'available') {
+        if ($target->status !== TableStatus::Available) {
             Inertia::flash('toast', ['type' => 'error', 'message' => "Meja {$target->code} sedang digunakan."]);
 
             return redirect()->route('pos.index');
@@ -299,13 +334,16 @@ class PosController extends Controller
 
     public function mergeTable(Meja $table, Meja $target): RedirectResponse
     {
-        if ($table->status !== 'occupied') {
+        $this->authorize('update', $table);
+        $this->authorize('update', $target);
+
+        if ($table->status !== TableStatus::Occupied) {
             Inertia::flash('toast', ['type' => 'error', 'message' => "Meja {$table->code} tidak sedang digunakan."]);
 
             return redirect()->route('pos.index');
         }
 
-        if ($target->status !== 'occupied') {
+        if ($target->status !== TableStatus::Occupied) {
             Inertia::flash('toast', ['type' => 'error', 'message' => "Meja {$target->code} tidak sedang digunakan."]);
 
             return redirect()->route('pos.index');
@@ -344,7 +382,8 @@ class PosController extends Controller
 
     public function updateItems(UpdateItemsRequest $request, Order $order): RedirectResponse
     {
-        abort_if($order->status !== 'pending', 403);
+        $this->authorize('update', $order);
+        abort_if(! in_array($order->status, [OrderStatus::Pending, OrderStatus::PendingPayment], true), 403);
 
         $this->orderService->updateOrderItems($order, $request->validated()['items']);
 
@@ -355,7 +394,8 @@ class PosController extends Controller
 
     public function destroyPending(Order $order): RedirectResponse
     {
-        abort_if($order->status !== 'pending', 403);
+        $this->authorize('update', $order);
+        abort_if(! in_array($order->status, [OrderStatus::Pending, OrderStatus::PendingPayment], true), 403);
 
         $this->orderService->cancelPendingOrder($order);
 

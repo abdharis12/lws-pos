@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\OrderStatus;
 use App\Models\Meja;
 use App\Models\Menu;
 use App\Models\MenuCategory;
@@ -142,7 +143,7 @@ test('webhook processes settlement as paid', function () {
         ->assertStatus(200)
         ->assertJson(['message' => 'OK']);
 
-    expect($this->order->fresh()->status)->toBe('paid');
+    expect($this->order->fresh()->status)->toBe(OrderStatus::Paid);
     $this->assertDatabaseHas('payments', [
         'order_id' => $this->order->id,
         'status' => 'success',
@@ -163,7 +164,7 @@ test('webhook processes capture as paid', function () {
     $this->postJson(route('webhooks.midtrans.notification'), $payload)
         ->assertStatus(200);
 
-    expect($this->order->fresh()->status)->toBe('paid');
+    expect($this->order->fresh()->status)->toBe(OrderStatus::Paid);
 });
 
 // ─── Webhook: Expire → Cancelled ────────────────────────────
@@ -181,7 +182,7 @@ test('webhook processes expire as cancelled', function () {
     $this->postJson(route('webhooks.midtrans.notification'), $payload)
         ->assertStatus(200);
 
-    expect($this->order->fresh()->status)->toBe('cancelled');
+    expect($this->order->fresh()->status)->toBe(OrderStatus::Cancelled);
 });
 
 test('webhook processes cancel as cancelled', function () {
@@ -197,7 +198,7 @@ test('webhook processes cancel as cancelled', function () {
     $this->postJson(route('webhooks.midtrans.notification'), $payload)
         ->assertStatus(200);
 
-    expect($this->order->fresh()->status)->toBe('cancelled');
+    expect($this->order->fresh()->status)->toBe(OrderStatus::Cancelled);
 });
 
 test('webhook processes deny as cancelled', function () {
@@ -213,7 +214,7 @@ test('webhook processes deny as cancelled', function () {
     $this->postJson(route('webhooks.midtrans.notification'), $payload)
         ->assertStatus(200);
 
-    expect($this->order->fresh()->status)->toBe('cancelled');
+    expect($this->order->fresh()->status)->toBe(OrderStatus::Cancelled);
 });
 
 // ─── Webhook: Double-check Status from Midtrans API ─────────
@@ -286,7 +287,7 @@ test('check pending payments command updates paid orders', function () {
         }
     }
 
-    expect($this->order->fresh()->status)->toBe('paid');
+    expect($this->order->fresh()->status)->toBe(OrderStatus::Paid);
 });
 
 test('check pending payments command updates cancelled orders', function () {
@@ -311,7 +312,7 @@ test('check pending payments command updates cancelled orders', function () {
         }
     }
 
-    expect($this->order->fresh()->status)->toBe('cancelled');
+    expect($this->order->fresh()->status)->toBe(OrderStatus::Cancelled);
 });
 
 test('check pending payments skips recent orders', function () {

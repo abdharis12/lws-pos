@@ -1,7 +1,7 @@
 import { Head, router } from '@inertiajs/react'
 import { useEchoPublic } from '@laravel/echo-react'
 import { Clock, ChefHat, CheckCircle2, CookingPot, UtensilsCrossed, Store, User, XCircle } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
@@ -59,6 +59,9 @@ const stepIndex: Record<string, number> = {
 export default function OrderStatus({ table, tableToken, order }: Props) {
     const [currentOrder, setCurrentOrder] = useState(order)
     const [elapsed, setElapsed] = useState('0m')
+    const statusRef = useRef(currentOrder.status)
+
+    statusRef.current = currentOrder.status
 
     useEffect(() => {
         const update = () => {
@@ -71,6 +74,32 @@ export default function OrderStatus({ table, tableToken, order }: Props) {
 
         return () => clearInterval(id)
     }, [currentOrder.created_at])
+
+    useEffect(() => {
+        if (statusRef.current === 'ready' || statusRef.current === 'completed' || statusRef.current === 'cancelled') return
+
+        const id = setInterval(async () => {
+            if (statusRef.current === 'ready' || statusRef.current === 'completed' || statusRef.current === 'cancelled') return
+
+            try {
+                const res = await fetch(`/t/${tableToken}/orders/${currentOrder.id}/poll-status`)
+                if (!res.ok) return
+                const data = await res.json()
+                setCurrentOrder(prev => ({
+                    ...prev,
+                    status: data.status,
+                    items: data.items ?? prev.items,
+                    subtotal: data.subtotal ?? prev.subtotal,
+                    tax: data.tax ?? prev.tax,
+                    total: data.total ?? prev.total,
+                }))
+            } catch {
+                // silent
+            }
+        }, 15000)
+
+        return () => clearInterval(id)
+    }, [tableToken])
 
     useEchoPublic<{ order: { id: number; status: string; items: OrderItem[]; subtotal: number; tax: number; total: number } }>(
         `table.${tableToken}`,

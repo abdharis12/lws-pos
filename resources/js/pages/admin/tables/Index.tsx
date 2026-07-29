@@ -24,6 +24,8 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 
+const APP_NAME = "LW's by Bubur Kang LW";
+
 interface TableData {
     id: number;
     code: string;
@@ -78,19 +80,145 @@ function TableCard({
         }
     }, [table.table_token]);
 
-    function downloadQR() {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
+    function drawPattern(ctx: CanvasRenderingContext2D, w: number, h: number) {
+        const spacing = 32;
+        const dotR = 1.5;
+        ctx.fillStyle = 'rgba(79,107,106,0.06)';
+        for (let x = spacing; x < w; x += spacing) {
+            for (let y = spacing; y < h; y += spacing) {
+                ctx.beginPath();
+                ctx.arc(x, y, dotR, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+    }
+
+    async function renderCard() {
+        const qrCanvas = canvasRef.current;
+        if (!qrCanvas) return null;
+
+        const size = 600;
+        const qrSize = 200;
+        const card = document.createElement('canvas');
+        card.width = size;
+        card.height = size;
+        const ctx = card.getContext('2d');
+        if (!ctx) return null;
+
+        const bg = '#F6F2E9';
+        const primary = '#4F6B6A';
+        const ink = '#25332F';
+        const muted = '#5c6a66';
+        const border = 'rgba(37,51,47,0.08)';
+        const white = '#FFFFFF';
+
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, size, size);
+
+        drawPattern(ctx, size, size);
+
+        ctx.strokeStyle = border;
+        ctx.lineWidth = 2;
+        roundRect(ctx, 16, 16, size - 32, size - 32, 24);
+        ctx.stroke();
+
+        const logo = await new Promise<HTMLImageElement>((resolve) => {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => resolve(img);
+            img.onerror = () => resolve(img);
+            img.src = '/img/lws-logo.png';
+        });
+
+        const logoSize = 56;
+        const logoX = (size - logoSize) / 2;
+        let logoY = 56;
+        if (logo.complete && logo.naturalWidth > 0) {
+            ctx.save();
+            ctx.beginPath();
+            roundRect(ctx, logoX - 8, logoY - 8, logoSize + 16, logoSize + 16, 14);
+            ctx.clip();
+            ctx.drawImage(logo, logoX, logoY, logoSize, logoSize);
+            ctx.restore();
+        } else {
+            ctx.fillStyle = primary;
+            ctx.font = 'bold 28px serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('LW', size / 2, logoY + logoSize / 2);
+        }
+
+        const topY = logoY + logoSize + 20;
+
+        ctx.fillStyle = primary;
+        ctx.font = 'bold 18px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(APP_NAME, size / 2, topY);
+
+        ctx.font = '11px sans-serif';
+        ctx.fillStyle = muted;
+        ctx.fillText('Self-Order Table', size / 2, topY + 22);
+
+        ctx.fillStyle = ink;
+        ctx.font = 'bold 32px serif';
+        ctx.fillText(`Meja ${table.code}`, size / 2, topY + 70);
+
+        const qrX = (size - qrSize) / 2;
+        const qrY = topY + 108 + 5;
+
+        ctx.shadowColor = 'rgba(37,51,47,0.08)';
+        ctx.shadowBlur = 16;
+        ctx.shadowOffsetY = 4;
+        ctx.fillStyle = white;
+        ctx.beginPath();
+        roundRect(ctx, qrX - 16, qrY - 16, qrSize + 32, qrSize + 32, 18);
+        ctx.fill();
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetY = 0;
+
+        ctx.drawImage(qrCanvas, qrX, qrY, qrSize, qrSize);
+
+        ctx.fillStyle = muted;
+        ctx.font = '13px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('Scan QR code untuk memesan', size / 2, qrY + qrSize + 44);
+
+        ctx.fillStyle = border;
+        ctx.font = '10px sans-serif';
+        ctx.fillText(`${window.location.origin}/t/${table.table_token}`, size / 2, size - 52);
+
+        return card;
+    }
+
+    function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        ctx.lineTo(x + r, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+    }
+
+    async function downloadQR() {
+        const card = await renderCard();
+        if (!card) return;
 
         const link = document.createElement('a');
         link.download = `meja-${table.code}-qr.png`;
-        link.href = canvas.toDataURL('image/png');
+        link.href = card.toDataURL('image/png');
         link.click();
     }
 
-    function printQR() {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
+    async function printQR() {
+        const card = await renderCard();
+        if (!card) return;
 
         const win = window.open('', '_blank');
         if (!win) return;
@@ -99,15 +227,13 @@ function TableCard({
             <html>
             <head><title>QR Meja ${table.code}</title>
             <style>
-                body { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; font-family: sans-serif; }
-                img { max-width: 90vw; }
-                p { margin-top: 16px; font-size: 14px; color: #666; }
+                body { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+                img { max-width: 95vw; max-height: 95vh; }
                 @media print { @page { margin: 0; } body { min-height: 100vh; } }
             </style>
             </head>
             <body>
-                <img src="${canvas.toDataURL('image/png')}" alt="QR Meja ${table.code}" />
-                <p>${window.location.origin}/t/${table.table_token}</p>
+                <img src="${card.toDataURL('image/png')}" alt="QR Meja ${table.code}" />
                 <script>window.print();window.close();</script>
             </body>
             </html>

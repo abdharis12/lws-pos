@@ -3,21 +3,32 @@
 namespace App\Http\Controllers;
 
 use App\Events\MenuAvailabilityChanged;
-use App\Models\ActivityLog;
 use App\Models\Menu;
 use App\Models\MenuCategory;
 use App\Models\OptionGroup;
 use App\Models\Outlet;
+use App\Services\ActivityLogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class MenuController extends Controller
 {
+    public function __construct(
+        private readonly ActivityLogService $activityLog,
+    ) {}
+
     public function index(Request $request): Response
     {
         $outlet = Outlet::first();
+        $cacheKey = "menu_categories_outlet_{$outlet?->id}";
+
+        $categories = Cache::remember($cacheKey, 3600, fn () => MenuCategory::where('outlet_id', $outlet?->id)
+            ->orderBy('sort_order')
+            ->get()
+        );
 
         $menus = Menu::with(['category', 'optionGroups.optionItems'])
             ->whereHas('category', fn ($q) => $q->where('outlet_id', $outlet?->id))
@@ -26,10 +37,6 @@ class MenuController extends Controller
             ->when($request->category_id, fn ($q, $categoryId) => $q->where('category_id', $categoryId))
             ->paginate(10)
             ->withQueryString();
-
-        $categories = MenuCategory::where('outlet_id', $outlet?->id)
-            ->orderBy('sort_order')
-            ->get();
 
         return Inertia::render('admin/menus/Index', [
             'menus' => $menus,
@@ -61,6 +68,7 @@ class MenuController extends Controller
             'price' => 'required|numeric|min:0',
             'photo' => 'nullable|image|max:2048',
             'is_available' => 'boolean',
+            'station' => 'nullable|string|max:100',
             'option_group_ids' => 'nullable|array',
             'option_group_ids.*' => 'exists:option_groups,id',
         ]);
@@ -77,22 +85,22 @@ class MenuController extends Controller
             'price' => $validated['price'],
             'photo_path' => $photoPath,
             'is_available' => $validated['is_available'] ?? true,
+            'station' => $validated['station'] ?? null,
         ]);
 
         if (! empty($validated['option_group_ids'])) {
             $menu->optionGroups()->sync($validated['option_group_ids']);
         }
 
+        $this->clearMenuCache($menu);
         MenuAvailabilityChanged::dispatch($menu, $menu->is_available);
 
-        ActivityLog::create([
-            'user_id' => $request->user()->id,
-            'action' => 'menu.created',
-            'subject_type' => Menu::class,
-            'subject_id' => $menu->id,
-            'description' => "Menu {$menu->name} ditambahkan seharga Rp{$menu->price}",
-            'metadata' => $validated,
-        ]);
+        $this->activityLog->log(
+            $request->user(), 'menu.created',
+            Menu::class, $menu->id,
+            "Menu {$menu->name} ditambahkan seharga Rp{$menu->price}",
+            $validated,
+        );
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Menu berhasil ditambahkan.']);
 
@@ -134,6 +142,7 @@ class MenuController extends Controller
             'price' => 'required|numeric|min:0',
             'photo' => 'nullable|image|max:2048',
             'is_available' => 'boolean',
+            'station' => 'nullable|string|max:100',
             'option_group_ids' => 'nullable|array',
             'option_group_ids.*' => 'exists:option_groups,id',
         ]);
@@ -148,22 +157,22 @@ class MenuController extends Controller
             'description' => $validated['description'] ?? null,
             'price' => $validated['price'],
             'is_available' => $validated['is_available'] ?? true,
+            'station' => $validated['station'] ?? null,
         ]);
 
         if (isset($validated['option_group_ids'])) {
             $menu->optionGroups()->sync($validated['option_group_ids']);
         }
 
+        $this->clearMenuCache($menu);
         MenuAvailabilityChanged::dispatch($menu, $menu->is_available);
 
-        ActivityLog::create([
-            'user_id' => $request->user()->id,
-            'action' => 'menu.updated',
-            'subject_type' => Menu::class,
-            'subject_id' => $menu->id,
-            'description' => "Menu {$menu->name} diperbarui",
-            'metadata' => $validated,
-        ]);
+        $this->activityLog->log(
+            $request->user(), 'menu.updated',
+            Menu::class, $menu->id,
+            "Menu {$menu->name} diperbarui",
+            $validated,
+        );
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Menu berhasil diperbarui.']);
 
@@ -173,15 +182,15 @@ class MenuController extends Controller
     public function destroy(Request $request, Menu $menu): RedirectResponse
     {
         $this->authorize('delete', $menu);
+
+        $this->clearMenuCache($menu);
         MenuAvailabilityChanged::dispatch($menu, false);
 
-        ActivityLog::create([
-            'user_id' => $request->user()->id,
-            'action' => 'menu.deleted',
-            'subject_type' => Menu::class,
-            'subject_id' => $menu->id,
-            'description' => "Menu {$menu->name} dihapus",
-        ]);
+        $this->activityLog->log(
+            $request->user(), 'menu.deleted',
+            Menu::class, $menu->id,
+            "Menu {$menu->name} dihapus",
+        );
 
         $menu->delete();
 
@@ -195,18 +204,27 @@ class MenuController extends Controller
         $this->authorize('toggleAvailability', $menu);
         $newAvailability = ! $menu->is_available;
         $menu->update(['is_available' => $newAvailability]);
+
+        $this->clearMenuCache($menu);
         MenuAvailabilityChanged::dispatch($menu->fresh(), $newAvailability);
 
-        ActivityLog::create([
-            'user_id' => $request->user()->id,
-            'action' => $newAvailability ? 'menu.enabled' : 'menu.disabled',
-            'subject_type' => Menu::class,
-            'subject_id' => $menu->id,
-            'description' => ($newAvailability ? 'Mengaktifkan' : 'Menonaktifkan')." menu {$menu->name}",
-        ]);
+        $this->activityLog->log(
+            $request->user(),
+            $newAvailability ? 'menu.enabled' : 'menu.disabled',
+            Menu::class, $menu->id,
+            ($newAvailability ? 'Mengaktifkan' : 'Menonaktifkan')." menu {$menu->name}",
+        );
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Status ketersediaan menu berhasil diubah.']);
 
         return redirect()->back();
+    }
+
+    private function clearMenuCache(Menu $menu): void
+    {
+        $outletId = $menu->category?->outlet_id;
+        if ($outletId) {
+            Cache::forget("menu_categories_outlet_{$outletId}");
+        }
     }
 }

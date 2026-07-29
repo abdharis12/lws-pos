@@ -32,6 +32,11 @@ class OrderPolicy
         return $user->hasAnyRole(['Owner', 'Admin', 'Cashier']);
     }
 
+    public function update(User $user, Order $order): bool
+    {
+        return $user->hasAnyRole(['Owner', 'Admin', 'Cashier']);
+    }
+
     public function applyLargeDiscount(User $user): bool
     {
         return $user->hasAnyRole(['Owner', 'Admin']);

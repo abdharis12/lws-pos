@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\OrderStatus;
 use App\Models\Employee;
 use App\Models\Meja;
 use App\Models\Menu;
@@ -205,7 +206,7 @@ test('kitchen staff can mark order as processing', function () {
         ])
         ->assertRedirect();
 
-    expect($order->fresh()->status)->toBe('processing');
+    expect($order->fresh()->status)->toBe(OrderStatus::Processing);
 });
 
 test('kitchen staff can mark order as ready', function () {
@@ -226,7 +227,7 @@ test('kitchen staff can mark order as ready', function () {
         ])
         ->assertRedirect();
 
-    expect($order->fresh()->status)->toBe('ready');
+    expect($order->fresh()->status)->toBe(OrderStatus::Ready);
 });
 
 test('order status update validates status', function () {

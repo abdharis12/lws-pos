@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\OrderStatus;
 use App\Models\Order;
 use App\Services\MidtransService;
 use Illuminate\Console\Command;
@@ -14,7 +15,7 @@ class CheckPendingPayments extends Command
 
     public function handle(MidtransService $midtrans): int
     {
-        $pendingOrders = Order::where('status', 'pending_payment')
+        $pendingOrders = Order::where('status', OrderStatus::PendingPayment)
             ->where('created_at', '<', now()->subMinutes(2))
             ->get();
 
@@ -24,10 +25,10 @@ class CheckPendingPayments extends Command
             $transactionStatus = $status['transaction_status'] ?? '';
 
             if (in_array($transactionStatus, ['capture', 'settlement'])) {
-                $order->update(['status' => 'paid']);
+                $order->update(['status' => OrderStatus::Paid]);
                 $this->info("Order {$order->id} updated to paid");
             } elseif (in_array($transactionStatus, ['expire', 'cancel', 'deny'])) {
-                $order->update(['status' => 'cancelled']);
+                $order->update(['status' => OrderStatus::Cancelled]);
                 $this->info("Order {$order->id} updated to cancelled");
             }
         }

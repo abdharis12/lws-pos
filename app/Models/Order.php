@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\OrderStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -30,6 +31,7 @@ class Order extends Model
             'discount_value' => 'decimal:2',
             'total' => 'decimal:2',
             'grouped_tables' => 'array',
+            'status' => OrderStatus::class,
         ];
     }
 

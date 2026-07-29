@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ActivityLog;
 use App\Models\Employee;
 use App\Models\Outlet;
 use App\Models\User;
+use App\Services\ActivityLogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -15,6 +15,10 @@ use Spatie\Permission\Models\Role;
 
 class EmployeeController extends Controller
 {
+    public function __construct(
+        private readonly ActivityLogService $activityLog,
+    ) {}
+
     public function index(Request $request): Response
     {
         $outlet = Outlet::first();
@@ -139,18 +143,16 @@ class EmployeeController extends Controller
     {
         $user = $employee->user;
 
-        ActivityLog::create([
-            'user_id' => $request->user()->id,
-            'action' => 'employee_deleted',
-            'subject_type' => Employee::class,
-            'subject_id' => $employee->id,
-            'description' => "Karyawan {$user->name} ({$employee->position}) dihapus",
-            'metadata' => [
+        $this->activityLog->log(
+            $request->user(), 'employee_deleted',
+            Employee::class, $employee->id,
+            "Karyawan {$user->name} ({$employee->position}) dihapus",
+            [
                 'employee_name' => $user->name,
                 'position' => $employee->position,
                 'deleted_user_id' => $user->id,
             ],
-        ]);
+        );
 
         $employee->delete();
         $user->delete();

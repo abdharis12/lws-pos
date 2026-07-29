@@ -24,6 +24,7 @@ use App\Http\Controllers\SelfOrderController;
 use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\TableController;
 use App\Http\Middleware\VerifyCsrfToken;
+use App\Http\Middleware\VerifyMidtransIp;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'welcome')->name('home');
@@ -124,7 +125,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('pos/orders/{order}/items', [PosController::class, 'updateItems'])->name('pos.orders.update-items');
     Route::delete('pos/orders/{order}', [PosController::class, 'destroyPending'])->name('pos.orders.destroy-pending');
     Route::post('pos/orders/initiate-payment', [PosController::class, 'initiatePayment'])->name('pos.orders.initiate-payment');
-    Route::post('pos/orders/qris-init', [PosController::class, 'initiatePayment'])->name('pos.orders.qris-init');
     Route::get('pos/orders/{order}/qris-status', [PosController::class, 'qrisStatus'])->name('pos.orders.qris-status');
     Route::post('pos/tables/{table}/release', [PosController::class, 'releaseTable'])->name('pos.tables.release');
     Route::post('pos/tables/{table}/move/{target}', [PosController::class, 'moveTable'])->name('pos.tables.move');
@@ -141,6 +141,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 Route::get('t/{tableToken}', [SelfOrderController::class, 'show'])->name('self-order.show');
 Route::get('t/{tableToken}/orders/{order}/status', [SelfOrderController::class, 'orderStatus'])->name('self-order.status');
+Route::get('t/{tableToken}/orders/{order}/poll-status', [SelfOrderController::class, 'pollStatus'])->name('self-order.poll-status');
 Route::post('t/{tableToken}/orders', [SelfOrderController::class, 'store'])
     ->middleware('throttle:5,1')
     ->name('self-order.orders.store');
@@ -149,6 +150,7 @@ Route::get('t/{tableToken}/orders/{order}/payment-status', [SelfOrderController:
 
 Route::post('webhooks/midtrans/notification', [MidtransWebhookController::class, 'notification'])
     ->withoutMiddleware([VerifyCsrfToken::class])
+    ->middleware(['throttle:20,1', VerifyMidtransIp::class])
     ->name('webhooks.midtrans.notification');
 
 Route::inertia('offline', 'welcome')->name('offline');

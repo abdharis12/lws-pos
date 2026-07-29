@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\TableStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -35,6 +36,14 @@ class Meja extends Model
     public function sessions(): HasMany
     {
         return $this->hasMany(TableSession::class, 'table_id');
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'capacity' => 'integer',
+            'status' => TableStatus::class,
+        ];
     }
 
     public function lockedBy(): BelongsTo

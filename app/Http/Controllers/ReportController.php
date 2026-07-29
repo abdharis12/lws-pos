@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\OrderStatus;
 use App\Exports\SalesReportExport;
 use App\Models\Attendance;
 use App\Models\Employee;
@@ -27,7 +28,8 @@ class ReportController extends Controller
         $weekStart = $request->input('week_start', now()->startOfWeek()->format('Y-m-d'));
         $month = $request->input('month', today()->format('Y-m'));
 
-        $salesQuery = Order::whereIn('orders.status', ['paid', 'completed', 'settled']);
+        $paidStatuses = [OrderStatus::Paid, OrderStatus::Completed];
+        $salesQuery = Order::whereIn('orders.status', $paidStatuses);
 
         switch ($period) {
             case 'weekly':
@@ -54,7 +56,7 @@ class ReportController extends Controller
             ->groupBy('payments.method')
             ->get();
 
-        $hourlyOrders = Order::whereIn('status', ['paid', 'completed', 'settled'])
+        $hourlyOrders = Order::whereIn('status', $paidStatuses)
             ->whereDate('created_at', $date)
             ->select('id', 'total', 'created_at')
             ->get();
@@ -72,7 +74,7 @@ class ReportController extends Controller
         $topMenus = DB::table('order_items')
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
             ->join('menus', 'menus.id', '=', 'order_items.menu_id')
-            ->whereIn('orders.status', ['paid', 'completed', 'settled'])
+            ->whereIn('orders.status', $paidStatuses)
             ->whereDate('orders.created_at', $date)
             ->select('menus.id', 'menus.name', DB::raw('SUM(order_items.qty) as total_qty'), DB::raw('SUM(order_items.total_price) as total_revenue'))
             ->groupBy('menus.id', 'menus.name')
@@ -96,6 +98,7 @@ class ReportController extends Controller
 
     public function topMenus(Request $request): Response
     {
+        $paidStatuses = [OrderStatus::Paid, OrderStatus::Completed];
         $outlet = Outlet::first();
         $startDate = $request->input('start_date', today()->subMonth()->format('Y-m-d'));
         $endDate = $request->input('end_date', today()->format('Y-m-d'));
@@ -105,7 +108,7 @@ class ReportController extends Controller
             ->join('menus', 'menus.id', '=', 'order_items.menu_id')
             ->leftJoin('order_item_options', 'order_item_options.order_item_id', '=', 'order_items.id')
             ->leftJoin('option_items', 'option_items.id', '=', 'order_item_options.option_item_id')
-            ->whereIn('orders.status', ['paid', 'completed', 'settled'])
+            ->whereIn('orders.status', $paidStatuses)
             ->whereDate('orders.created_at', '>=', $startDate)
             ->whereDate('orders.created_at', '<=', $endDate)
             ->select(
@@ -124,7 +127,7 @@ class ReportController extends Controller
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
             ->join('option_items', 'option_items.id', '=', 'order_item_options.option_item_id')
             ->join('option_groups', 'option_groups.id', '=', 'option_items.option_group_id')
-            ->whereIn('orders.status', ['paid', 'completed', 'settled'])
+            ->whereIn('orders.status', [OrderStatus::Paid, OrderStatus::Completed])
             ->whereDate('orders.created_at', '>=', $startDate)
             ->whereDate('orders.created_at', '<=', $endDate)
             ->select(
