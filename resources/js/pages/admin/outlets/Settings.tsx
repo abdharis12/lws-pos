@@ -330,7 +330,6 @@ export default function OutletSettings({ outlet }: Props) {
                                     variant="outline"
                                     onClick={handleUseMyLocation}
                                     disabled={locating}
-                                    className="border-[oklch(0.80_0.038_88.5)]/40 text-[oklch(0.48_0.032_195.5)] hover:bg-[oklch(0.80_0.038_88.5)]/10"
                                 >
                                     <Navigation className={`mr-2 size-4 ${locating ? 'animate-spin' : ''}`} />
                                     {locating ? 'Mencari...' : 'Gunakan Lokasi Saya'}

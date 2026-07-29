@@ -4,6 +4,14 @@ import { useState } from 'react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 
 interface UserData {
     id: number;
@@ -79,6 +87,7 @@ export default function ShiftsIndex({ shifts, employees, dates, weekStart, month
     const [editingShift, setEditingShift] = useState<ShiftData | null>(null);
     const [showMonthly, setShowMonthly] = useState(false);
     const [selectedDayShifts, setSelectedDayShifts] = useState<{ date: string; shifts: ShiftData[] } | null>(null);
+    const [shiftToDelete, setShiftToDelete] = useState<ShiftData | null>(null);
 
     const { data, setData, post, put, delete: destroy, processing, errors, reset } = useForm({
         employee_id: '',
@@ -126,9 +135,19 @@ export default function ShiftsIndex({ shifts, employees, dates, weekStart, month
     }
 
     function handleDeleteShift(id: number) {
-        if (confirm('Hapus shift ini?')) {
-            destroy(`/admin/shifts/${id}`);
+        const shift = Object.values(shifts).flat().find((s) => s.id === id) ?? null;
+        setShiftToDelete(shift);
+    }
+
+    function confirmDeleteShift() {
+        if (shiftToDelete) {
+            destroy(`/admin/shifts/${shiftToDelete.id}`);
+            setShiftToDelete(null);
         }
+    }
+
+    function cancelDeleteShift() {
+        setShiftToDelete(null);
     }
 
     function handleEditShift(shift: ShiftData) {
@@ -677,6 +696,39 @@ export default function ShiftsIndex({ shifts, employees, dates, weekStart, month
                         </div>
                     </div>
                 )}
+
+                {/* Delete Confirmation Dialog */}
+                <Dialog open={!!shiftToDelete} onOpenChange={(open) => !open && setShiftToDelete(null)}>
+                    <DialogContent className="border-[oklch(0.80_0.038_88.5)]/40 bg-[oklch(0.98_0.005_85.0)] sm:max-w-md">
+                        <DialogHeader>
+                            <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-rose-100">
+                                <Trash2 className="size-6 text-rose-600" />
+                            </div>
+                            <DialogTitle className="mt-2 text-center font-serif text-xl font-bold text-[oklch(0.48_0.032_195.5)]">
+                                Hapus Shift
+                            </DialogTitle>
+                            <DialogDescription className="text-center text-slate-500">
+                                Apakah Anda yakin ingin menghapus shift <span className="font-semibold text-[oklch(0.48_0.032_195.5)]">{shiftToDelete?.employee.user.name}</span> pada <span className="font-semibold text-[oklch(0.48_0.032_195.5)]">{formatDateLong(shiftToDelete?.shift_date ?? '')}</span>? Tindakan ini tidak dapat dibatalkan.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter className="gap-2 sm:justify-center">
+                            <Button
+                                variant="ghost"
+                                onClick={cancelDeleteShift}
+                                className="border border-[oklch(0.80_0.038_88.5)]/40 text-slate-600 hover:bg-[oklch(0.80_0.038_88.5)]/10"
+                            >
+                                Batal
+                            </Button>
+                            <Button
+                                onClick={confirmDeleteShift}
+                                disabled={processing}
+                                className="bg-rose-700 text-white hover:bg-rose-800"
+                            >
+                                Hapus
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
         </div>
     );

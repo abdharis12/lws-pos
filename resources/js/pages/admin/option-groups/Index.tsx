@@ -9,6 +9,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
+    DialogFooter,
     DialogHeader,
     DialogTitle,
     DialogTrigger,
@@ -67,6 +69,7 @@ export default function OptionGroupsIndex({ groups, filters }: Props) {
     const [open, setOpen] = useState(false);
     const [editing, setEditing] = useState<OptionGroup | null>(null);
     const [search, setSearch] = useState(filters.search ?? '');
+    const [deleteConfirm, setDeleteConfirm] = useState<OptionGroup | null>(null);
 
     const { data, setData, post, put, delete: destroy, processing, errors, reset } = useForm({
         name: '',
@@ -153,9 +156,14 @@ export default function OptionGroupsIndex({ groups, filters }: Props) {
     }
 
     function handleDelete(id: number) {
-        if (confirm('Hapus grup opsi ini? Semua item di dalamnya juga akan dihapus.')) {
-            destroy(`/admin/option-groups/${id}`);
-        }
+        const group = groups.data.find((g) => g.id === id) ?? null;
+        setDeleteConfirm(group);
+    }
+
+    function confirmDelete() {
+        if (!deleteConfirm) return;
+        destroy(`/admin/option-groups/${deleteConfirm.id}`);
+        setDeleteConfirm(null);
     }
 
     return (
@@ -417,6 +425,39 @@ export default function OptionGroupsIndex({ groups, filters }: Props) {
                 <hr className="border border-[oklch(0.80_0.038_88.5)]/40" />
                 <Pagination meta={groups} />
             </div>
+
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
+                <DialogContent className="border-[oklch(0.80_0.038_88.5)]/40 bg-[oklch(0.98_0.005_85.0)] sm:max-w-md">
+                    <DialogHeader>
+                        <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-rose-100">
+                            <Trash2 className="size-6 text-rose-600" />
+                        </div>
+                        <DialogTitle className="mt-2 text-center font-serif text-xl font-bold text-[oklch(0.48_0.032_195.5)]">
+                            Hapus Grup Opsi
+                        </DialogTitle>
+                        <DialogDescription className="text-center text-slate-500">
+                            Apakah Anda yakin ingin menghapus grup opsi <span className="font-semibold text-[oklch(0.48_0.032_195.5)]">{deleteConfirm?.name}</span>? Semua item di dalamnya juga akan dihapus. Tindakan ini tidak dapat dibatalkan.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="gap-2 sm:justify-center">
+                        <Button
+                            variant="ghost"
+                            onClick={() => setDeleteConfirm(null)}
+                            className="border border-[oklch(0.80_0.038_88.5)]/40 text-slate-600 hover:bg-[oklch(0.80_0.038_88.5)]/10"
+                        >
+                            Batal
+                        </Button>
+                        <Button
+                            onClick={confirmDelete}
+                            disabled={processing}
+                            className="bg-rose-700 text-white hover:bg-rose-800"
+                        >
+                            Hapus
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

@@ -5,6 +5,14 @@ import { useState, useEffect, useRef } from 'react';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface UserData {
@@ -64,6 +72,8 @@ export default function AttendanceIndex({
     const [userPosition, setUserPosition] = useState<{ lat: number; lng: number } | null>(null);
     const [distanceToOutlet, setDistanceToOutlet] = useState<number | null>(null);
     const [geoError, setGeoError] = useState<string | null>(null);
+    const [geofenceAlert, setGeofenceAlert] = useState<{ open: boolean; isClockIn: boolean; loc: { lat: number; lng: number } } | null>(null);
+    const [locationAlert, setLocationAlert] = useState<{ open: boolean; isClockIn: boolean; type: 'no_location' | 'no_gps' } | null>(null);
     const mapRef = useRef<HTMLDivElement>(null);
     const mapInstanceRef = useRef<unknown>(null);
     const markerRef = useRef<unknown>(null);
@@ -243,12 +253,34 @@ export default function AttendanceIndex({
             return;
         }
 
+        if (!outlet.latitude || !outlet.longitude) {
+            setLocationAlert({ open: true, isClockIn: true, type: 'no_location' });
+            return;
+        }
+
         const loc = await getLocation();
+        if (!loc) {
+            setLocationAlert({ open: true, isClockIn: true, type: 'no_gps' });
+            return;
+        }
+
+        const distance = haversineDistance(outlet.latitude, outlet.longitude, loc.lat, loc.lng);
+        const radius = outlet.geofence_radius_meters ?? 20;
+
+        if (distance > radius) {
+            setGeofenceAlert({
+                open: true,
+                isClockIn: true,
+                loc: { lat: loc.lat, lng: loc.lng },
+            });
+            return;
+        }
+
         setInData({
             employee_id: String(selectedEmployee),
             photo: photoFile,
-            latitude: loc?.lat ?? '',
-            longitude: loc?.lng ?? '',
+            latitude: loc.lat,
+            longitude: loc.lng,
         });
         postIn('/admin/attendance/clock-in', {
             forceFormData: true,
@@ -262,12 +294,34 @@ export default function AttendanceIndex({
     }
 
     async function handleClockOut(employeeId: number) {
+        if (!outlet.latitude || !outlet.longitude) {
+            setLocationAlert({ open: true, isClockIn: false, type: 'no_location' });
+            return;
+        }
+
         const loc = await getLocation();
+        if (!loc) {
+            setLocationAlert({ open: true, isClockIn: false, type: 'no_gps' });
+            return;
+        }
+
+        const distance = haversineDistance(outlet.latitude, outlet.longitude, loc.lat, loc.lng);
+        const radius = outlet.geofence_radius_meters ?? 20;
+
+        if (distance > radius) {
+            setGeofenceAlert({
+                open: true,
+                isClockIn: false,
+                loc: { lat: loc.lat, lng: loc.lng },
+            });
+            return;
+        }
+
         setOutData({
             employee_id: String(employeeId),
             photo: outData.photo,
-            latitude: loc?.lat ?? '',
-            longitude: loc?.lng ?? '',
+            latitude: loc.lat,
+            longitude: loc.lng,
         });
         postOut('/admin/attendance/clock-out', {
             forceFormData: true,
@@ -588,6 +642,64 @@ export default function AttendanceIndex({
                     )}
                 </div>
             </div>
+
+            {/* Geofence Alert Dialog */}
+            {geofenceAlert && (
+                <Dialog open={geofenceAlert.open} onOpenChange={() => setGeofenceAlert(null)}>
+                    <DialogContent className="border-[oklch(0.80_0.038_88.5)]/40 bg-[oklch(0.98_0.005_85.0)] sm:max-w-md">
+                        <DialogHeader>
+                            <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-rose-100">
+                                <XCircle className="size-6 text-rose-600" />
+                            </div>
+                            <DialogTitle className="mt-2 text-center font-serif text-xl font-bold text-[oklch(0.48_0.032_195.5)]">
+                                {geofenceAlert.isClockIn ? 'Tidak Bisa Clock-In' : 'Tidak Bisa Clock-Out'}
+                            </DialogTitle>
+                            <DialogDescription className="text-center text-slate-500">
+                                Anda berada di luar radius geofence absensi. Anda harus berada dalam radius <span className="font-semibold text-[oklch(0.48_0.032_195.5)]">{outlet.geofence_radius_meters ?? 20}m</span> dari outlet untuk bisa {geofenceAlert.isClockIn ? 'clock-in' : 'clock-out'}.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter className="gap-2 sm:justify-center">
+                            <Button
+                                variant="ghost"
+                                onClick={() => setGeofenceAlert(null)}
+                                className="border border-[oklch(0.80_0.038_88.5)]/40 text-slate-600 hover:bg-[oklch(0.80_0.038_88.5)]/10"
+                            >
+                                Tutup
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            )}
+
+            {/* Location Alert Dialog */}
+            {locationAlert && (
+                <Dialog open={locationAlert.open} onOpenChange={() => setLocationAlert(null)}>
+                    <DialogContent className="border-[oklch(0.80_0.038_88.5)]/40 bg-[oklch(0.98_0.005_85.0)] sm:max-w-md">
+                        <DialogHeader>
+                            <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-amber-100">
+                                <Navigation className="size-6 text-amber-600" />
+                            </div>
+                            <DialogTitle className="mt-2 text-center font-serif text-xl font-bold text-[oklch(0.48_0.032_195.5)]">
+                                {locationAlert.type === 'no_location' ? 'Lokasi Belum Dikonfigurasi' : 'GPS Tidak Tersedia'}
+                            </DialogTitle>
+                            <DialogDescription className="text-center text-slate-500">
+                                {locationAlert.type === 'no_location'
+                                    ? 'Lokasi outlet belum diatur. Silakan atur lokasi di Pengaturan Outlet terlebih dahulu.'
+                                    : 'Gagal mendapatkan lokasi Anda. Pastikan GPS aktif dan coba lagi.'}
+                            </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter className="gap-2 sm:justify-center">
+                            <Button
+                                variant="ghost"
+                                onClick={() => setLocationAlert(null)}
+                                className="border border-[oklch(0.80_0.038_88.5)]/40 text-slate-600 hover:bg-[oklch(0.80_0.038_88.5)]/10"
+                            >
+                                Tutup
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            )}
         </div>
     );
 }

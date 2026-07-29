@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
+    DialogFooter,
     DialogHeader,
     DialogTitle,
     DialogTrigger,
@@ -345,13 +347,14 @@ function TableCard({
 export default function TablesIndex({ tables, floors, filters }: Props) {
     const [open, setOpen] = useState(false);
     const [editing, setEditing] = useState<TableData | null>(null);
-    const [filterFloor, setFilterFloor] = useState<string>(filters.floor ?? '');
+    const [selectedTable, setSelectedTable] = useState<TableData | null>(null);
+    const [deleteConfirm, setDeleteConfirm] = useState<TableData | null>(null);
+    const [filterFloor, setFilterFloor] = useState(filters.floor ?? '');
 
     const { data, setData, post, put, delete: destroy, processing, errors, reset } = useForm({
         code: '',
-        capacity: '2',
+        capacity: '4',
         floor: '',
-        status: 'available',
     });
 
     useEffect(() => {
@@ -400,15 +403,26 @@ export default function TablesIndex({ tables, floors, filters }: Props) {
     }
 
     function handleDelete(id: number) {
-        if (confirm('Hapus meja ini?')) {
-            destroy(`/admin/tables/${id}`);
-        }
+        const table = tables.data.find((t) => t.id === id) ?? null;
+        setDeleteConfirm(table);
     }
 
+    function confirmDelete() {
+        if (!deleteConfirm) return;
+        destroy(`/admin/tables/${deleteConfirm.id}`);
+        setDeleteConfirm(null);
+    }
+
+    const [tokenToRegenerate, setTokenToRegenerate] = useState<number | null>(null);
+
     function regenerateToken(tableId: number) {
-        if (confirm('Regenerasi token QR? Tautan QR sebelumnya tidak akan berfungsi lagi.')) {
-            router.post(`/admin/tables/${tableId}/regenerate-token`);
-        }
+        setTokenToRegenerate(tableId);
+    }
+
+    function confirmRegenerateToken() {
+        if (tokenToRegenerate === null) return;
+        router.post(`/admin/tables/${tokenToRegenerate}/regenerate-token`);
+        setTokenToRegenerate(null);
     }
 
     return (
@@ -582,6 +596,71 @@ export default function TablesIndex({ tables, floors, filters }: Props) {
                 <hr className="border border-[oklch(0.80_0.038_88.5)]/40" />
                 <Pagination meta={tables} />
             </div>
+
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
+                <DialogContent className="border-[oklch(0.80_0.038_88.5)]/40 bg-[oklch(0.98_0.005_85.0)] sm:max-w-md">
+                    <DialogHeader>
+                        <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-rose-100">
+                            <Trash2 className="size-6 text-rose-600" />
+                        </div>
+                        <DialogTitle className="mt-2 text-center font-serif text-xl font-bold text-[oklch(0.48_0.032_195.5)]">
+                            Hapus Meja
+                        </DialogTitle>
+                        <DialogDescription className="text-center text-slate-500">
+                            Apakah Anda yakin ingin menghapus meja <span className="font-semibold text-[oklch(0.48_0.032_195.5)]">{deleteConfirm?.code}</span>? Tindakan ini tidak dapat dibatalkan.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="gap-2 sm:justify-center">
+                        <Button
+                            variant="ghost"
+                            onClick={() => setDeleteConfirm(null)}
+                            className="border border-[oklch(0.80_0.038_88.5)]/40 text-slate-600 hover:bg-[oklch(0.80_0.038_88.5)]/10"
+                        >
+                            Batal
+                        </Button>
+                        <Button
+                            onClick={confirmDelete}
+                            disabled={processing}
+                            className="bg-rose-700 text-white hover:bg-rose-800"
+                        >
+                            Hapus
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Token Regeneration Confirmation Dialog */}
+            <Dialog open={tokenToRegenerate !== null} onOpenChange={(open) => !open && setTokenToRegenerate(null)}>
+                <DialogContent className="border-[oklch(0.80_0.038_88.5)]/40 bg-[oklch(0.98_0.005_85.0)] sm:max-w-md">
+                    <DialogHeader>
+                        <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-amber-100">
+                            <RefreshCw className="size-6 text-amber-600" />
+                        </div>
+                        <DialogTitle className="mt-2 text-center font-serif text-xl font-bold text-[oklch(0.48_0.032_195.5)]">
+                            Regenerasi Token QR
+                        </DialogTitle>
+                        <DialogDescription className="text-center text-slate-500">
+                            Apakah Anda yakin ingin menghapus token QR? Tautan QR sebelumnya tidak akan berfungsi lagi.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="gap-2 sm:justify-center">
+                        <Button
+                            variant="ghost"
+                            onClick={() => setTokenToRegenerate(null)}
+                            className="border border-[oklch(0.80_0.038_88.5)]/40 text-slate-600 hover:bg-[oklch(0.80_0.038_88.5)]/10"
+                        >
+                            Batal
+                        </Button>
+                        <Button
+                            onClick={confirmRegenerateToken}
+                            className="bg-amber-600 text-white hover:bg-amber-700"
+                        >
+                            Regenerasi
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

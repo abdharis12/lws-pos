@@ -25,6 +25,13 @@ interface AttendanceData {
     employee: EmployeeData;
 }
 
+interface DailyAttendance {
+    clock_in: string | null;
+    clock_out: string | null;
+    status: string | null;
+    attended: boolean;
+}
+
 interface SummaryItem {
     employee_id: number;
     employee_name: string;
@@ -32,22 +39,33 @@ interface SummaryItem {
     hadir: number;
     total_jam: number;
     terlambat: number;
+    daily_attendance: Record<string, DailyAttendance>;
+}
+
+interface MonthlyStats {
+    total_hadir: number;
+    total_jam: number;
+    total_terlambat: number;
 }
 
 interface Props {
     attendances: AttendanceData[];
     employees: EmployeeData[];
     summary: SummaryItem[];
+    dates: string[];
     filterMonth: string;
     filterEmployeeId: string | null;
+    monthlyStats: MonthlyStats;
 }
 
 export default function AttendanceRecap({
     attendances,
     employees,
     summary,
+    dates,
     filterMonth,
     filterEmployeeId,
+    monthlyStats,
 }: Props) {
     const { data, setData, get, processing } = useForm({
         month: filterMonth,
@@ -196,6 +214,126 @@ export default function AttendanceRecap({
                                             </tr>
                                         )}
                                     </tbody>
+                                </table>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Monthly Attendance Calendar */}
+                    <Card className="border-[oklch(0.80_0.038_88.5)]/40 bg-white/80 shadow-sm backdrop-blur-sm">
+                        <CardHeader className="border-b border-[oklch(0.80_0.038_88.5)]/20">
+                            <div className="flex items-center justify-between">
+                                <CardTitle className="font-serif text-lg font-medium text-[oklch(0.48_0.032_195.5)]">
+                                    Kalender Absensi Bulanan
+                                </CardTitle>
+                                <div className="flex items-center gap-4 text-xs">
+                                    {monthlyStats.total_hadir > 0 && (
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-slate-500">Total Hadir:</span>
+                                            <span className="font-semibold text-[oklch(0.48_0.032_195.5)]">{monthlyStats.total_hadir}</span>
+                                        </div>
+                                    )}
+                                    {monthlyStats.total_jam > 0 && (
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-slate-500">Total Jam:</span>
+                                            <span className="font-semibold text-[oklch(0.48_0.032_195.5)]">{Math.round(monthlyStats.total_jam / 60)} jam</span>
+                                        </div>
+                                    )}
+                                    {monthlyStats.total_terlambat > 0 && (
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-slate-500">Terlambat:</span>
+                                            <span className="font-semibold text-[oklch(0.80_0.038_88.5)]">{monthlyStats.total_terlambat}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="border-b border-[oklch(0.80_0.038_88.5)]/20 bg-[oklch(0.48_0.032_195.5)]/5 text-left text-xs uppercase tracking-wider text-[oklch(0.48_0.032_195.5)]">
+                                            <th className="sticky left-0 z-10 min-w-[160px] bg-[oklch(0.48_0.032_195.5)]/5 px-4 py-3.5 font-semibold">Karyawan</th>
+                                            {dates.map((date) => {
+                                                const d = new Date(date + 'T12:00:00');
+                                                return (
+                                                    <th
+                                                        key={date}
+                                                        className="min-w-[70px] px-2 py-3.5 text-center font-semibold"
+                                                    >
+                                                        <p className="text-[10px] text-slate-400">{d.toLocaleDateString('id-ID', { weekday: 'short' }).slice(0, 2)}</p>
+                                                        <p className="font-serif text-xs font-bold text-[oklch(0.48_0.032_195.5)]">{d.getDate()}</p>
+                                                    </th>
+                                                );
+                                            })}
+                                            <th className="px-4 py-3.5 text-center font-semibold">Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-[oklch(0.80_0.038_88.5)]/15">
+                                        {summary.map((item) => (
+                                            <tr key={item.employee_id} className="transition-colors hover:bg-[oklch(0.80_0.038_88.5)]/5">
+                                                <td className="sticky left-0 z-10 bg-white px-4 py-2.5">
+                                                    <p className="font-medium text-[oklch(0.48_0.032_195.5)]">{item.employee_name}</p>
+                                                    <p className="text-[10px] text-slate-400">{item.position}</p>
+                                                </td>
+                                                {dates.map((date) => {
+                                                    const daily = item.daily_attendance[date];
+                                                    const isWeekend = date ? new Date(date + 'T12:00:00').getDay() === 0 || new Date(date + 'T12:00:00').getDay() === 6 : false;
+                                                    
+                                                    return (
+                                                        <td key={date} className="px-2 py-2.5 text-center">
+                                                            {daily.attended ? (
+                                                                <div className="inline-flex flex-col items-center justify-center gap-0.5 rounded-md bg-[oklch(0.48_0.032_195.5)]/10 px-1.5 py-1">
+                                                                    <span className="text-[10px] font-medium text-[oklch(0.48_0.032_195.5)]">
+                                                                        {daily.clock_in?.slice(0, 5)}
+                                                                    </span>
+                                                                    {daily.clock_out && (
+                                                                        <span className="text-[10px] text-slate-500">
+                                                                            -{daily.clock_out.slice(0, 5)}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            ) : (
+                                                                <span className={isWeekend ? 'text-slate-300' : 'text-slate-200'}>
+                                                                    -
+                                                                </span>
+                                                            )}
+                                                        </td>
+                                                    );
+                                                })}
+                                                <td className="px-4 py-2.5 text-center font-semibold text-[oklch(0.48_0.032_195.5)]">
+                                                    {item.hadir}x
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {summary.length === 0 && (
+                                            <tr>
+                                                <td colSpan={dates.length + 2} className="py-12 text-center text-sm italic text-slate-500">
+                                                    Belum ada data absensi untuk bulan ini.
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                    <tfoot className="bg-[oklch(0.48_0.032_195.5)]/5">
+                                        <tr>
+                                            <td className="sticky left-0 z-10 bg-[oklch(0.48_0.032_195.5)]/10 px-4 py-3 font-semibold text-[oklch(0.48_0.032_195.5)]">
+                                                Total
+                                            </td>
+                                            {dates.map((date) => {
+                                                const dayCount = summary.reduce((count, item) => {
+                                                    return item.daily_attendance[date]?.attended ? count + 1 : count;
+                                                }, 0);
+                                                return (
+                                                    <td key={date} className="px-2 py-3 text-center font-medium text-slate-600">
+                                                        {dayCount}
+                                                    </td>
+                                                );
+                                            })}
+                                            <td className="px-4 py-3 text-center font-semibold text-[oklch(0.48_0.032_195.5)]">
+                                                {summary.reduce((sum, item) => sum + item.hadir, 0)}
+                                            </td>
+                                        </tr>
+                                    </tfoot>
                                 </table>
                             </div>
                         </CardContent>

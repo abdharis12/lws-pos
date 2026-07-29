@@ -184,7 +184,7 @@ export default function MenusEdit({ menu, categories, optionGroups }: Props) {
                                             <SelectValue placeholder="Pilih kategori menu" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {categories.map((cat) => (
+                                            {categories && Array.isArray(categories) && categories.map((cat) => (
                                                 <SelectItem key={cat.id} value={String(cat.id)}>
                                                     <div className="flex items-center gap-2">
                                                         <Tag className="size-3.5 text-muted-foreground" />

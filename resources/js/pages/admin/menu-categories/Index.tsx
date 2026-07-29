@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
+    DialogFooter,
     DialogHeader,
     DialogTitle,
     DialogTrigger,
@@ -42,6 +44,7 @@ export default function MenuCategoriesIndex({ categories, filters }: Props) {
     const [open, setOpen] = useState(false);
     const [editing, setEditing] = useState<Category | null>(null);
     const [search, setSearch] = useState(filters.search ?? '');
+    const [deleteConfirm, setDeleteConfirm] = useState<Category | null>(null);
 
     const { data, setData, post, put, delete: destroy, processing, errors, reset } = useForm({
         name: '',
@@ -95,9 +98,14 @@ export default function MenuCategoriesIndex({ categories, filters }: Props) {
     }
 
     function handleDelete(id: number) {
-        if (confirm('Apakah Anda yakin ingin menghapus kategori ini?')) {
-            destroy(`/admin/menu-categories/${id}`);
-        }
+        const category = categories.data.find((c) => c.id === id) ?? null;
+        setDeleteConfirm(category);
+    }
+
+    function confirmDelete() {
+        if (!deleteConfirm) return;
+        destroy(`/admin/menu-categories/${deleteConfirm.id}`);
+        setDeleteConfirm(null);
     }
 
     return (
@@ -283,6 +291,38 @@ export default function MenuCategoriesIndex({ categories, filters }: Props) {
                 <hr className="border border-[oklch(0.80_0.038_88.5)]/40" />
                 <Pagination meta={categories} />
             </div>
+
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
+                <DialogContent className="border-[oklch(0.80_0.038_88.5)]/40 bg-[oklch(0.98_0.005_85.0)] sm:max-w-md">
+                    <DialogHeader>
+                        <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-rose-100">
+                            <Trash2 className="size-6 text-rose-600" />
+                        </div>
+                        <DialogTitle className="mt-2 text-center font-serif text-xl font-bold text-[oklch(0.48_0.032_195.5)]">
+                            Hapus Kategori
+                        </DialogTitle>
+                        <DialogDescription className="text-center text-slate-500">
+                            Apakah Anda yakin ingin menghapus kategori <span className="font-semibold text-[oklch(0.48_0.032_195.5)]">{deleteConfirm?.name}</span>? Tindakan ini tidak dapat dibatalkan.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="gap-2 sm:justify-center">
+                        <Button
+                            variant="ghost"
+                            onClick={() => setDeleteConfirm(null)}
+                            className="border border-[oklch(0.80_0.038_88.5)]/40 text-slate-600 hover:bg-[oklch(0.80_0.038_88.5)]/10"
+                        >
+                            Batal
+                        </Button>
+                        <Button
+                            onClick={confirmDelete}
+                            className="bg-rose-700 text-white hover:bg-rose-800"
+                        >
+                            Hapus
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

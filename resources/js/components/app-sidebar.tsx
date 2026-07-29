@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { AwardIcon, BarChart3, Calendar, ChartArea, ChartCandlestick, ChefHat, Clock, FileUserIcon, Grid3x3, HandCoinsIcon, HandPlatter, LayoutGrid, ListTodo, MapPin, ScissorsLineDashedIcon, Settings2, ShoppingCart, Tag, Users, Utensils, Wallet } from 'lucide-react';
+import { AwardIcon, BarChart3, Calendar, ChartArea, ChartCandlestick, ChefHat, ClipboardList, Clock, FileUserIcon, Grid3x3, HandCoinsIcon, HandPlatter, LayoutGrid, ListTodo, MapPin, ScissorsLineDashedIcon, Settings2, ShoppingCart, Tag, Users, Utensils, Wallet } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -82,6 +82,7 @@ return true;
             items: [
                 { title: 'Karyawan', href: admin.employees.index(), icon: Users },
                 { title: 'Absensi', href: admin.attendance.index(), icon: Clock },
+                { title: 'Rekap Absensi', href: admin.attendance.recap(), icon: ClipboardList },
                 { title: 'Shift', href: admin.shifts.index(), icon: Calendar },
             ],
         },

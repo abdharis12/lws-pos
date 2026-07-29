@@ -4,6 +4,14 @@ import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Pagination } from '@/components/ui/pagination';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -48,6 +56,7 @@ interface Props {
 export default function MenusIndex({ menus, categories, filters }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
     const [categoryFilter, setCategoryFilter] = useState(filters.category_id ?? 'all');
+    const [deleteConfirm, setDeleteConfirm] = useState<MenuItem | null>(null);
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -71,9 +80,14 @@ export default function MenusIndex({ menus, categories, filters }: Props) {
     }
 
     function destroy(menuId: number) {
-        if (confirm('Apakah Anda yakin ingin menghapus menu ini?')) {
-            router.delete(`/admin/menus/${menuId}`);
-        }
+        const menu = menus.data.find((m) => m.id === menuId) ?? null;
+        setDeleteConfirm(menu);
+    }
+
+    function confirmDelete() {
+        if (!deleteConfirm) return;
+        router.delete(`/admin/menus/${deleteConfirm.id}`);
+        setDeleteConfirm(null);
     }
 
     return (
@@ -121,7 +135,7 @@ export default function MenusIndex({ menus, categories, filters }: Props) {
                     </SelectTrigger>
                     <SelectContent className="border-[oklch(0.80_0.038_88.5)]/40 bg-[oklch(0.98_0.005_85.0)]">
                         <SelectItem value="all">Semua Kategori</SelectItem>
-                        {categories.map((cat) => (
+                        {categories && Array.isArray(categories) && categories.map((cat) => (
                             <SelectItem key={cat.id} value={String(cat.id)}>
                                 {cat.name}
                             </SelectItem>
@@ -253,6 +267,38 @@ export default function MenusIndex({ menus, categories, filters }: Props) {
                 <hr className="border border-[oklch(0.80_0.038_88.5)]/40" />
                 <Pagination meta={menus} />
             </div>
+
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
+                <DialogContent className="border-[oklch(0.80_0.038_88.5)]/40 bg-[oklch(0.98_0.005_85.0)] sm:max-w-md">
+                    <DialogHeader>
+                        <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-rose-100">
+                            <Trash2 className="size-6 text-rose-600" />
+                        </div>
+                        <DialogTitle className="mt-2 text-center font-serif text-xl font-bold text-[oklch(0.48_0.032_195.5)]">
+                            Hapus Menu
+                        </DialogTitle>
+                        <DialogDescription className="text-center text-slate-500">
+                            Apakah Anda yakin ingin menghapus menu <span className="font-semibold text-[oklch(0.48_0.032_195.5)]">{deleteConfirm?.name}</span>? Tindakan ini tidak dapat dibatalkan.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="gap-2 sm:justify-center">
+                        <Button
+                            variant="ghost"
+                            onClick={() => setDeleteConfirm(null)}
+                            className="border border-[oklch(0.80_0.038_88.5)]/40 text-slate-600 hover:bg-[oklch(0.80_0.038_88.5)]/10"
+                        >
+                            Batal
+                        </Button>
+                        <Button
+                            onClick={confirmDelete}
+                            className="bg-rose-700 text-white hover:bg-rose-800"
+                        >
+                            Hapus
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

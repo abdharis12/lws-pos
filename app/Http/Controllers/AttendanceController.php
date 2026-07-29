@@ -183,10 +183,19 @@ class AttendanceController extends Controller
         $month = $request->input('month', now()->format('Y-m'));
         $employeeId = $request->input('employee_id');
 
+        $year = (int) substr($month, 0, 4);
+        $monthNum = (int) substr($month, 5, 2);
+        $daysInMonth = (int) now()->setYear($year)->setMonth($monthNum)->daysInMonth;
+
+        $dates = [];
+        for ($day = 1; $day <= $daysInMonth; $day++) {
+            $dates[] = sprintf('%04d-%02d-%02d', $year, $monthNum, $day);
+        }
+
         $query = Attendance::with('employee.user')
             ->whereHas('employee', fn ($q) => $q->where('outlet_id', $outlet?->id))
-            ->whereYear('clock_in_at', substr($month, 0, 4))
-            ->whereMonth('clock_in_at', substr($month, 5, 2));
+            ->whereYear('clock_in_at', $year)
+            ->whereMonth('clock_in_at', $monthNum);
 
         if ($employeeId) {
             $query->where('employee_id', $employeeId);
@@ -200,9 +209,33 @@ class AttendanceController extends Controller
             ->orderBy('position')
             ->get();
 
-        $summary = $attendances->groupBy('employee_id')->map(function ($records) {
-            $employee = $records->first()->employee;
-            $totalHours = $records->reduce(function ($carry, $record) {
+        $summary = $employees->map(function ($employee) use ($attendances, $dates) {
+            $employeeAttendances = $attendances->filter(fn ($a) => $a->employee_id === $employee->id);
+            
+            $dailyAttendance = [];
+            foreach ($dates as $date) {
+                $dayAttendances = $employeeAttendances->filter(fn ($a) => $a->clock_in_at && substr($a->clock_in_at, 0, 10) === $date);
+                
+                if ($dayAttendances->count() > 0) {
+                    $first = $dayAttendances->first();
+                    $last = $dayAttendances->last();
+                    $dailyAttendance[$date] = [
+                        'clock_in' => $first->clock_in_at ? substr($first->clock_in_at, 11, 5) : null,
+                        'clock_out' => $last->clock_out_at ? substr($last->clock_out_at, 11, 5) : null,
+                        'status' => $first->status,
+                        'attended' => true,
+                    ];
+                } else {
+                    $dailyAttendance[$date] = [
+                        'clock_in' => null,
+                        'clock_out' => null,
+                        'status' => null,
+                        'attended' => false,
+                    ];
+                }
+            }
+
+            $totalHours = $employeeAttendances->reduce(function ($carry, $record) {
                 if ($record->clock_in_at && $record->clock_out_at) {
                     return $carry + $record->clock_in_at->diffInMinutes($record->clock_out_at);
                 }
@@ -210,24 +243,38 @@ class AttendanceController extends Controller
                 return $carry;
             }, 0);
 
-            $lateDays = $records->filter(fn ($r) => $r->status === 'late')->count();
+            $lateDays = $employeeAttendances->filter(fn ($r) => $r->status === 'late')->count();
 
             return [
                 'employee_id' => $employee->id,
                 'employee_name' => $employee->user->name,
                 'position' => $employee->position,
-                'hadir' => $records->count(),
+                'hadir' => $employeeAttendances->count(),
                 'total_jam' => round($totalHours / 60, 1),
                 'terlambat' => $lateDays,
+                'daily_attendance' => $dailyAttendance,
             ];
-        })->values();
+        });
+
+        $monthlyStats = [
+            'total_hadir' => $attendances->count(),
+            'total_jam' => $attendances->reduce(function ($carry, $a) {
+                if ($a->clock_in_at && $a->clock_out_at) {
+                    return $carry + $a->clock_in_at->diffInMinutes($a->clock_out_at);
+                }
+                return $carry;
+            }, 0),
+            'total_terlambat' => $attendances->filter(fn ($a) => $a->status === 'late')->count(),
+        ];
 
         return Inertia::render('admin/attendance/Recap', [
             'attendances' => $attendances,
             'employees' => $employees,
-            'summary' => $summary,
+            'summary' => $summary->values(),
+            'dates' => $dates,
             'filterMonth' => $month,
             'filterEmployeeId' => $employeeId,
+            'monthlyStats' => $monthlyStats,
         ]);
     }
 }

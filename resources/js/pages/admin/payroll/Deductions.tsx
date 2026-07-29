@@ -4,7 +4,15 @@ import { MinusCircle, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -28,6 +36,8 @@ export default function Deductions({ deductions }: Props) {
     const { data, setData, post, put, delete: destroy, processing, errors, reset } = useForm({
         employee_id: '', period: '', type: 'late', amount: '', notes: '',
     });
+
+    const [deleteConfirm, setDeleteConfirm] = useState<DeductionData | null>(null);
 
     function openCreate() {
         setEditing(null);
@@ -59,9 +69,14 @@ export default function Deductions({ deductions }: Props) {
     }
 
     function handleDelete(id: number) {
-        if (confirm('Hapus potongan ini?')) {
-            destroy(`/admin/deductions/${id}`);
-        }
+        const deduction = deductions.find((d) => d.id === id) ?? null;
+        setDeleteConfirm(deduction);
+    }
+
+    function confirmDelete() {
+        if (!deleteConfirm) return;
+        destroy(`/admin/deductions/${deleteConfirm.id}`);
+        setDeleteConfirm(null);
     }
 
     return (
@@ -194,6 +209,39 @@ export default function Deductions({ deductions }: Props) {
                     </table>
                 </div>
             </div>
+
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
+                <DialogContent className="border-[oklch(0.80_0.038_88.5)]/40 bg-[oklch(0.98_0.005_85.0)] sm:max-w-md">
+                    <DialogHeader>
+                        <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-rose-100">
+                            <Trash2 className="size-6 text-rose-600" />
+                        </div>
+                        <DialogTitle className="mt-2 text-center font-serif text-xl font-bold text-[oklch(0.48_0.032_195.5)]">
+                            Hapus Potongan
+                        </DialogTitle>
+                        <DialogDescription className="text-center text-slate-500">
+                            Apakah Anda yakin ingin menghapus potongan untuk <span className="font-semibold text-[oklch(0.48_0.032_195.5)]">{deleteConfirm?.employee.user.name}</span> pada periode <span className="font-semibold text-[oklch(0.48_0.032_195.5)]">{deleteConfirm?.period}</span>? Tindakan ini tidak dapat dibatalkan.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="gap-2 sm:justify-center">
+                        <Button
+                            variant="ghost"
+                            onClick={() => setDeleteConfirm(null)}
+                            className="border border-[oklch(0.80_0.038_88.5)]/40 text-slate-600 hover:bg-[oklch(0.80_0.038_88.5)]/10"
+                        >
+                            Batal
+                        </Button>
+                        <Button
+                            onClick={confirmDelete}
+                            disabled={processing}
+                            className="bg-rose-700 text-white hover:bg-rose-800"
+                        >
+                            Hapus
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

@@ -84,7 +84,7 @@ export default function MenusCreate({ categories, optionGroups }: Props) {
                             <SelectValue placeholder="Pilih kategori" />
                         </SelectTrigger>
                         <SelectContent>
-                            {categories.map((cat) => (
+                            {categories && Array.isArray(categories) && categories.map((cat) => (
                                 <SelectItem key={cat.id} value={String(cat.id)}>
                                     {cat.name}
                                 </SelectItem>
