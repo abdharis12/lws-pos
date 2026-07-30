@@ -439,238 +439,240 @@ export default function TablesIndex({ tables, floors, filters }: Props) {
         <div className="min-h-screen bg-[oklch(0.98_0.005_85.0)] p-6 font-sans text-slate-800">
             <Head title="Meja - European Classic" />
 
-            {/* Header Section */}
-            <div className="mb-8 flex flex-col justify-between gap-4 border-b border-[oklch(0.80_0.038_88.5)]/40 pb-6 sm:flex-row sm:items-end">
-                <div>
-                    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.80_0.038_88.5)]">
-                        <Table2 className="size-3.5 text-[oklch(0.48_0.032_195.5)]" />
-                        <span>Pengaturan Tempat Duduk</span>
+            <div className="mx-auto max-w-7xl">             
+                {/* Header Section */}
+                <div className="mb-8 flex flex-col justify-between gap-4 border-b border-[oklch(0.80_0.038_88.5)]/40 pb-6 sm:flex-row sm:items-end">
+                    <div>
+                        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.80_0.038_88.5)]">
+                            <Table2 className="size-3.5 text-[oklch(0.48_0.032_195.5)]" />
+                            <span>Pengaturan Tempat Duduk</span>
+                        </div>
+                        <h1 className="mt-1 font-serif text-3xl font-bold tracking-tight text-[oklch(0.48_0.032_195.5)]">
+                            Daftar Meja
+                        </h1>
+                        <p className="mt-1 text-sm italic text-slate-500">
+                            Kelola meja dan QR code pemesanan restoran Anda.
+                        </p>
                     </div>
-                    <h1 className="mt-1 font-serif text-3xl font-bold tracking-tight text-[oklch(0.48_0.032_195.5)]">
-                        Daftar Meja
-                    </h1>
-                    <p className="mt-1 text-sm italic text-slate-500">
-                        Kelola meja dan QR code pemesanan restoran Anda.
-                    </p>
-                </div>
 
-                <Dialog open={open} onOpenChange={setOpen}>
-                    <DialogTrigger asChild>
-                        <Button onClick={openCreate}>
-                            <Plus className="size-4 text-[oklch(0.80_0.038_88.5)]" />
-                            <span className="font-medium tracking-wide">Tambah Meja</span>
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent className="border-[oklch(0.80_0.038_88.5)]/40 bg-[oklch(0.98_0.005_85.0)]">
-                        <DialogHeader>
-                            <DialogTitle className="font-serif text-xl text-[oklch(0.48_0.032_195.5)]">
-                                {editing ? 'Edit Meja' : 'Tambah Meja'}
-                            </DialogTitle>
-                        </DialogHeader>
-                        <form onSubmit={submit} className="space-y-4">
-                            <div className="grid gap-2">
-                                <Label htmlFor="code">Kode Meja</Label>
-                                <Input
-                                    id="code"
-                                    value={data.code}
-                                    onChange={(e) => setData('code', e.target.value)}
-                                    placeholder="Contoh: A1, B2"
-                                    className="border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 focus-visible:border-[oklch(0.48_0.032_195.5)] focus-visible:ring-[oklch(0.48_0.032_195.5)]"
-                                />
-                                <InputError message={errors.code} />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="capacity">Kapasitas</Label>
-                                <Input
-                                    id="capacity"
-                                    type="number"
-                                    min="1"
-                                    max="20"
-                                    value={data.capacity}
-                                    onChange={(e) => setData('capacity', e.target.value)}
-                                    className="border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 focus-visible:border-[oklch(0.48_0.032_195.5)] focus-visible:ring-[oklch(0.48_0.032_195.5)]"
-                                />
-                                <InputError message={errors.capacity} />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="floor">Lantai / Area</Label>
-                                <Select
-                                    value={data.floor || '__none__'}
-                                    onValueChange={(v) => setData('floor', v === '__none__' ? '' : v)}
-                                >
-                                    <SelectTrigger className="border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 focus:ring-[oklch(0.48_0.032_195.5)]">
-                                        <SelectValue placeholder="Pilih lantai" />
-                                    </SelectTrigger>
-                                    <SelectContent className="border-[oklch(0.80_0.038_88.5)]/40 bg-[oklch(0.98_0.005_85.0)]">
-                                        <SelectItem value="__none__">Tidak ada</SelectItem>
-                                        {floors.map((f) => (
-                                            <SelectItem key={f} value={f}>{f}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <InputError message={errors.floor} />
-                            </div>
-                            {editing && (
+                    <Dialog open={open} onOpenChange={setOpen}>
+                        <DialogTrigger asChild>
+                            <Button onClick={openCreate}>
+                                <Plus className="size-4 text-[oklch(0.80_0.038_88.5)]" />
+                                <span className="font-medium tracking-wide">Tambah Meja</span>
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="border-[oklch(0.80_0.038_88.5)]/40 bg-[oklch(0.98_0.005_85.0)]">
+                            <DialogHeader>
+                                <DialogTitle className="font-serif text-xl text-[oklch(0.48_0.032_195.5)]">
+                                    {editing ? 'Edit Meja' : 'Tambah Meja'}
+                                </DialogTitle>
+                            </DialogHeader>
+                            <form onSubmit={submit} className="space-y-4">
                                 <div className="grid gap-2">
-                                    <Label htmlFor="status">Status</Label>
+                                    <Label htmlFor="code">Kode Meja</Label>
+                                    <Input
+                                        id="code"
+                                        value={data.code}
+                                        onChange={(e) => setData('code', e.target.value)}
+                                        placeholder="Contoh: A1, B2"
+                                        className="border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 focus-visible:border-[oklch(0.48_0.032_195.5)] focus-visible:ring-[oklch(0.48_0.032_195.5)]"
+                                    />
+                                    <InputError message={errors.code} />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="capacity">Kapasitas</Label>
+                                    <Input
+                                        id="capacity"
+                                        type="number"
+                                        min="1"
+                                        max="20"
+                                        value={data.capacity}
+                                        onChange={(e) => setData('capacity', e.target.value)}
+                                        className="border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 focus-visible:border-[oklch(0.48_0.032_195.5)] focus-visible:ring-[oklch(0.48_0.032_195.5)]"
+                                    />
+                                    <InputError message={errors.capacity} />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="floor">Lantai / Area</Label>
                                     <Select
-                                        value={data.status}
-                                        onValueChange={(v) => setData('status', v as any)}
+                                        value={data.floor || '__none__'}
+                                        onValueChange={(v) => setData('floor', v === '__none__' ? '' : v)}
                                     >
                                         <SelectTrigger className="border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 focus:ring-[oklch(0.48_0.032_195.5)]">
-                                            <SelectValue />
+                                            <SelectValue placeholder="Pilih lantai" />
                                         </SelectTrigger>
                                         <SelectContent className="border-[oklch(0.80_0.038_88.5)]/40 bg-[oklch(0.98_0.005_85.0)]">
-                                            <SelectItem value="available">Tersedia</SelectItem>
-                                            <SelectItem value="occupied">Terisi</SelectItem>
-                                            <SelectItem value="reserved">Reserved</SelectItem>
+                                            <SelectItem value="__none__">Tidak ada</SelectItem>
+                                            {floors.map((f) => (
+                                                <SelectItem key={f} value={f}>{f}</SelectItem>
+                                            ))}
                                         </SelectContent>
                                     </Select>
-                                    <InputError message={errors.status} />
+                                    <InputError message={errors.floor} />
                                 </div>
-                            )}
-                            <Button
-                                type="submit"
-                                disabled={processing}
-                                className="w-full bg-[oklch(0.48_0.032_195.5)] text-white hover:bg-[oklch(0.42_0.032_195.5)]"
+                                {editing && (
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="status">Status</Label>
+                                        <Select
+                                            value={data.status}
+                                            onValueChange={(v) => setData('status', v as any)}
+                                        >
+                                            <SelectTrigger className="border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 focus:ring-[oklch(0.48_0.032_195.5)]">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent className="border-[oklch(0.80_0.038_88.5)]/40 bg-[oklch(0.98_0.005_85.0)]">
+                                                <SelectItem value="available">Tersedia</SelectItem>
+                                                <SelectItem value="occupied">Terisi</SelectItem>
+                                                <SelectItem value="reserved">Reserved</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <InputError message={errors.status} />
+                                    </div>
+                                )}
+                                <Button
+                                    type="submit"
+                                    disabled={processing}
+                                    className="w-full bg-[oklch(0.48_0.032_195.5)] text-white hover:bg-[oklch(0.42_0.032_195.5)]"
+                                >
+                                    {editing ? 'Simpan Perubahan' : 'Simpan'}
+                                </Button>
+                            </form>
+                        </DialogContent>
+                    </Dialog>
+                </div>
+
+                {/* Floor Filter Tabs */}
+                <div className="mb-8 inline-flex flex-wrap gap-1.5 rounded-xl border border-[oklch(0.80_0.038_88.5)]/30 bg-white/50 p-1.5">
+                    <button
+                        onClick={() => setFilterFloor('')}
+                        className={`rounded-lg px-3.5 py-1.5 text-xs font-medium transition-all duration-200 ${
+                            !filterFloor
+                                ? 'bg-[oklch(0.48_0.032_195.5)] text-white shadow-sm'
+                                : 'text-slate-500 hover:bg-white/60 hover:text-slate-700'
+                        }`}
+                    >
+                        Semua
+                    </button>
+                    {floors.map((f, i) => {
+                        const icons = ['①', '②', '③', '④', '🌿'];
+
+                        return (
+                            <button
+                                key={f}
+                                onClick={() => setFilterFloor(f)}
+                                className={`rounded-lg px-3.5 py-1.5 text-xs font-medium transition-all duration-200 ${
+                                    filterFloor === f
+                                        ? 'bg-[oklch(0.48_0.032_195.5)] text-white shadow-sm'
+                                        : 'text-slate-500 hover:bg-white/60 hover:text-slate-700'
+                                }`}
                             >
-                                {editing ? 'Simpan Perubahan' : 'Simpan'}
+                                <span className="mr-1 opacity-60">{icons[i] ?? ''}</span>
+                                {f}
+                            </button>
+                        );
+                    })}
+                </div>
+
+                {/* Grid Table Cards */}
+                <div className="grid gap-6 md:grid-cols-3 lg:grid-cols-4">
+                    {tables.data.map((table) => (
+                        <TableCard
+                            key={table.id}
+                            table={table}
+                            onEdit={openEdit}
+                            onDelete={handleDelete}
+                            onRegenerateToken={regenerateToken}
+                        />
+                    ))}
+
+                    {/* Empty State */}
+                    {tables.data.length === 0 && (
+                        <div className="col-span-full py-16 text-center">
+                            <div className="mx-auto flex max-w-sm flex-col items-center justify-center text-center">
+                                <div className="mb-3 rounded-full bg-[oklch(0.80_0.038_88.5)]/20 p-4 text-[oklch(0.48_0.032_195.5)]">
+                                    <Sparkles className="size-6" />
+                                </div>
+                                <h4 className="font-serif text-lg font-medium text-slate-700">Meja Tidak Ditemukan</h4>
+                                <p className="mt-1 text-xs italic text-slate-500">
+                                    Cobalah untuk mengganti filter lantai atau tambahkan meja baru.
+                                </p>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Pagination */}
+                <div className="mt-8">
+                    <hr className="border border-[oklch(0.80_0.038_88.5)]/40" />
+                    <Pagination meta={tables} />
+                </div>
+
+                {/* Delete Confirmation Dialog */}
+                <Dialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
+                    <DialogContent className="border-[oklch(0.80_0.038_88.5)]/40 bg-[oklch(0.98_0.005_85.0)] sm:max-w-md">
+                        <DialogHeader>
+                            <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-rose-100">
+                                <Trash2 className="size-6 text-rose-600" />
+                            </div>
+                            <DialogTitle className="mt-2 text-center font-serif text-xl font-bold text-[oklch(0.48_0.032_195.5)]">
+                                Hapus Meja
+                            </DialogTitle>
+                            <DialogDescription className="text-center text-slate-500">
+                                Apakah Anda yakin ingin menghapus meja <span className="font-semibold text-[oklch(0.48_0.032_195.5)]">{deleteConfirm?.code}</span>? Tindakan ini tidak dapat dibatalkan.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter className="gap-2 sm:justify-center">
+                            <Button
+                                variant="ghost"
+                                onClick={() => setDeleteConfirm(null)}
+                                className="border border-[oklch(0.80_0.038_88.5)]/40 text-slate-600 hover:bg-[oklch(0.80_0.038_88.5)]/10"
+                            >
+                                Batal
                             </Button>
-                        </form>
+                            <Button
+                                onClick={confirmDelete}
+                                disabled={processing}
+                                className="bg-rose-700 text-white hover:bg-rose-800"
+                            >
+                                Hapus
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Token Regeneration Confirmation Dialog */}
+                <Dialog open={tokenToRegenerate !== null} onOpenChange={(open) => !open && setTokenToRegenerate(null)}>
+                    <DialogContent className="border-[oklch(0.80_0.038_88.5)]/40 bg-[oklch(0.98_0.005_85.0)] sm:max-w-md">
+                        <DialogHeader>
+                            <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-amber-100">
+                                <RefreshCw className="size-6 text-amber-600" />
+                            </div>
+                            <DialogTitle className="mt-2 text-center font-serif text-xl font-bold text-[oklch(0.48_0.032_195.5)]">
+                                Regenerasi Token QR
+                            </DialogTitle>
+                            <DialogDescription className="text-center text-slate-500">
+                                Apakah Anda yakin ingin menghapus token QR? Tautan QR sebelumnya tidak akan berfungsi lagi.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter className="gap-2 sm:justify-center">
+                            <Button
+                                variant="ghost"
+                                onClick={() => setTokenToRegenerate(null)}
+                                className="border border-[oklch(0.80_0.038_88.5)]/40 text-slate-600 hover:bg-[oklch(0.80_0.038_88.5)]/10"
+                            >
+                                Batal
+                            </Button>
+                            <Button
+                                onClick={confirmRegenerateToken}
+                                className="bg-amber-600 text-white hover:bg-amber-700"
+                            >
+                                Regenerasi
+                            </Button>
+                        </DialogFooter>
                     </DialogContent>
                 </Dialog>
             </div>
-
-            {/* Floor Filter Tabs */}
-            <div className="mb-8 inline-flex flex-wrap gap-1.5 rounded-xl border border-[oklch(0.80_0.038_88.5)]/30 bg-white/50 p-1.5">
-                <button
-                    onClick={() => setFilterFloor('')}
-                    className={`rounded-lg px-3.5 py-1.5 text-xs font-medium transition-all duration-200 ${
-                        !filterFloor
-                            ? 'bg-[oklch(0.48_0.032_195.5)] text-white shadow-sm'
-                            : 'text-slate-500 hover:bg-white/60 hover:text-slate-700'
-                    }`}
-                >
-                    Semua
-                </button>
-                {floors.map((f, i) => {
-                    const icons = ['①', '②', '③', '④', '🌿'];
-
-                    return (
-                        <button
-                            key={f}
-                            onClick={() => setFilterFloor(f)}
-                            className={`rounded-lg px-3.5 py-1.5 text-xs font-medium transition-all duration-200 ${
-                                filterFloor === f
-                                    ? 'bg-[oklch(0.48_0.032_195.5)] text-white shadow-sm'
-                                    : 'text-slate-500 hover:bg-white/60 hover:text-slate-700'
-                            }`}
-                        >
-                            <span className="mr-1 opacity-60">{icons[i] ?? ''}</span>
-                            {f}
-                        </button>
-                    );
-                })}
-            </div>
-
-            {/* Grid Table Cards */}
-            <div className="grid gap-6 md:grid-cols-3 lg:grid-cols-4">
-                {tables.data.map((table) => (
-                    <TableCard
-                        key={table.id}
-                        table={table}
-                        onEdit={openEdit}
-                        onDelete={handleDelete}
-                        onRegenerateToken={regenerateToken}
-                    />
-                ))}
-
-                {/* Empty State */}
-                {tables.data.length === 0 && (
-                    <div className="col-span-full py-16 text-center">
-                        <div className="mx-auto flex max-w-sm flex-col items-center justify-center text-center">
-                            <div className="mb-3 rounded-full bg-[oklch(0.80_0.038_88.5)]/20 p-4 text-[oklch(0.48_0.032_195.5)]">
-                                <Sparkles className="size-6" />
-                            </div>
-                            <h4 className="font-serif text-lg font-medium text-slate-700">Meja Tidak Ditemukan</h4>
-                            <p className="mt-1 text-xs italic text-slate-500">
-                                Cobalah untuk mengganti filter lantai atau tambahkan meja baru.
-                            </p>
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            {/* Pagination */}
-            <div className="mt-8">
-                <hr className="border border-[oklch(0.80_0.038_88.5)]/40" />
-                <Pagination meta={tables} />
-            </div>
-
-            {/* Delete Confirmation Dialog */}
-            <Dialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
-                <DialogContent className="border-[oklch(0.80_0.038_88.5)]/40 bg-[oklch(0.98_0.005_85.0)] sm:max-w-md">
-                    <DialogHeader>
-                        <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-rose-100">
-                            <Trash2 className="size-6 text-rose-600" />
-                        </div>
-                        <DialogTitle className="mt-2 text-center font-serif text-xl font-bold text-[oklch(0.48_0.032_195.5)]">
-                            Hapus Meja
-                        </DialogTitle>
-                        <DialogDescription className="text-center text-slate-500">
-                            Apakah Anda yakin ingin menghapus meja <span className="font-semibold text-[oklch(0.48_0.032_195.5)]">{deleteConfirm?.code}</span>? Tindakan ini tidak dapat dibatalkan.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter className="gap-2 sm:justify-center">
-                        <Button
-                            variant="ghost"
-                            onClick={() => setDeleteConfirm(null)}
-                            className="border border-[oklch(0.80_0.038_88.5)]/40 text-slate-600 hover:bg-[oklch(0.80_0.038_88.5)]/10"
-                        >
-                            Batal
-                        </Button>
-                        <Button
-                            onClick={confirmDelete}
-                            disabled={processing}
-                            className="bg-rose-700 text-white hover:bg-rose-800"
-                        >
-                            Hapus
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
-            {/* Token Regeneration Confirmation Dialog */}
-            <Dialog open={tokenToRegenerate !== null} onOpenChange={(open) => !open && setTokenToRegenerate(null)}>
-                <DialogContent className="border-[oklch(0.80_0.038_88.5)]/40 bg-[oklch(0.98_0.005_85.0)] sm:max-w-md">
-                    <DialogHeader>
-                        <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-amber-100">
-                            <RefreshCw className="size-6 text-amber-600" />
-                        </div>
-                        <DialogTitle className="mt-2 text-center font-serif text-xl font-bold text-[oklch(0.48_0.032_195.5)]">
-                            Regenerasi Token QR
-                        </DialogTitle>
-                        <DialogDescription className="text-center text-slate-500">
-                            Apakah Anda yakin ingin menghapus token QR? Tautan QR sebelumnya tidak akan berfungsi lagi.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter className="gap-2 sm:justify-center">
-                        <Button
-                            variant="ghost"
-                            onClick={() => setTokenToRegenerate(null)}
-                            className="border border-[oklch(0.80_0.038_88.5)]/40 text-slate-600 hover:bg-[oklch(0.80_0.038_88.5)]/10"
-                        >
-                            Batal
-                        </Button>
-                        <Button
-                            onClick={confirmRegenerateToken}
-                            className="bg-amber-600 text-white hover:bg-amber-700"
-                        >
-                            Regenerasi
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
         </div>
     );
 }

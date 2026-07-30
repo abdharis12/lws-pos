@@ -142,7 +142,7 @@ export default function SessionsIndex({ currentSession, recentSessions, shiftSum
         <div className="min-h-screen p-4 md:p-6" style={{ backgroundColor: CREAM, color: '#1e293b' }}>
             <Head title="Shift Kasir" />
 
-            <div className="mx-auto max-w-6xl">
+            <div className="mx-auto max-w-7xl">
                 <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: 'oklch(0.70 0.03 88.5)' }}>

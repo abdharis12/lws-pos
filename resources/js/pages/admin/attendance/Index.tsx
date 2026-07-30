@@ -415,7 +415,7 @@ export default function AttendanceIndex({
     return (
         <div className="min-h-screen bg-[oklch(0.98_0.005_85.0)] p-6 font-sans text-slate-800">
             <Head title="Absensi" />
-            <div className="mx-auto max-w-6xl">
+            <div className="mx-auto max-w-7xl">
                 {/* Header Section */}
                 <div className="mb-8 flex flex-col justify-between gap-4 border-b border-[oklch(0.80_0.038_88.5)]/40 pb-6 sm:flex-row sm:items-end">
                     <div>
