@@ -81,9 +81,26 @@ class OptionGroupController extends Controller
             'is_required' => 'boolean',
             'min_select' => 'nullable|integer|min:0',
             'max_select' => 'nullable|integer|min:0',
+            'items' => 'nullable|array',
+            'items.*.name' => 'required_with:items|string|max:255',
+            'items.*.price_adjustment' => 'required_with:items|numeric|min:0',
+            'items.*.is_available' => 'boolean',
+            'items.*.sort_order' => 'nullable|integer|min:0',
         ]);
 
-        $optionGroup->update($validated);
+        $optionGroup->update(collect($validated)->except('items')->toArray());
+
+        if (array_key_exists('items', $validated)) {
+            $optionGroup->optionItems()->delete();
+            foreach ($validated['items'] as $item) {
+                $optionGroup->optionItems()->create([
+                    'name' => $item['name'],
+                    'price_adjustment' => $item['price_adjustment'],
+                    'is_available' => $item['is_available'] ?? true,
+                    'sort_order' => $item['sort_order'] ?? 0,
+                ]);
+            }
+        }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Grup opsi berhasil diperbarui.']);
 

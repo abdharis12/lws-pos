@@ -77,7 +77,7 @@ export default function OptionGroupsIndex({ groups, filters }: Props) {
         is_required: false,
         min_select: '0',
         max_select: '0',
-        items: [] as { name: string; price_adjustment: string }[],
+        items: [] as { name: string; price_adjustment: string; is_available?: boolean; sort_order?: number }[],
     });
 
     useEffect(() => {
@@ -111,13 +111,15 @@ export default function OptionGroupsIndex({ groups, filters }: Props) {
             items: group.option_items.map((i) => ({
                 name: i.name,
                 price_adjustment: String(i.price_adjustment),
+                is_available: i.is_available,
+                sort_order: i.sort_order,
             })),
         });
         setOpen(true);
     }
 
     function addItem() {
-        setData('items', [...data.items, { name: '', price_adjustment: '0' }]);
+        setData('items', [...data.items, { name: '', price_adjustment: '0', is_available: true, sort_order: 0 }]);
     }
 
     function removeItem(index: number) {

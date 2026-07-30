@@ -211,11 +211,11 @@ class AttendanceController extends Controller
 
         $summary = $employees->map(function ($employee) use ($attendances, $dates) {
             $employeeAttendances = $attendances->filter(fn ($a) => $a->employee_id === $employee->id);
-            
+
             $dailyAttendance = [];
             foreach ($dates as $date) {
                 $dayAttendances = $employeeAttendances->filter(fn ($a) => $a->clock_in_at && substr($a->clock_in_at, 0, 10) === $date);
-                
+
                 if ($dayAttendances->count() > 0) {
                     $first = $dayAttendances->first();
                     $last = $dayAttendances->last();
@@ -262,6 +262,7 @@ class AttendanceController extends Controller
                 if ($a->clock_in_at && $a->clock_out_at) {
                     return $carry + $a->clock_in_at->diffInMinutes($a->clock_out_at);
                 }
+
                 return $carry;
             }, 0),
             'total_terlambat' => $attendances->filter(fn ($a) => $a->status === 'late')->count(),

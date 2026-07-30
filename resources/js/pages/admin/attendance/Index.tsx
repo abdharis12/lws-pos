@@ -73,7 +73,7 @@ export default function AttendanceIndex({
     const [distanceToOutlet, setDistanceToOutlet] = useState<number | null>(null);
     const [geoError, setGeoError] = useState<string | null>(null);
     const [geofenceAlert, setGeofenceAlert] = useState<{ open: boolean; isClockIn: boolean; loc: { lat: number; lng: number } } | null>(null);
-    const [locationAlert, setLocationAlert] = useState<{ open: boolean; isClockIn: boolean; type: 'no_location' | 'no_gps' } | null>(null);
+    const [locationAlert, setLocationAlert] = useState<{ open: boolean; isClockIn: boolean; type: 'no_location' | 'no_gps'; employeeId?: number } | null>(null);
     const mapRef = useRef<HTMLDivElement>(null);
     const mapInstanceRef = useRef<unknown>(null);
     const markerRef = useRef<unknown>(null);
@@ -215,6 +215,15 @@ export default function AttendanceIndex({
             return;
         }
 
+        if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+            setGeoError('Akses via HTTPS diperlukan untuk GPS. Gunakan https://' + location.host);
+
+            return;
+        }
+
+        let fallback = false;
+        const opts = { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 };
+
         const watchId = navigator.geolocation.watchPosition(
             (pos) => {
                 const { latitude: lat, longitude: lng } = pos.coords;
@@ -225,14 +234,34 @@ export default function AttendanceIndex({
                     setDistanceToOutlet(haversineDistance(lat, lng, outlet.latitude, outlet.longitude));
                 }
             },
-            () => setGeoError('Gagal mendapatkan lokasi GPS'),
-            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+            (err) => {
+                if (!fallback && (err.code === err.TIMEOUT || err.code === err.POSITION_UNAVAILABLE)) {
+                    fallback = true;
+                    navigator.geolocation.getCurrentPosition(
+                        (pos) => {
+                            const { latitude: lat, longitude: lng } = pos.coords;
+                            setUserPosition({ lat, lng });
+                            setGeoError(null);
+                            setDistanceToOutlet(haversineDistance(lat, lng, outlet.latitude!, outlet.longitude!));
+                        },
+                        () => setGeoError('Lokasi tidak terdeteksi. Pastikan situs diakses via HTTPS dan izin lokasi browser diaktifkan.'),
+                        { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 },
+                    );
+                } else if (!fallback) {
+                    setGeoError('Gagal mendapatkan lokasi GPS');
+                }
+            },
+            opts,
         );
 
         return () => navigator.geolocation.clearWatch(watchId);
     }, [outlet.latitude, outlet.longitude, outlet.geofence_radius_meters]);
 
-    function getLocation() {
+    async function getLocation() {
+        if (userPosition) {
+            return { lat: String(userPosition.lat), lng: String(userPosition.lng) };
+        }
+
         return new Promise<{ lat: string; lng: string } | null>((resolve) => {
             if (!navigator.geolocation) {
                 resolve(null);
@@ -240,11 +269,46 @@ export default function AttendanceIndex({
                 return;
             }
 
-            navigator.geolocation.getCurrentPosition(
-                (pos) => resolve({ lat: String(pos.coords.latitude), lng: String(pos.coords.longitude) }),
-                () => resolve(null),
-                { timeout: 5000 },
-            );
+            function attempt(highAccuracy: boolean) {
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => resolve({ lat: String(pos.coords.latitude), lng: String(pos.coords.longitude) }),
+                    (err) => {
+                        if (import.meta.env.DEV) {
+                            console.warn('[GPS] getLocation attempt (highAccuracy=' + highAccuracy + ') failed:', err.code, err.message);
+                        }
+                        if (highAccuracy) {
+                            attempt(false);
+                        } else {
+                            resolve(null);
+                        }
+                    },
+                    {
+                        enableHighAccuracy: highAccuracy,
+                        timeout: highAccuracy ? 5000 : 10000,
+                        maximumAge: 60000,
+                    },
+                );
+            }
+
+            attempt(true);
+        });
+    }
+
+    function submitClockIn(loc?: { lat: string; lng: string }) {
+        setInData({
+            employee_id: String(selectedEmployee),
+            photo: photoFile,
+            latitude: loc?.lat ?? '',
+            longitude: loc?.lng ?? '',
+        });
+        postIn('/admin/attendance/clock-in', {
+            forceFormData: true,
+            onSuccess: () => {
+                setSelectedEmployee(null);
+                setPhotoFile(null);
+                setPhotoPreview(null);
+                resetIn();
+            },
         });
     }
 
@@ -260,7 +324,7 @@ export default function AttendanceIndex({
 
         const loc = await getLocation();
         if (!loc) {
-            setLocationAlert({ open: true, isClockIn: true, type: 'no_gps' });
+            setLocationAlert({ open: true, isClockIn: true, type: 'no_gps', employeeId: selectedEmployee });
             return;
         }
 
@@ -276,19 +340,22 @@ export default function AttendanceIndex({
             return;
         }
 
-        setInData({
-            employee_id: String(selectedEmployee),
-            photo: photoFile,
-            latitude: loc.lat,
-            longitude: loc.lng,
+        submitClockIn(loc);
+    }
+
+    function submitClockOut(employeeId: number, loc?: { lat: string; lng: string }) {
+        setOutData({
+            employee_id: String(employeeId),
+            photo: outData.photo,
+            latitude: loc?.lat ?? '',
+            longitude: loc?.lng ?? '',
         });
-        postIn('/admin/attendance/clock-in', {
+        postOut('/admin/attendance/clock-out', {
             forceFormData: true,
             onSuccess: () => {
-                setSelectedEmployee(null);
-                setPhotoFile(null);
-                setPhotoPreview(null);
-                resetIn();
+                setOutData('employee_id', '');
+                setOutData('photo', null);
+                resetOut();
             },
         });
     }
@@ -301,7 +368,7 @@ export default function AttendanceIndex({
 
         const loc = await getLocation();
         if (!loc) {
-            setLocationAlert({ open: true, isClockIn: false, type: 'no_gps' });
+            setLocationAlert({ open: true, isClockIn: false, type: 'no_gps', employeeId });
             return;
         }
 
@@ -317,20 +384,7 @@ export default function AttendanceIndex({
             return;
         }
 
-        setOutData({
-            employee_id: String(employeeId),
-            photo: outData.photo,
-            latitude: loc.lat,
-            longitude: loc.lng,
-        });
-        postOut('/admin/attendance/clock-out', {
-            forceFormData: true,
-            onSuccess: () => {
-                setOutData('employee_id', '');
-                setOutData('photo', null);
-                resetOut();
-            },
-        });
+        submitClockOut(employeeId, loc);
     }
 
     function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -685,10 +739,27 @@ export default function AttendanceIndex({
                             <DialogDescription className="text-center text-slate-500">
                                 {locationAlert.type === 'no_location'
                                     ? 'Lokasi outlet belum diatur. Silakan atur lokasi di Pengaturan Outlet terlebih dahulu.'
-                                    : 'Gagal mendapatkan lokasi Anda. Pastikan GPS aktif dan coba lagi.'}
+                                    : 'Gagal mendapatkan lokasi. Pada Chrome desktop, akses via HTTPS diperlukan. Aktifkan juga izin lokasi (ikon gembok di address bar). Gunakan "Lanjutkan Tanpa Lokasi" untuk bypass.'}
                             </DialogDescription>
                         </DialogHeader>
                         <DialogFooter className="gap-2 sm:justify-center">
+                            {locationAlert.type === 'no_gps' && (
+                                <Button
+                                    variant="outline"
+                                    onClick={() => {
+                                        const alert = locationAlert;
+                                        setLocationAlert(null);
+                                        if (alert.isClockIn && selectedEmployee) {
+                                            submitClockIn();
+                                        } else if (!alert.isClockIn && alert.employeeId) {
+                                            submitClockOut(alert.employeeId);
+                                        }
+                                    }}
+                                    className="border-amber-400 text-amber-700 hover:bg-amber-50"
+                                >
+                                    Lanjutkan Tanpa Lokasi
+                                </Button>
+                            )}
                             <Button
                                 variant="ghost"
                                 onClick={() => setLocationAlert(null)}

@@ -78,7 +78,7 @@ function TableCard({
                 canvasRef.current,
                 `${window.location.origin}/t/${table.table_token}`,
                 { width: 140, margin: 1, color: { dark: '#233433', light: '#FFFFFF' } },
-            );
+            ).catch(console.error);
         }
     }, [table.table_token]);
 
@@ -126,7 +126,6 @@ function TableCard({
 
         const logo = await new Promise<HTMLImageElement>((resolve) => {
             const img = new Image();
-            img.crossOrigin = 'anonymous';
             img.onload = () => resolve(img);
             img.onerror = () => resolve(img);
             img.src = '/img/lws-logo.png';
@@ -209,38 +208,46 @@ function TableCard({
     }
 
     async function downloadQR() {
-        const card = await renderCard();
-        if (!card) return;
+        try {
+            const card = await renderCard();
+            if (!card) return;
 
-        const link = document.createElement('a');
-        link.download = `meja-${table.code}-qr.png`;
-        link.href = card.toDataURL('image/png');
-        link.click();
+            const link = document.createElement('a');
+            link.download = `meja-${table.code}-qr.png`;
+            link.href = card.toDataURL('image/png');
+            link.click();
+        } catch (e) {
+            console.error('Download QR failed:', e);
+        }
     }
 
     async function printQR() {
-        const card = await renderCard();
-        if (!card) return;
+        try {
+            const card = await renderCard();
+            if (!card) return;
 
-        const win = window.open('', '_blank');
-        if (!win) return;
+            const win = window.open('', '_blank');
+            if (!win) return;
 
-        win.document.write(`
-            <html>
-            <head><title>QR Meja ${table.code}</title>
-            <style>
-                body { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
-                img { max-width: 95vw; max-height: 95vh; }
-                @media print { @page { margin: 0; } body { min-height: 100vh; } }
-            </style>
-            </head>
-            <body>
-                <img src="${card.toDataURL('image/png')}" alt="QR Meja ${table.code}" />
-                <script>window.print();window.close();</script>
-            </body>
-            </html>
-        `);
-        win.document.close();
+            win.document.write(`
+                <html>
+                <head><title>QR Meja ${table.code}</title>
+                <style>
+                    body { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+                    img { max-width: 95vw; max-height: 95vh; }
+                    @media print { @page { margin: 0; } body { min-height: 100vh; } }
+                </style>
+                </head>
+                <body>
+                    <img src="${card.toDataURL('image/png')}" alt="QR Meja ${table.code}" onload="setTimeout(function(){window.print();window.close()},500)" />
+                    <noscript><p>Your browser does not support JavaScript. Please use the download option instead.</p></noscript>
+                </body>
+                </html>
+            `);
+            win.document.close();
+        } catch (e) {
+            console.error('Print QR failed:', e);
+        }
     }
 
     const statusConfig: Record<string, { label: string; className: string }> = {
@@ -355,6 +362,7 @@ export default function TablesIndex({ tables, floors, filters }: Props) {
         code: '',
         capacity: '4',
         floor: '',
+        status: 'available',
     });
 
     useEffect(() => {
@@ -373,12 +381,10 @@ export default function TablesIndex({ tables, floors, filters }: Props) {
 
     function openEdit(table: TableData) {
         setEditing(table);
-        setData({
-            code: table.code,
-            capacity: String(table.capacity),
-            floor: table.floor ?? '__none__',
-            status: table.status,
-        });
+        setData('code', table.code);
+        setData('capacity', String(table.capacity));
+        setData('floor', table.floor ?? '');
+        setData('status', table.status);
         setOpen(true);
     }
 
@@ -387,6 +393,8 @@ export default function TablesIndex({ tables, floors, filters }: Props) {
 
         if (editing) {
             put(`/admin/tables/${editing.id}`, {
+                preserveState: false,
+                preserveScroll: true,
                 onSuccess: () => {
                     setOpen(false);
                     reset();
@@ -394,6 +402,8 @@ export default function TablesIndex({ tables, floors, filters }: Props) {
             });
         } else {
             post('/admin/tables', {
+                preserveState: false,
+                preserveScroll: true,
                 onSuccess: () => {
                     setOpen(false);
                     reset();
@@ -485,7 +495,7 @@ export default function TablesIndex({ tables, floors, filters }: Props) {
                             <div className="grid gap-2">
                                 <Label htmlFor="floor">Lantai / Area</Label>
                                 <Select
-                                    value={data.floor}
+                                    value={data.floor || '__none__'}
                                     onValueChange={(v) => setData('floor', v === '__none__' ? '' : v)}
                                 >
                                     <SelectTrigger className="border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 focus:ring-[oklch(0.48_0.032_195.5)]">
