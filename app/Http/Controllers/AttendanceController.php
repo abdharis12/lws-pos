@@ -13,6 +13,22 @@ use Inertia\Response;
 
 class AttendanceController extends Controller
 {
+    private function isAdmin(Request $request): bool
+    {
+        return $request->user()->hasAnyRole(['Owner', 'Admin']);
+    }
+
+    private function getEmployeeId(Request $request, ?int $requestedId = null): ?int
+    {
+        $employee = $request->user()->employee;
+
+        if (! $employee) {
+            return $requestedId;
+        }
+
+        return $this->isAdmin($request) ? $requestedId : $employee->id;
+    }
+
     private function haversineDistance(float $lat1, float $lng1, float $lat2, float $lng2): float
     {
         $earthRadius = 6371000;
@@ -40,7 +56,7 @@ class AttendanceController extends Controller
         }
     }
 
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $outlet = Outlet::first();
         $today = now()->startOfDay();
@@ -48,14 +64,21 @@ class AttendanceController extends Controller
         $attendances = Attendance::with('employee.user')
             ->whereHas('employee', fn ($q) => $q->where('outlet_id', $outlet?->id))
             ->where('clock_in_at', '>=', $today)
-            ->orderBy('clock_in_at', 'desc')
-            ->get();
+            ->orderBy('clock_in_at', 'desc');
 
         $employees = Employee::with('user')
             ->where('outlet_id', $outlet?->id)
             ->where('is_active', true)
-            ->orderBy('position')
-            ->get();
+            ->orderBy('position');
+
+        if (! $this->isAdmin($request)) {
+            $employeeId = $this->getEmployeeId($request);
+            $attendances->where('employee_id', $employeeId);
+            $employees->where('id', $employeeId);
+        }
+
+        $attendances = $attendances->get();
+        $employees = $employees->get();
 
         $todayAttendance = $attendances->keyBy('employee_id');
 
@@ -85,7 +108,12 @@ class AttendanceController extends Controller
             'photo' => 'nullable|image|max:2048',
         ]);
 
-        $employee = Employee::findOrFail($validated['employee_id']);
+        $employeeId = $this->getEmployeeId($request, (int) $validated['employee_id']);
+        $employee = Employee::findOrFail($employeeId);
+
+        if (! $this->isAdmin($request) && (int) $validated['employee_id'] !== $employee->id) {
+            abort(403);
+        }
 
         if (! $employee->is_active) {
             return redirect()->back()->withErrors(['employee_id' => 'Karyawan tidak aktif.']);
@@ -144,7 +172,13 @@ class AttendanceController extends Controller
             'photo' => 'nullable|image|max:2048',
         ]);
 
-        $attendance = Attendance::where('employee_id', $validated['employee_id'])
+        $employeeId = $this->getEmployeeId($request, (int) $validated['employee_id']);
+
+        if (! $this->isAdmin($request) && (int) $validated['employee_id'] !== $employeeId) {
+            abort(403);
+        }
+
+        $attendance = Attendance::where('employee_id', $employeeId)
             ->whereDate('clock_in_at', today())
             ->whereNull('clock_out_at')
             ->first();
@@ -163,12 +197,24 @@ class AttendanceController extends Controller
             $photoPath = $request->file('photo')->store('attendance/photos', 'private');
         }
 
+        $clockOutTime = now();
+
         $attendance->update([
-            'clock_out_at' => now(),
+            'clock_out_at' => $clockOutTime,
             'photo_path_out' => $photoPath ?? null,
             'latitude_out' => $validated['latitude'] ?? null,
             'longitude_out' => $validated['longitude'] ?? null,
         ]);
+
+        $attendance->load('employee');
+        $shift = $attendance->employee->shifts()
+            ->whereDate('shift_date', today())
+            ->first();
+
+        if ($shift) {
+            $scheduledEnd = now()->setTimeFromTimeString($shift->end_time);
+            $attendance->update(['early_leave' => $clockOutTime->lt($scheduledEnd)]);
+        }
 
         AttendanceUpdated::dispatch($attendance);
 
@@ -181,7 +227,9 @@ class AttendanceController extends Controller
     {
         $outlet = Outlet::first();
         $month = $request->input('month', now()->format('Y-m'));
-        $employeeId = $request->input('employee_id');
+        $employeeId = $this->isAdmin($request)
+            ? $request->input('employee_id')
+            : $this->getEmployeeId($request);
 
         $year = (int) substr($month, 0, 4);
         $monthNum = (int) substr($month, 5, 2);
@@ -206,8 +254,13 @@ class AttendanceController extends Controller
         $employees = Employee::with('user')
             ->where('outlet_id', $outlet?->id)
             ->where('is_active', true)
-            ->orderBy('position')
-            ->get();
+            ->orderBy('position');
+
+        if (! $this->isAdmin($request)) {
+            $employees->where('id', $employeeId);
+        }
+
+        $employees = $employees->get();
 
         $summary = $employees->map(function ($employee) use ($attendances, $dates) {
             $employeeAttendances = $attendances->filter(fn ($a) => $a->employee_id === $employee->id);
@@ -224,6 +277,7 @@ class AttendanceController extends Controller
                         'clock_out' => $last->clock_out_at ? substr($last->clock_out_at, 11, 5) : null,
                         'status' => $first->status,
                         'attended' => true,
+                        'early_leave' => $first->early_leave ?? false,
                     ];
                 } else {
                     $dailyAttendance[$date] = [
@@ -244,6 +298,7 @@ class AttendanceController extends Controller
             }, 0);
 
             $lateDays = $employeeAttendances->filter(fn ($r) => $r->status === 'late')->count();
+            $earlyLeaveDays = $employeeAttendances->filter(fn ($r) => $r->early_leave)->count();
 
             return [
                 'employee_id' => $employee->id,
@@ -252,6 +307,7 @@ class AttendanceController extends Controller
                 'hadir' => $employeeAttendances->count(),
                 'total_jam' => round($totalHours / 60, 1),
                 'terlambat' => $lateDays,
+                'pulang_cepat' => $earlyLeaveDays,
                 'daily_attendance' => $dailyAttendance,
             ];
         });
@@ -266,6 +322,7 @@ class AttendanceController extends Controller
                 return $carry;
             }, 0),
             'total_terlambat' => $attendances->filter(fn ($a) => $a->status === 'late')->count(),
+            'total_pulang_cepat' => $attendances->filter(fn ($a) => $a->early_leave)->count(),
         ];
 
         return Inertia::render('admin/attendance/Recap', [
@@ -276,6 +333,7 @@ class AttendanceController extends Controller
             'filterMonth' => $month,
             'filterEmployeeId' => $employeeId,
             'monthlyStats' => $monthlyStats,
+            'isAdmin' => $this->isAdmin($request),
         ]);
     }
 }

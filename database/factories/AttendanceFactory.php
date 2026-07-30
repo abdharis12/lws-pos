@@ -26,6 +26,7 @@ class AttendanceFactory extends Factory
             'latitude_out' => fake()->latitude(-6.3, -6.1),
             'longitude_out' => fake()->longitude(106.7, 106.9),
             'status' => fake()->randomElement(['present', 'late', 'absent']),
+            'early_leave' => false,
         ];
     }
 }

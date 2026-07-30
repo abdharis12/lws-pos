@@ -16,6 +16,7 @@ class ShiftFactory extends Factory
         return [
             'employee_id' => Employee::factory(),
             'shift_date' => fake()->date(),
+            'shift_number' => fake()->randomElement([1, 2]),
             'start_time' => fake()->randomElement(['06:00', '07:00', '08:00', '14:00', '15:00']),
             'end_time' => fake()->randomElement(['14:00', '15:00', '16:00', '22:00', '23:00']),
         ];

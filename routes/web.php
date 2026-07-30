@@ -18,6 +18,7 @@ use App\Http\Controllers\PayrollSettingController;
 use App\Http\Controllers\PayslipController;
 use App\Http\Controllers\PdfController;
 use App\Http\Controllers\PosController;
+use App\Http\Controllers\PosSessionController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SalaryComponentController;
 use App\Http\Controllers\SelfOrderController;
@@ -32,11 +33,14 @@ Route::inertia('/', 'welcome')->name('home');
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'dashboard')->name('dashboard');
 
+    Route::middleware('can:accessAttendance')->group(function () {
+        Route::get('attendance', [AttendanceController::class, 'index'])->name('attendance.index');
+        Route::post('attendance/clock-in', [AttendanceController::class, 'clockIn'])->name('attendance.clock-in');
+        Route::post('attendance/clock-out', [AttendanceController::class, 'clockOut'])->name('attendance.clock-out');
+        Route::get('attendance/recap', [AttendanceController::class, 'recap'])->name('attendance.recap');
+    });
+
     Route::prefix('admin')->middleware('can:viewAny,App\Models\Employee')->group(function () {
-        Route::get('attendance', [AttendanceController::class, 'index'])->name('admin.attendance.index');
-        Route::post('attendance/clock-in', [AttendanceController::class, 'clockIn'])->name('admin.attendance.clock-in');
-        Route::post('attendance/clock-out', [AttendanceController::class, 'clockOut'])->name('admin.attendance.clock-out');
-        Route::get('attendance/recap', [AttendanceController::class, 'recap'])->name('admin.attendance.recap');
 
         Route::get('shifts', [ShiftController::class, 'index'])->name('admin.shifts.index');
         Route::post('shifts', [ShiftController::class, 'store'])->name('admin.shifts.store');
@@ -132,6 +136,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('pos/tables/{table}/lock', [PosController::class, 'lockTable'])->name('pos.tables.lock');
     Route::post('pos/tables/{table}/unlock', [PosController::class, 'unlockTable'])->name('pos.tables.unlock');
     Route::post('pos/verify-approval', [PosController::class, 'verifyApproval'])->name('pos.verify-approval');
+
+    Route::get('pos/sessions', [PosSessionController::class, 'index'])->name('pos.sessions.index');
+    Route::post('pos/sessions', [PosSessionController::class, 'store'])->name('pos.sessions.store');
+    Route::get('pos/sessions/{posSession}', [PosSessionController::class, 'show'])->name('pos.sessions.show');
+    Route::post('pos/sessions/{posSession}/close', [PosSessionController::class, 'close'])->name('pos.sessions.close');
 
     Route::get('kitchen', [KitchenDisplayController::class, 'index'])->name('kitchen.index');
     Route::patch('orders/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.update-status');

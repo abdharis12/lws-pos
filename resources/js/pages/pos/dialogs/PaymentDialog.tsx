@@ -21,7 +21,7 @@ export default function PaymentDialog({ open, onOpenChange, onConfirm, processin
                     <Button onClick={() => onConfirm('cash')} className="w-full" size="lg" disabled={processing} style={{ backgroundColor: PRIMARY }}>
                         <Wallet className="mr-2 size-4" /> Bayar Cash
                     </Button>
-                    <Button onClick={() => onOpenChange(false)} variant="outline" className="w-full" disabled={processing} style={{ borderColor: BORDER, color: INK }}>
+                    <Button onClick={() => onOpenChange(false)} variant="outline" className="w-full" disabled={processing}>
                         Batal
                     </Button>
                 </div>

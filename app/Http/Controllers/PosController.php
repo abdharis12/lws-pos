@@ -15,6 +15,7 @@ use App\Models\Meja;
 use App\Models\MenuCategory;
 use App\Models\Order;
 use App\Models\Outlet;
+use App\Models\PosSession;
 use App\Models\TableSession;
 use App\Services\ActivityLogService;
 use App\Services\DiscountService;
@@ -100,6 +101,16 @@ class PosController extends Controller
         $session = null;
         $groupedTableIds = [];
 
+        $posSessionId = null;
+        $outlet = Outlet::first();
+        if ($outlet) {
+            $posSession = PosSession::where('outlet_id', $outlet->id)
+                ->whereDate('session_date', today())
+                ->where('status', 'open')
+                ->first();
+            $posSessionId = $posSession?->id;
+        }
+
         if ($validated['table_id'] ?? false) {
             $table = Meja::find($validated['table_id']);
             $this->authorize('create', [Order::class, $table]);
@@ -130,7 +141,7 @@ class PosController extends Controller
         }
 
         $createdOrders = $this->orderService->createSplitOrders(
-            $user, $validated, $orderItems, $groupedTableIds, $session,
+            $user, $validated, $orderItems, $groupedTableIds, $session, $posSessionId,
         );
 
         $firstOrder = $createdOrders[0] ?? null;
@@ -184,6 +195,16 @@ class PosController extends Controller
                 $this->orderService->validateApproval($validated);
             }
 
+            $posSessionId = null;
+            $outlet = Outlet::first();
+            if ($outlet) {
+                $posSession = PosSession::where('outlet_id', $outlet->id)
+                    ->whereDate('session_date', today())
+                    ->where('status', 'open')
+                    ->first();
+                $posSessionId = $posSession?->id;
+            }
+
             $session = null;
             if ($validated['table_id'] ?? false) {
                 $table = Meja::find($validated['table_id']);
@@ -191,7 +212,7 @@ class PosController extends Controller
                 $table->update(['status' => TableStatus::Occupied, 'locked_by' => null]);
             }
 
-            $order = $this->orderService->getOrCreatePaymentOrder($user, $validated, $orderItems, $session);
+            $order = $this->orderService->getOrCreatePaymentOrder($user, $validated, $orderItems, $session, $posSessionId);
 
             $midtransResponse = $midtrans->createCharge(
                 (string) $order->id,

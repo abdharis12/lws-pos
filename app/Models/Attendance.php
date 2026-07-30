@@ -15,6 +15,7 @@ class Attendance extends Model
         'photo_path_in', 'photo_path_out',
         'latitude_in', 'longitude_in', 'latitude_out', 'longitude_out',
         'status',
+        'early_leave',
     ];
 
     protected function casts(): array
@@ -22,6 +23,7 @@ class Attendance extends Model
         return [
             'clock_in_at' => 'datetime',
             'clock_out_at' => 'datetime',
+            'early_leave' => 'boolean',
             'latitude_in' => 'decimal:7',
             'longitude_in' => 'decimal:7',
             'latitude_out' => 'decimal:7',

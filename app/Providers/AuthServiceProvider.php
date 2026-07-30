@@ -14,6 +14,7 @@ use App\Models\OptionItem;
 use App\Models\Order;
 use App\Models\Payslip;
 use App\Models\SalaryComponent;
+use App\Models\User;
 use App\Policies\ActivityLogPolicy;
 use App\Policies\BonusPolicy;
 use App\Policies\DeductionPolicy;
@@ -52,5 +53,9 @@ class AuthServiceProvider extends ServiceProvider
         $this->registerPolicies();
 
         Gate::define('viewOwnerDashboard', [OwnerDashboardPolicy::class, 'view']);
+
+        Gate::define('accessAttendance', function (User $user) {
+            return $user->hasAnyRole(['Owner', 'Admin']) || $user->employee()->exists();
+        });
     }
 }

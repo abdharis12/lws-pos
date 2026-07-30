@@ -96,6 +96,20 @@ export interface PrintReceiptData {
     change?: number;
 }
 
+export interface PosSessionData {
+    id: number;
+    session_date: string;
+    opening_balance: number;
+    opened_at: string;
+    status: string;
+    opened_by: { id: number; name: string } | null;
+    total_cash: number;
+    total_non_cash: number;
+    total_transactions: number;
+    closed_at: string | null;
+    closed_by: { id: number; name: string } | null;
+}
+
 export interface PosPageProps {
     categories: Category[];
     tables: TableData[];

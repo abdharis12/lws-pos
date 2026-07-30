@@ -14,7 +14,7 @@ class Order extends Model
     use HasFactory;
 
     protected $fillable = [
-        'table_session_id', 'created_by', 'order_type', 'status',
+        'table_session_id', 'pos_session_id', 'created_by', 'order_type', 'status',
         'subtotal', 'tax', 'service_charge', 'midtrans_charge', 'discount', 'discount_type',
         'discount_value', 'discount_approved_by', 'total', 'notes', 'customer_name',
         'grouped_tables',
@@ -38,6 +38,11 @@ class Order extends Model
     public function tableSession(): BelongsTo
     {
         return $this->belongsTo(TableSession::class);
+    }
+
+    public function posSession(): BelongsTo
+    {
+        return $this->belongsTo(PosSession::class);
     }
 
     public function createdBy(): BelongsTo

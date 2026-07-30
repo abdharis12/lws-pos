@@ -84,23 +84,27 @@ class ShiftController extends Controller
         $validated = $request->validate([
             'employee_id' => 'required|exists:employees,id',
             'shift_date' => 'required|date',
+            'shift_number' => 'nullable|integer|in:1,2',
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i|after:start_time',
         ]);
 
+        $validated['shift_number'] ??= 1;
+
         $exists = Shift::where('employee_id', $validated['employee_id'])
             ->whereDate('shift_date', $validated['shift_date'])
+            ->where('shift_number', $validated['shift_number'])
             ->exists();
 
         if ($exists) {
-            return redirect()->back()->withErrors(['shift_date' => 'Karyawan sudah memiliki shift di tanggal ini.']);
+            return redirect()->back()->withErrors(['shift_date' => 'Karyawan sudah memiliki shift '.$validated['shift_number'].' di tanggal ini.']);
         }
 
         try {
             Shift::create($validated);
         } catch (QueryException $e) {
-            if (str_contains($e->getMessage(), 'shifts_employee_date_unique')) {
-                return redirect()->back()->withErrors(['shift_date' => 'Karyawan sudah memiliki shift di tanggal ini.']);
+            if (str_contains($e->getMessage(), 'shifts_employee_date_shift_unique')) {
+                return redirect()->back()->withErrors(['shift_date' => 'Karyawan sudah memiliki shift '.$validated['shift_number'].' di tanggal ini.']);
             }
 
             throw $e;
@@ -140,14 +144,18 @@ class ShiftController extends Controller
             'shifts' => 'required|array|min:1',
             'shifts.*.employee_id' => 'required|exists:employees,id',
             'shifts.*.shift_date' => 'required|date',
+            'shifts.*.shift_number' => 'nullable|integer|in:1,2',
             'shifts.*.start_time' => 'required|date_format:H:i',
             'shifts.*.end_time' => 'required|date_format:H:i|after:shifts.*.start_time',
         ]);
 
         $created = 0;
         foreach ($validated['shifts'] as $shiftData) {
+            $shiftData['shift_number'] ??= 1;
+
             $exists = Shift::where('employee_id', $shiftData['employee_id'])
                 ->whereDate('shift_date', $shiftData['shift_date'])
+                ->where('shift_number', $shiftData['shift_number'])
                 ->exists();
 
             if (! $exists) {
@@ -155,7 +163,7 @@ class ShiftController extends Controller
                     Shift::create($shiftData);
                     $created++;
                 } catch (QueryException $e) {
-                    if (! str_contains($e->getMessage(), 'shifts_employee_date_unique')) {
+                    if (! str_contains($e->getMessage(), 'shifts_employee_date_shift_unique')) {
                         throw $e;
                     }
                 }

@@ -30,6 +30,7 @@ interface ShiftData {
     shift_date: string;
     start_time: string;
     end_time: string;
+    shift_number: number;
     employee: EmployeeData;
 }
 
@@ -89,11 +90,14 @@ export default function ShiftsIndex({ shifts, employees, dates, weekStart, month
     const [selectedDayShifts, setSelectedDayShifts] = useState<{ date: string; shifts: ShiftData[] } | null>(null);
     const [shiftToDelete, setShiftToDelete] = useState<ShiftData | null>(null);
 
+    const todayStr = new Date().toISOString().slice(0, 10);
+
     const { data, setData, post, put, delete: destroy, processing, errors, reset } = useForm({
         employee_id: '',
-        shift_date: dates[0] ?? '',
+        shift_date: todayStr,
         start_time: '08:00',
         end_time: '16:00',
+        shift_number: '1',
     });
 
     function prevWeek() {
@@ -157,6 +161,7 @@ export default function ShiftsIndex({ shifts, employees, dates, weekStart, month
             shift_date: shift.shift_date,
             start_time: shift.start_time,
             end_time: shift.end_time,
+            shift_number: String(shift.shift_number),
         });
     }
 
@@ -170,6 +175,7 @@ export default function ShiftsIndex({ shifts, employees, dates, weekStart, month
             shift_date: editingShift.shift_date,
             start_time: data.start_time,
             end_time: data.end_time,
+            shift_number: data.shift_number,
         });
         put(`/admin/shifts/${editingShift.id}`, {
             onSuccess: () => {
@@ -289,6 +295,19 @@ export default function ShiftsIndex({ shifts, employees, dates, weekStart, month
                                     onChange={(e) => setData('end_time', e.target.value)}
                                 />
                             </div>
+                            <div className="grid gap-2">
+                                <label className="text-xs font-semibold uppercase tracking-wider text-[oklch(0.48_0.032_195.5)]">
+                                    Shift
+                                </label>
+                                <select
+                                    className="flex h-9 rounded-md border border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 px-3 py-1 text-sm shadow-xs focus:border-[oklch(0.48_0.032_195.5)] focus:ring-[oklch(0.48_0.032_195.5)]"
+                                    value={data.shift_number}
+                                    onChange={(e) => setData('shift_number', e.target.value)}
+                                >
+                                    <option value="1">Shift 1</option>
+                                    <option value="2">Shift 2</option>
+                                </select>
+                            </div>
                             <Button
                                 onClick={handleAddShift}
                                 disabled={!data.employee_id || processing}
@@ -360,7 +379,7 @@ export default function ShiftsIndex({ shifts, employees, dates, weekStart, month
                                                     {shift.employee.user.name}
                                                 </p>
                                                 <p className="text-slate-500">
-                                                    {shift.start_time.slice(0, 5)} — {shift.end_time.slice(0, 5)}
+                                                    S{shift.shift_number} {shift.start_time.slice(0, 5)} — {shift.end_time.slice(0, 5)}
                                                 </p>
                                                 <button
                                                     className="absolute top-1 right-1 hidden size-4 items-center justify-center rounded-full group-hover:flex hover:bg-red-100"
@@ -432,7 +451,7 @@ export default function ShiftsIndex({ shifts, employees, dates, weekStart, month
                                                     {shift ? (
                                                         <div className="inline-flex items-center gap-1 rounded-md bg-[oklch(0.48_0.032_195.5)]/8 px-2 py-1.5">
                                                             <span className="whitespace-nowrap font-medium text-[oklch(0.48_0.032_195.5)]">
-                                                                {shift.start_time.slice(0, 5)}–{shift.end_time.slice(0, 5)}
+                                                                S{shift.shift_number} {shift.start_time.slice(0, 5)}–{shift.end_time.slice(0, 5)}
                                                             </span>
                                                             <button
                                                                 type="button"
@@ -602,7 +621,7 @@ export default function ShiftsIndex({ shifts, employees, dates, weekStart, month
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <span className="whitespace-nowrap rounded-md bg-[oklch(0.48_0.032_195.5)]/10 px-2.5 py-1 font-medium text-[oklch(0.48_0.032_195.5)]">
-                                                    {shift.start_time.slice(0, 5)} – {shift.end_time.slice(0, 5)}
+                                                    S{shift.shift_number} {shift.start_time.slice(0, 5)} – {shift.end_time.slice(0, 5)}
                                                 </span>
                                                 <button
                                                     type="button"

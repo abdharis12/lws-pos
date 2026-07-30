@@ -538,10 +538,10 @@ return Store;
 
                                 {paymentStatus === 'pending' && !error && (
                                     <div className="flex w-full gap-2">
-                                        <Button onClick={handleBack} variant="outline" className="flex-1" style={{ borderColor: BORDER, color: INK }}>
+                                        <Button onClick={handleBack} variant="outline" className="flex-1">
                                             <ChevronLeft className="mr-1 size-4" /> Ganti Metode
                                         </Button>
-                                        <Button onClick={handleClose} variant="outline" className="flex-1" style={{ borderColor: BORDER, color: INK }}>
+                                        <Button onClick={handleClose} variant="outline" className="flex-1">
                                             Batal
                                         </Button>
                                     </div>

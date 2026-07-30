@@ -1,5 +1,8 @@
 import { cn } from '@/lib/utils';
-import { BORDER, CREAM, INK, MUTED, PRIMARY } from '../constants';
+
+const INK = 'oklch(0.48 0.032 195.5)';
+const INK_LIGHT = 'oklch(0.48 0.032 195.5 / 0.08)';
+const BORDER = 'oklch(0.80 0.038 88.5 / 0.35)';
 
 interface Props {
     orderType: 'dine_in' | 'takeaway';
@@ -14,11 +17,11 @@ const TYPES = [
 
 export default function OrderTypeSelector({ orderType, onChange, variant = 'sidebar' }: Props) {
     const containerClass = variant === 'mobile'
-        ? 'flex gap-1 p-2 lg:hidden'
-        : 'rounded-xl bg-white p-2 shadow-sm flex';
+        ? 'flex gap-1 p-2 border-b lg:hidden'
+        : 'rounded-xl flex';
 
     return (
-        <div className={containerClass} style={{ borderBottom: variant === 'mobile' ? `1px solid ${BORDER}` : `1px solid ${BORDER}` }}>
+        <div className={containerClass} style={{ borderColor: variant === 'mobile' ? BORDER : undefined }}>
             {TYPES.map(({ value, label }) => (
                 <button
                     key={value}
@@ -28,7 +31,7 @@ export default function OrderTypeSelector({ orderType, onChange, variant = 'side
                         orderType === value ? 'text-white shadow-sm' : 'opacity-70 hover:opacity-100',
                     )}
                     style={{
-                        backgroundColor: orderType === value ? PRIMARY : 'transparent',
+                        backgroundColor: orderType === value ? INK : 'transparent',
                         color: orderType === value ? '#fff' : INK,
                     }}
                 >

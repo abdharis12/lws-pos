@@ -22,6 +22,7 @@ interface AttendanceData {
     clock_in_at: string | null;
     clock_out_at: string | null;
     status: string;
+    early_leave: boolean;
     employee: EmployeeData;
 }
 
@@ -30,6 +31,7 @@ interface DailyAttendance {
     clock_out: string | null;
     status: string | null;
     attended: boolean;
+    early_leave: boolean;
 }
 
 interface SummaryItem {
@@ -39,6 +41,7 @@ interface SummaryItem {
     hadir: number;
     total_jam: number;
     terlambat: number;
+    pulang_cepat: number;
     daily_attendance: Record<string, DailyAttendance>;
 }
 
@@ -46,6 +49,7 @@ interface MonthlyStats {
     total_hadir: number;
     total_jam: number;
     total_terlambat: number;
+    total_pulang_cepat: number;
 }
 
 interface Props {
@@ -56,6 +60,7 @@ interface Props {
     filterMonth: string;
     filterEmployeeId: string | null;
     monthlyStats: MonthlyStats;
+    isAdmin: boolean;
 }
 
 export default function AttendanceRecap({
@@ -66,6 +71,7 @@ export default function AttendanceRecap({
     filterMonth,
     filterEmployeeId,
     monthlyStats,
+    isAdmin,
 }: Props) {
     const { data, setData, get, processing } = useForm({
         month: filterMonth,
@@ -73,7 +79,7 @@ export default function AttendanceRecap({
     });
 
     function handleFilter() {
-        get('/admin/attendance/recap', { preserveState: true });
+        get('/attendance/recap', { preserveState: true });
     }
 
     const months = Array.from({ length: 12 }, (_, i) => {
@@ -134,23 +140,25 @@ export default function AttendanceRecap({
                                         ))}
                                     </select>
                                 </div>
-                                <div className="grid gap-2">
-                                    <label className="text-xs font-semibold uppercase tracking-wider text-[oklch(0.48_0.032_195.5)]">
-                                        Karyawan
-                                    </label>
-                                    <select
-                                        className="flex h-9 rounded-md border border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 px-3 py-1 text-sm shadow-xs focus:border-[oklch(0.48_0.032_195.5)] focus:ring-[oklch(0.48_0.032_195.5)]"
-                                        value={data.employee_id}
-                                        onChange={(e) => setData('employee_id', e.target.value)}
-                                    >
-                                        <option value="">Semua Karyawan</option>
-                                        {employees.map((emp) => (
-                                            <option key={emp.id} value={emp.id}>
-                                                {emp.user.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
+                                {isAdmin && (
+                                    <div className="grid gap-2">
+                                        <label className="text-xs font-semibold uppercase tracking-wider text-[oklch(0.48_0.032_195.5)]">
+                                            Karyawan
+                                        </label>
+                                        <select
+                                            className="flex h-9 rounded-md border border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 px-3 py-1 text-sm shadow-xs focus:border-[oklch(0.48_0.032_195.5)] focus:ring-[oklch(0.48_0.032_195.5)]"
+                                            value={data.employee_id}
+                                            onChange={(e) => setData('employee_id', e.target.value)}
+                                        >
+                                            <option value="">Semua Karyawan</option>
+                                            {employees.map((emp) => (
+                                                <option key={emp.id} value={emp.id}>
+                                                    {emp.user.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
                                 <Button
                                     onClick={handleFilter}
                                     disabled={processing}
@@ -178,6 +186,7 @@ export default function AttendanceRecap({
                                             <th className="px-6 py-3.5 text-center font-semibold">Hadir</th>
                                             <th className="px-6 py-3.5 text-center font-semibold">Total Jam</th>
                                             <th className="px-6 py-3.5 text-center font-semibold">Terlambat</th>
+                                            <th className="px-6 py-3.5 text-center font-semibold">Pulang Cepat</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-[oklch(0.80_0.038_88.5)]/15">
@@ -204,11 +213,20 @@ export default function AttendanceRecap({
                                                         <span className="text-slate-400">0</span>
                                                     )}
                                                 </td>
+                                                <td className="px-6 py-4 text-center">
+                                                    {item.pulang_cepat > 0 ? (
+                                                        <Badge className="rounded-full bg-[oklch(0.55_0.15_30)]/20 font-semibold text-[oklch(0.55_0.15_30)]">
+                                                            {item.pulang_cepat}x
+                                                        </Badge>
+                                                    ) : (
+                                                        <span className="text-slate-400">0</span>
+                                                    )}
+                                                </td>
                                             </tr>
                                         ))}
                                         {summary.length === 0 && (
                                             <tr>
-                                                <td colSpan={5} className="py-8 text-center text-sm italic text-slate-500">
+                                                <td colSpan={6} className="py-8 text-center text-sm italic text-slate-500">
                                                     Belum ada data absensi.
                                                 </td>
                                             </tr>
@@ -243,6 +261,12 @@ export default function AttendanceRecap({
                                         <div className="flex items-center gap-2">
                                             <span className="text-slate-500">Terlambat:</span>
                                             <span className="font-semibold text-[oklch(0.80_0.038_88.5)]">{monthlyStats.total_terlambat}</span>
+                                        </div>
+                                    )}
+                                    {monthlyStats.total_pulang_cepat > 0 && (
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-slate-500">Pulang Cepat:</span>
+                                            <span className="font-semibold text-[oklch(0.55_0.15_30)]">{monthlyStats.total_pulang_cepat}</span>
                                         </div>
                                     )}
                                 </div>
@@ -290,6 +314,11 @@ export default function AttendanceRecap({
                                                                     {daily.clock_out && (
                                                                         <span className="text-[10px] text-slate-500">
                                                                             -{daily.clock_out.slice(0, 5)}
+                                                                        </span>
+                                                                    )}
+                                                                    {daily.early_leave && (
+                                                                        <span className="text-[9px] font-semibold text-[oklch(0.55_0.15_30)]">
+                                                                            PC
                                                                         </span>
                                                                     )}
                                                                 </div>
@@ -373,15 +402,22 @@ export default function AttendanceRecap({
                                                     {att.clock_out_at ? new Date(att.clock_out_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'}
                                                 </td>
                                                 <td className="px-6 py-4 text-center">
-                                                    {att.status === 'late' ? (
-                                                        <Badge className="rounded-full bg-[oklch(0.80_0.038_88.5)]/20 font-semibold text-[oklch(0.80_0.038_88.5)]">
-                                                            Terlambat
-                                                        </Badge>
-                                                    ) : (
-                                                        <Badge className="rounded-full bg-[oklch(0.48_0.032_195.5)]/10 font-semibold text-[oklch(0.48_0.032_195.5)]">
-                                                            Hadir
-                                                        </Badge>
-                                                    )}
+                                                    <div className="flex items-center justify-center gap-1.5">
+                                                        {att.status === 'late' ? (
+                                                            <Badge className="rounded-full bg-[oklch(0.80_0.038_88.5)]/20 font-semibold text-[oklch(0.80_0.038_88.5)]">
+                                                                Terlambat
+                                                            </Badge>
+                                                        ) : (
+                                                            <Badge className="rounded-full bg-[oklch(0.48_0.032_195.5)]/10 font-semibold text-[oklch(0.48_0.032_195.5)]">
+                                                                Hadir
+                                                            </Badge>
+                                                        )}
+                                                        {att.early_leave && (
+                                                            <Badge className="rounded-full bg-[oklch(0.55_0.15_30)]/20 font-semibold text-[oklch(0.55_0.15_30)]">
+                                                                Pulang Cepat
+                                                            </Badge>
+                                                        )}
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}
@@ -406,7 +442,7 @@ export default function AttendanceRecap({
 AttendanceRecap.layout = {
     breadcrumbs: [
         { title: 'Dashboard', href: '/dashboard' },
-        { title: 'Absensi', href: '/admin/attendance' },
-        { title: 'Rekap', href: '/admin/attendance/recap' },
+        { title: 'Absensi', href: '/attendance' },
+        { title: 'Rekap', href: '/attendance/recap' },
     ],
 };

@@ -1,5 +1,5 @@
 import { Head, useForm, router, usePage } from '@inertiajs/react';
-import { Search, ShoppingCart, Move, ArrowRightLeft, HandPlatter, Trash2, X } from 'lucide-react';
+import { Search, ShoppingCart, Move, ArrowRightLeft, HandPlatter, Trash2 } from 'lucide-react';
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -11,7 +11,6 @@ import MenuCard from './components/MenuCard';
 import OrderTypeSelector from './components/OrderTypeSelector';
 import PendingOrdersList from './components/PendingOrdersList';
 import TableGrid, { MobileTableStrip } from './components/TableGrid';
-import { BORDER, CREAM, INK, MUTED, PRIMARY, SAND } from './constants';
 import ApprovalDialog from './dialogs/ApprovalDialog';
 import CashPaymentDialog from './dialogs/CashPaymentDialog';
 import ItemDialog from './dialogs/ItemDialog';
@@ -25,6 +24,12 @@ import { orderTypeLabel } from './lib/format';
 import { calcSubtotal, calcDiscount, calcTax, roundPrice } from './lib/pricing';
 import { printReceipt } from './lib/receipt';
 import type { CartItem, MenuItem, PendingOrder, PosPageProps, OrderData, PrintReceiptData, TableData } from './types';
+
+const INK = 'oklch(0.48 0.032 195.5)';
+const INK_LIGHT = 'oklch(0.48 0.032 195.5 / 0.08)';
+const BORDER = 'oklch(0.80 0.038 88.5 / 0.35)';
+const CREAM = 'oklch(0.98 0.005 85.0)';
+const MUTED = 'oklch(0.60 0.03 88.5)';
 
 export default function PosIndex({ categories, tables, pendingOrders, lastOrder, groupedTables }: PosPageProps) {
     const { auth } = usePage().props as { auth: { user: { id: number; name: string } | null } };
@@ -518,7 +523,8 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
         <>
             <Head title="POS Kasir" />
             <div className="flex h-screen overflow-hidden" style={{ backgroundColor: CREAM }}>
-                <aside className="hidden w-80 flex-shrink-0 flex-col overflow-y-auto p-4 lg:flex" style={{ borderRight: `1px solid ${BORDER}` }}>
+
+                <aside className="hidden w-80 flex-shrink-0 flex-col overflow-y-auto border-r p-4 lg:flex" style={{ borderColor: BORDER, backgroundColor: '#fff' }}>
                     <div className="flex-1 space-y-4">
                         <PendingOrdersList orders={pendingOrders} selectedId={selectedPendingOrderId} onSelect={handleSelectPendingOrder} onDelete={handleDeletePendingOrder} variant="sidebar" />
                         <OrderTypeSelector orderType={orderType} onChange={handleOrderTypeChange} variant="sidebar" />
@@ -536,7 +542,14 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
                 </aside>
 
                 <div className="flex flex-1 flex-col overflow-hidden">
-                    <OrderTypeSelector orderType={orderType} onChange={handleOrderTypeChange} variant="mobile" />
+                    <div className="border-b px-5 py-3" style={{ borderColor: BORDER, backgroundColor: '#fff' }}>
+                        <div>
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: MUTED }}>POS Kasir</p>
+                            <h2 className="font-serif text-lg font-bold tracking-tight" style={{ color: INK }}>Kasir</h2>
+                        </div>
+                    </div>
+
+                    <div className="lg:hidden"><OrderTypeSelector orderType={orderType} onChange={handleOrderTypeChange} variant="mobile" /></div>
                     {!isDineIn && <CustomerNameInput value={customerName} onChange={setCustomerName} variant="mobile" />}
                     <MobileTableStrip
                         tables={tables}
@@ -549,25 +562,32 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
 
                     <PendingOrdersList orders={pendingOrders} selectedId={selectedPendingOrderId} onSelect={handleSelectPendingOrder} onDelete={handleDeletePendingOrder} variant="mobile" />
 
-                    <div className="flex gap-2 overflow-x-auto px-4" style={{ borderBottom: `1px solid ${BORDER}` }}>
+                    <div className="flex gap-1 overflow-x-auto px-5 pt-4 pb-2">
                         {categories.map(cat => (
                             <button key={cat.id} onClick={() => setSelectedCategoryId(cat.id)}
-                                className="flex-shrink-0 px-3 py-3 text-sm font-medium transition-colors"
-                                style={{ borderBottom: '2px solid', borderColor: selectedCategoryId === cat.id ? PRIMARY : 'transparent', color: selectedCategoryId === cat.id ? PRIMARY : MUTED }}
+                                className={`flex-shrink-0 rounded-xl px-4 py-2 text-sm font-medium transition-all ${
+                                    selectedCategoryId === cat.id
+                                        ? 'text-white shadow-sm'
+                                        : 'hover:opacity-80'
+                                }`}
+                                style={{ backgroundColor: selectedCategoryId === cat.id ? INK : 'oklch(0.48 0.032 195.5 / 0.06)', color: selectedCategoryId === cat.id ? '#fff' : INK }}
                             >
                                 {cat.name}
                             </button>
                         ))}
                     </div>
 
-                    <div className="px-4 py-3" style={{ borderBottom: `1px solid ${BORDER}` }}>
+                    <div className="px-5 py-2">
                         <div className="relative">
-                            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2" style={{ color: MUTED }} />
-                            <Input placeholder="Cari menu..." className="border-0 bg-white pl-9 shadow-sm" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+                            <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2" style={{ color: MUTED }} />
+                            <Input placeholder="Cari menu..."
+                                className="h-10 rounded-xl border-2 bg-white pl-10 shadow-sm transition-all focus:border-emerald-500 focus:ring-emerald-500"
+                                style={{ borderColor: BORDER }}
+                                value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
                         </div>
                     </div>
 
-                    <div className="min-h-0 flex-1 overflow-y-auto p-4">
+                    <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-10">
                         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
                             {visibleMenus.map(menu => (
                                 <MenuCard key={menu.id} menu={menu} onSelect={() => {
@@ -581,24 +601,31 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
                     </div>
                 </div>
 
-                <aside className="hidden w-96 flex-shrink-0 lg:flex lg:flex-col" style={{ borderLeft: `1px solid ${BORDER}` }}>
-                    <CartPanel {...cartPanelProps} />
+                <aside className="hidden w-96 flex-shrink-0 border-l lg:flex lg:flex-col" style={{ borderColor: BORDER, backgroundColor: '#fff' }}>
+                    <div className="border-b px-5 py-3" style={{ borderColor: BORDER }}>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: MUTED }}>Pesanan</p>
+                        <p className="font-serif text-lg font-bold tracking-tight" style={{ color: INK }}>Cart</p>
+                    </div>
+                    <div className="flex-1 overflow-y-auto">
+                        <CartPanel {...cartPanelProps} />
+                    </div>
                 </aside>
 
                 <button onClick={() => setCartOpen(true)}
-                    className="fixed right-4 bottom-4 z-40 flex size-14 items-center justify-center rounded-full text-white shadow-lg lg:hidden"
-                    style={{ backgroundColor: PRIMARY }}
-                >
+                    className="fixed right-5 bottom-5 z-40 flex size-14 items-center justify-center rounded-2xl text-white shadow-lg shadow-slate-900/20 transition-all hover:scale-105 active:scale-95 lg:hidden"
+                    style={{ backgroundColor: INK }}>
                     <ShoppingCart className="size-6" />
                     {cartCount > 0 && (
-                        <span className="absolute -top-1 -right-1 flex size-5 items-center justify-center rounded-full bg-red-500 text-[10px] text-white">{cartCount}</span>
+                        <span className="absolute -top-1.5 -right-1.5 flex size-5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white shadow-sm">{cartCount}</span>
                     )}
                 </button>
 
                 <Sheet open={cartOpen} onOpenChange={setCartOpen}>
-                    <SheetContent side="bottom" className="h-[85vh]" style={{ backgroundColor: CREAM }}>
-                        <SheetHeader><SheetTitle style={{ color: INK }}>Pesanan</SheetTitle></SheetHeader>
-                        <div className="flex-1 overflow-y-auto pt-4"><CartPanel {...cartPanelProps} /></div>
+                    <SheetContent side="bottom" className="h-[85vh]" style={{ backgroundColor: '#fff' }}>
+                        <SheetHeader className="border-b px-5 py-4" style={{ borderColor: BORDER }}>
+                            <SheetTitle className="font-serif text-lg font-bold" style={{ color: INK }}>Pesanan</SheetTitle>
+                        </SheetHeader>
+                        <div className="flex-1 overflow-y-auto"><CartPanel {...cartPanelProps} /></div>
                     </SheetContent>
                 </Sheet>
 
@@ -617,14 +644,10 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
                 }} total={total} onConfirm={isPendingCashPayment ? handlePendingCashConfirm : handleCashConfirm} processing={processing} />
                 <MidtransPaymentDialog open={midtransDialogOpen} onOpenChange={setMidtransDialogOpen} subtotal={subtotal} total={total} onSuccess={handleMidtransSuccess} getCsrfToken={() => document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? ''} selectedTableId={selectedTableIds[0] ?? null} cartItems={cartItems.map(item => ({ menu_id: item.menu.id, qty: item.qty, notes: item.notes || null, option_ids: item.selectedOptions.flatMap(o => Array.from({ length: o.quantity }, () => o.itemId)) }))} discountType={discountType} discountValue={discountValue} discountApprovedBy={discountApprovedBy} orderType={orderType} />
 
-                <Dialog open={releaseDialogTable !== null} onOpenChange={(v) => {
-                    if (!v) {
-                        setReleaseDialogTable(null);
-                    }
-                }}>
-                    <DialogContent className="sm:max-w-xs" style={{ backgroundColor: CREAM }}>
+                <Dialog open={releaseDialogTable !== null} onOpenChange={(v) => { if (!v) setReleaseDialogTable(null); }}>
+                    <DialogContent className="sm:max-w-xs border-0 shadow-lg shadow-slate-900/10" style={{ backgroundColor: '#fff' }}>
                         <div className="flex flex-col items-center py-4 text-center">
-                            <div className="mb-4 flex size-16 items-center justify-center rounded-full" style={{ backgroundColor: `${SAND}40` }}>
+                            <div className="mb-4 flex size-16 items-center justify-center rounded-2xl" style={{ backgroundColor: INK_LIGHT }}>
                                 <HandPlatter className="size-7" style={{ color: INK }} />
                             </div>
                             <h3 className="text-lg font-bold" style={{ color: INK }}>Meja {releaseDialogTable?.code}</h3>
@@ -632,37 +655,32 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
                             <div className="mt-5 flex w-full flex-col gap-2">
                                 <button onClick={() => {
                                     const t = releaseDialogTable; setReleaseDialogTable(null);
-
-                                    if (t) {
-                                        setMoveMergeDialog({ mode: 'move', sourceTable: t });
-                                    }
+                                    if (t) setMoveMergeDialog({ mode: 'move', sourceTable: t });
                                 }}
-                                    className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold cursor-pointer hover:opacity-95" style={{ backgroundColor: PRIMARY, color: '#fff' }}>
+                                    className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold text-white transition-all hover:opacity-90"
+                                    style={{ backgroundColor: INK }}>
                                     <Move className="size-4" /> Pindah Meja
                                 </button>
                                 {(tables.filter(t => t.status === 'occupied' && t.id !== releaseDialogTable?.id).length > 0) && (
                                     <button onClick={() => {
                                         const t = releaseDialogTable; setReleaseDialogTable(null);
-
-                                        if (t) {
-                                            setMoveMergeDialog({ mode: 'merge', sourceTable: t });
-                                        }
+                                        if (t) setMoveMergeDialog({ mode: 'merge', sourceTable: t });
                                     }}
-                                        className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold cursor-pointer hover:opacity-95" style={{ backgroundColor: PRIMARY, color: '#fff' }}>
+                                        className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold text-white transition-all hover:opacity-90"
+                                        style={{ backgroundColor: INK }}>
                                         <ArrowRightLeft className="size-4" /> Gabung Meja
                                     </button>
                                 )}
-                                <button onClick={() => {
-                                    if (!releaseDialogTable) {
-                                        return;
-                                    }
-
-                                    router.post(`/pos/tables/${releaseDialogTable.id}/release`);
-                                }}
-                                    className="w-full rounded-xl py-2.5 text-sm font-semibold cursor-pointer hover:opacity-95" style={{ backgroundColor: PRIMARY, color: '#fff' }}>
+                                <button onClick={() => { if (!releaseDialogTable) return; router.post(`/pos/tables/${releaseDialogTable.id}/release`); }}
+                                    className="w-full rounded-xl py-2.5 text-sm font-semibold text-white transition-all hover:opacity-90"
+                                    style={{ backgroundColor: INK }}>
                                     Kosongkan Meja
                                 </button>
-                                <button onClick={() => setReleaseDialogTable(null)} className="w-full rounded-xl py-2.5 text-sm font-semibold transition-all hover:opacity-70 cursor-pointer" style={{ backgroundColor: 'oklch(58.6% 0.253 17.585)', color: 'oklch(96.9% 0.015 12.422)' }}>Batal</button>
+                                <button onClick={() => setReleaseDialogTable(null)}
+                                    className="w-full rounded-xl py-2.5 text-sm font-semibold transition-all hover:opacity-70"
+                                    style={{ backgroundColor: '#f1f5f9', color: '#475569' }}>
+                                    Batal
+                                </button>
                             </div>
                         </div>
                     </DialogContent>
@@ -671,28 +689,27 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
                 <MoveMergeDialog open={moveMergeDialog !== null} mode={moveMergeDialog?.mode ?? null} sourceTable={moveMergeDialog?.sourceTable ?? { id: 0, code: '' }} tables={tables} onClose={() => setMoveMergeDialog(null)} />
 
                 <Dialog open={deleteConfirmOrder !== null} onOpenChange={(v) => { if (!v) setDeleteConfirmOrder(null); }}>
-                    <DialogContent className="sm:max-w-xs" style={{ backgroundColor: CREAM }}>
+                    <DialogContent className="sm:max-w-xs border-0 shadow-lg shadow-slate-900/10" style={{ backgroundColor: '#fff' }}>
                         <div className="flex flex-col items-center py-4 text-center">
-                            <div className="mb-4 flex size-16 items-center justify-center rounded-full" style={{ backgroundColor: `${PRIMARY}12` }}>
-                                <Trash2 className="size-7" style={{ color: '#dc2626' }} />
+                            <div className="mb-4 flex size-16 items-center justify-center rounded-2xl" style={{ backgroundColor: '#fef2f2' }}>
+                                <Trash2 className="size-7 text-rose-500" />
                             </div>
                             <h3 className="text-lg font-bold" style={{ color: INK }}>Hapus Pesanan</h3>
                             <p className="mt-1 text-sm" style={{ color: MUTED }}>
                                 Yakin ingin menghapus pesanan{deleteConfirmOrder?.table_session?.table?.code ? ` meja ${deleteConfirmOrder.table_session.table.code}` : ''}?
                             </p>
                             <div className="mt-5 flex w-full flex-col gap-2">
-                                <button
-                                    onClick={() => {
-                                        const order = deleteConfirmOrder; setDeleteConfirmOrder(null);
-                                        if (order) {
-                                            router.delete(`/pos/orders/${order.id}`, { preserveScroll: true });
-                                        }
-                                    }}
-                                    className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold text-white transition-all hover:opacity-90" style={{ backgroundColor: '#dc2626' }}
-                                >
+                                <button onClick={() => {
+                                    const order = deleteConfirmOrder; setDeleteConfirmOrder(null);
+                                    if (order) router.delete(`/pos/orders/${order.id}`, { preserveScroll: true });
+                                }}
+                                    className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold text-white transition-all hover:opacity-90"
+                                    style={{ backgroundColor: '#e11d48' }}>
                                     <Trash2 className="size-4" /> Ya, Hapus
                                 </button>
-                                <button onClick={() => setDeleteConfirmOrder(null)} className="w-full rounded-xl py-2.5 text-sm font-semibold transition-all hover:opacity-70" style={{ backgroundColor: PRIMARY, color: CREAM }}>
+                                <button onClick={() => setDeleteConfirmOrder(null)}
+                                    className="w-full rounded-xl py-2.5 text-sm font-semibold transition-all hover:opacity-70"
+                                    style={{ backgroundColor: '#f1f5f9', color: '#475569' }}>
                                     Batal
                                 </button>
                             </div>

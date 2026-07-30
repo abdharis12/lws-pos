@@ -99,6 +99,7 @@ class PosOrderService
         array $orderItems,
         array $groupedTableIds,
         ?TableSession $session,
+        ?int $posSessionId = null,
     ): array {
         $subtotal = array_sum(array_column($orderItems, 'total_price'));
         $discountAmount = $this->calculateDiscount($subtotal, $validated);
@@ -118,6 +119,7 @@ class PosOrderService
 
             $shared = [
                 'created_by' => $user->id,
+                'pos_session_id' => $posSessionId,
                 'order_type' => $validated['order_type'] ?? 'dine_in',
                 'customer_name' => $validated['customer_name'] ?? null,
                 'status' => OrderStatus::Paid,
@@ -269,6 +271,7 @@ class PosOrderService
         array $validated,
         array $orderItems,
         ?TableSession $session,
+        ?int $posSessionId = null,
     ): Order {
         $subtotal = array_sum(array_column($orderItems, 'total_price'));
         $discountAmount = $this->calculateDiscount($subtotal, $validated);
@@ -280,6 +283,7 @@ class PosOrderService
 
         $orderData = [
             'created_by' => $user->id,
+            'pos_session_id' => $posSessionId,
             'order_type' => $validated['order_type'] ?? 'dine_in',
             'customer_name' => $validated['customer_name'] ?? null,
             'status' => OrderStatus::PendingPayment,

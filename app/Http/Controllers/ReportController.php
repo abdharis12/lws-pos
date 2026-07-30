@@ -217,6 +217,7 @@ class ReportController extends Controller
             $totalShiftDays = $empShifts->count();
             $hadir = $empAttendances->count();
             $terlambat = $empAttendances->where('status', 'late')->count();
+            $pulangCepat = $empAttendances->where('early_leave', true)->count();
             $alfa = max(0, $totalShiftDays - $hadir);
             $persentase = $totalShiftDays > 0 ? round(($hadir / $totalShiftDays) * 100, 1) : 0;
 
@@ -235,6 +236,7 @@ class ReportController extends Controller
                 'total_shift_days' => $totalShiftDays,
                 'hadir' => $hadir,
                 'terlambat' => $terlambat,
+                'pulang_cepat' => $pulangCepat,
                 'alfa' => $alfa,
                 'total_jam' => round($totalMinutes / 60, 1),
                 'persentase' => $persentase,
@@ -243,6 +245,7 @@ class ReportController extends Controller
                     'clock_in' => $a->clock_in_at->format('H:i'),
                     'clock_out' => $a->clock_out_at?->format('H:i'),
                     'status' => $a->status,
+                    'early_leave' => $a->early_leave,
                 ])->values(),
             ];
         })->values();
@@ -251,6 +254,7 @@ class ReportController extends Controller
             'total_shift_days' => $summary->sum('total_shift_days'),
             'hadir' => $summary->sum('hadir'),
             'terlambat' => $summary->sum('terlambat'),
+            'pulang_cepat' => $summary->sum('pulang_cepat'),
             'alfa' => $summary->sum('alfa'),
         ];
 

@@ -11,13 +11,14 @@ class Shift extends Model
     use HasFactory;
 
     protected $fillable = [
-        'employee_id', 'shift_date', 'start_time', 'end_time',
+        'employee_id', 'shift_date', 'shift_number', 'start_time', 'end_time',
     ];
 
     protected function casts(): array
     {
         return [
             'shift_date' => 'date',
+            'shift_number' => 'integer',
             'start_time' => 'string',
             'end_time' => 'string',
         ];

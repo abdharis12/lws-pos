@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { AwardIcon, BarChart3, Calendar, ChartArea, ChartCandlestick, ChefHat, ClipboardList, Clock, FileUserIcon, Grid3x3, HandCoinsIcon, HandPlatter, LayoutGrid, ListTodo, MapPin, ScissorsLineDashedIcon, Settings2, ShoppingCart, Tag, Users, Utensils, Wallet } from 'lucide-react';
+import { AwardIcon, BarChart3, Calendar, ChartArea, ChartCandlestick, ChefHat, ClipboardList, Clock, FileUserIcon, Grid3x3, HandCoinsIcon, HandPlatter, LayoutGrid, ListTodo, MapPin, ScissorsLineDashedIcon, Settings2, ShoppingCart, Tag, Users, Utensils, Wallet, Receipt } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -12,11 +12,13 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import attendance from '@/routes/attendance';
 import { dashboard } from '@/routes';
 import admin from '@/routes/admin';
 import kitchen from '@/routes/kitchen';
 import owner from '@/routes/owner';
 import pos from '@/routes/pos';
+import sessions from '@/routes/pos/sessions';
 import type { NavItem } from '@/types';
 
 type NavGroup = {
@@ -28,6 +30,7 @@ type NavGroup = {
 export function AppSidebar() {
     const { auth } = usePage().props;
     const userRoles: string[] = (auth as { roles: string[] }).roles ?? [];
+    const hasEmployee: boolean = (auth as { has_employee: boolean }).has_employee ?? false;
 
     const hasAnyRole = (roles: string[] | null): boolean => {
         if (roles === null) {
@@ -54,7 +57,7 @@ return true;
         },
         {
             label: 'Management',
-            roles: ['Owner', 'Admin', 'Cashier', 'Kitchen Staff', 'Waiter'],
+            roles: ['Owner', 'Admin'],
             items: [
                 { title: 'Menu Categories', href: admin.menuCategories.index(), icon: Tag },
                 { title: 'Menus', href: admin.menus.index(), icon: Utensils },
@@ -67,6 +70,7 @@ return true;
             roles: ['Owner', 'Admin', 'Cashier'],
             items: [
                 { title: 'POS Kasir', href: pos.index(), icon: ShoppingCart },
+                { title: 'Shift Kasir', href: sessions.index(), icon: Receipt },
             ],
         },
         {
@@ -77,12 +81,18 @@ return true;
             ],
         },
         {
+            label: 'Absensi',
+            roles: null,
+            items: [
+                { title: 'Absensi', href: attendance.index(), icon: Clock },
+                { title: 'Rekap Absensi', href: attendance.recap(), icon: ClipboardList },
+            ],
+        },
+        {
             label: 'Employees',
             roles: ['Owner', 'Admin'],
             items: [
                 { title: 'Karyawan', href: admin.employees.index(), icon: Users },
-                { title: 'Absensi', href: admin.attendance.index(), icon: Clock },
-                { title: 'Rekap Absensi', href: admin.attendance.recap(), icon: ClipboardList },
                 { title: 'Shift', href: admin.shifts.index(), icon: Calendar },
             ],
         },
@@ -131,7 +141,13 @@ return true;
         },
     ];
 
-    const visibleGroups = navGroups.filter((group) => hasAnyRole(group.roles));
+    const visibleGroups = navGroups.filter((group) => {
+        if (group.label === 'Absensi') {
+            return hasEmployee || hasAnyRole(['Owner', 'Admin']);
+        }
+
+        return hasAnyRole(group.roles);
+    });
 
     return (
         <Sidebar collapsible="icon" variant="inset">

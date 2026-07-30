@@ -13,6 +13,8 @@ export type User = {
 export type Auth = {
     user: User;
     roles: string[];
+    outlet_id: number | null;
+    has_employee: boolean;
 };
 
 /* @chisel-passkeys */

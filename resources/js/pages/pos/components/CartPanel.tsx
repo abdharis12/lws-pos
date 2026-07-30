@@ -1,6 +1,7 @@
 import {
     ShoppingCart, Plus, Minus, X, Percent, SplitSquareVertical,
     Printer, Wallet, Globe, ShieldCheck,
+    PackageOpen,
 } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -70,10 +71,8 @@ export default function CartPanel({
 
     return (
         <div className="flex h-full flex-col bg-white">
-            <div className="p-4" style={{ borderBottom: `1px solid ${BORDER}` }}>
+            <div className="p-4">
                 <div className="flex items-center gap-2">
-                    <ShoppingCart className="size-5" style={{ color: PRIMARY }} />
-                    <span className="font-semibold" style={{ color: INK }}>Pesanan</span>
                     {isConfirmMode && <Badge style={{ backgroundColor: `${PRIMARY}15`, color: PRIMARY, border: 'none' }}>Konfirmasi</Badge>}
                     {items.length > 0 && (
                         <Badge style={{ backgroundColor: `${PRIMARY}10`, color: PRIMARY, border: 'none' }}>
@@ -85,7 +84,17 @@ export default function CartPanel({
 
             <div className="flex-1 space-y-2 overflow-y-auto p-4">
                 {items.length === 0 ? (
-                    <p className="py-8 text-center text-sm" style={{ color: MUTED }}>Belum ada item</p>
+                    <div className="flex flex-col items-center justify-center gap-3 py-30 text-center">
+                        <div
+                            className="flex h-20 w-20 items-center justify-center rounded-full"
+                            style={{ backgroundColor: "#4F6B6A15" }}
+                        >
+                            <PackageOpen className="h-10 w-10" style={{ color: "#4F6B6A" }} strokeWidth={1.75} />
+                        </div>
+                        <p className="text-sm" style={{ color: MUTED }}>
+                            Belum ada item
+                        </p>
+                    </div>
                 ) : (
                     items.map((item, i) => {
                         const itemTotal = (Number(item.menu.price) + item.selectedOptions.reduce((s, o) => s + o.adjustment * (o.quantity || 1), 0)) * item.qty;

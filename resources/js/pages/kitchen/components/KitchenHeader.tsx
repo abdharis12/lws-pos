@@ -1,13 +1,15 @@
-import { ChefHat, Volume2, VolumeX } from 'lucide-react';
+import { ChefHat, Printer, Volume2, VolumeX } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface Props {
     orderCount: number;
     soundEnabled: boolean;
     onSoundToggle: () => void;
+    printEnabled?: boolean;
+    onPrintToggle?: () => void;
 }
 
-export default function KitchenHeader({ orderCount, soundEnabled, onSoundToggle }: Props) {
+export default function KitchenHeader({ orderCount, soundEnabled, onSoundToggle, printEnabled = true, onPrintToggle }: Props) {
     const [now, setNow] = useState(new Date());
 
     useEffect(() => {

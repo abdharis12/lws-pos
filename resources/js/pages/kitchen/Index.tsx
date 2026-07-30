@@ -1,9 +1,10 @@
 import { Head, usePoll } from '@inertiajs/react';
-import { ChefHat } from 'lucide-react';
+import { ChefHat, Printer } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import KitchenHeader from './components/KitchenHeader';
 import OrderCard from './components/OrderCard';
 import { filterNewOrderIds, playBeep } from './lib/utils';
+import { useKitchenOrders } from './lib/useKitchenOrders';
 import type { StationGroup, KitchenOrder } from './types';
 
 interface Props {
@@ -14,7 +15,11 @@ interface Props {
 export default function KitchenIndex({ stations, unassignedOrders }: Props) {
     const [newIds, setNewIds] = useState<Set<number>>(new Set());
     const [soundEnabled, setSoundEnabled] = useState(true);
+    const [printEnabled, setPrintEnabled] = useState(true);
     const prevIds = useRef<Set<number>>(new Set());
+    const printFrameRef = useRef<HTMLIFrameElement>(null);
+
+    useKitchenOrders(printFrameRef.current, printEnabled && soundEnabled);
 
     usePoll(10000, { only: ['stations', 'unassignedOrders'] });
 
@@ -70,6 +75,8 @@ playBeep();
                     orderCount={allOrders.length}
                     soundEnabled={soundEnabled}
                     onSoundToggle={() => setSoundEnabled(s => !s)}
+                    printEnabled={printEnabled}
+                    onPrintToggle={() => setPrintEnabled(s => !s)}
                 />
 
                 {!hasOrders ? (
@@ -91,6 +98,8 @@ playBeep();
                     </div>
                 )}
             </div>
+
+            <iframe ref={printFrameRef} style={{ position: 'absolute', width: 0, height: 0, border: 'none' }} title="print-label" />
         </div>
     );
 }
