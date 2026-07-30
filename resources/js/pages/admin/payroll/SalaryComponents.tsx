@@ -41,17 +41,18 @@ interface ComponentData {
 
 interface Props {
     components: ComponentData[];
+    employees: EmployeeData[];
 }
 
-export default function SalaryComponents({ components }: Props) {
+export default function SalaryComponents({ components, employees }: Props) {
     const [open, setOpen] = useState(false);
     const [editing, setEditing] = useState<ComponentData | null>(null);
 
     const [deleteConfirm, setDeleteConfirm] = useState<ComponentData | null>(null);
 
     const { data, setData, post, put, delete: destroy, processing, errors, reset } = useForm({
-        employee_id: '',
-        base_salary: '',
+        employee_id: null as string | null,
+        base_salary: '0',
         salary_type: 'monthly',
         meal_allowance: '0',
         transport_allowance: '0',
@@ -60,6 +61,7 @@ export default function SalaryComponents({ components }: Props) {
 
     function openCreate() {
         setEditing(null);
+        setData('employee_id', null);
         reset();
         setOpen(true);
     }
@@ -137,20 +139,21 @@ export default function SalaryComponents({ components }: Props) {
                             <div className="grid gap-2">
                                 <Label className="text-xs uppercase tracking-wider text-[oklch(0.48_0.032_195.5)] font-semibold">Karyawan</Label>
                                 <Select
-                                    value={data.employee_id}
+                                    value={data.employee_id ?? undefined}
                                     onValueChange={(v) => setData('employee_id', v)}
                                     disabled={!!editing}
+                                    defaultValue=""
                                 >
                                     <SelectTrigger className="border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 focus:ring-[oklch(0.48_0.032_195.5)]">
-                                        <SelectValue placeholder="Pilih karyawan" />
+                                        <SelectValue placeholder="-- Pilih Karyawan --" />
                                     </SelectTrigger>
                                     <SelectContent className="border-[oklch(0.80_0.038_88.5)]/40 bg-[oklch(0.98_0.005_85.0)]">
-                                        {components.map((c) => (
-                                            <SelectItem key={c.employee.id} value={String(c.employee.id)}>
-                                                {c.employee.user.name} — {c.employee.position}
+                                        {employees.map((e) => (
+                                            <SelectItem key={e.id} value={String(e.id)}>
+                                                {e.user.name} — {e.position}
                                             </SelectItem>
                                         ))}
-                                        {components.length === 0 && (
+                                        {employees.length === 0 && (
                                             <SelectItem value="_none" disabled>Tidak ada data karyawan</SelectItem>
                                         )}
                                     </SelectContent>
@@ -159,8 +162,8 @@ export default function SalaryComponents({ components }: Props) {
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="grid gap-2">
-                                    <Label className="text-xs uppercase tracking-wider text-[oklch(0.48_0.032_195.5)] font-semibold">Gaji Pokok</Label>
-                                    <Input type="number" min="0" value={data.base_salary} onChange={(e) => setData('base_salary', e.target.value)} className="border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 focus-visible:border-[oklch(0.48_0.032_195.5)] focus-visible:ring-[oklch(0.48_0.032_195.5)]" />
+                                    <Label className="text-xs uppercase tracking-wider text-[oklch(0.48_0.032_195.5)] font-semibold">Gaji Pokok (Rp)</Label>
+                                    <Input type="number" min="0" step="1000" value={data.base_salary} onChange={(e) => setData('base_salary', e.target.value)} placeholder="0" className="border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 focus-visible:border-[oklch(0.48_0.032_195.5)] focus-visible:ring-[oklch(0.48_0.032_195.5)]" />
                                     <InputError message={errors.base_salary} />
                                 </div>
                                 <div className="grid gap-2">
@@ -178,17 +181,17 @@ export default function SalaryComponents({ components }: Props) {
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="grid gap-2">
-                                    <Label className="text-xs uppercase tracking-wider text-[oklch(0.48_0.032_195.5)] font-semibold">Tunjangan Makan</Label>
-                                    <Input type="number" min="0" value={data.meal_allowance} onChange={(e) => setData('meal_allowance', e.target.value)} className="border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 focus-visible:border-[oklch(0.48_0.032_195.5)] focus-visible:ring-[oklch(0.48_0.032_195.5)]" />
+                                    <Label className="text-xs uppercase tracking-wider text-[oklch(0.48_0.032_195.5)] font-semibold">Tunjangan Makan (Rp)</Label>
+                                    <Input type="number" min="0" step="1000" value={data.meal_allowance} onChange={(e) => setData('meal_allowance', e.target.value)} placeholder="0" className="border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 focus-visible:border-[oklch(0.48_0.032_195.5)] focus-visible:ring-[oklch(0.48_0.032_195.5)]" />
                                 </div>
                                 <div className="grid gap-2">
-                                    <Label className="text-xs uppercase tracking-wider text-[oklch(0.48_0.032_195.5)] font-semibold">Tunjangan Transport</Label>
-                                    <Input type="number" min="0" value={data.transport_allowance} onChange={(e) => setData('transport_allowance', e.target.value)} className="border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 focus-visible:border-[oklch(0.48_0.032_195.5)] focus-visible:ring-[oklch(0.48_0.032_195.5)]" />
+                                    <Label className="text-xs uppercase tracking-wider text-[oklch(0.48_0.032_195.5)] font-semibold">Tunjangan Transport (Rp)</Label>
+                                    <Input type="number" min="0" step="1000" value={data.transport_allowance} onChange={(e) => setData('transport_allowance', e.target.value)} placeholder="0" className="border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 focus-visible:border-[oklch(0.48_0.032_195.5)] focus-visible:ring-[oklch(0.48_0.032_195.5)]" />
                                 </div>
                             </div>
                             <div className="grid gap-2">
-                                <Label className="text-xs uppercase tracking-wider text-[oklch(0.48_0.032_195.5)] font-semibold">Rate Lembur (per jam)</Label>
-                                <Input type="number" min="0" value={data.overtime_rate_per_hour} onChange={(e) => setData('overtime_rate_per_hour', e.target.value)} className="border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 focus-visible:border-[oklch(0.48_0.032_195.5)] focus-visible:ring-[oklch(0.48_0.032_195.5)]" />
+                                <Label className="text-xs uppercase tracking-wider text-[oklch(0.48_0.032_195.5)] font-semibold">Rate Lembur per Jam (Rp)</Label>
+                                <Input type="number" min="0" step="1000" value={data.overtime_rate_per_hour} onChange={(e) => setData('overtime_rate_per_hour', e.target.value)} placeholder="0" className="border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 focus-visible:border-[oklch(0.48_0.032_195.5)] focus-visible:ring-[oklch(0.48_0.032_195.5)]" />
                             </div>
                             <Button type="submit" disabled={processing} className="w-full bg-[oklch(0.48_0.032_195.5)] text-white hover:bg-[oklch(0.38_0.032_195.5)]">
                                 {editing ? 'Simpan Perubahan' : 'Simpan'}

@@ -134,7 +134,7 @@ export default function ShiftsIndex({ shifts, employees, dates, weekStart, month
         if (payload.length === 0) return;
 
         router.post('/admin/shifts/bulk', { shifts: payload }, {
-            onSuccess: () => {},
+            onSuccess: () => { },
         });
     }
 
@@ -321,7 +321,6 @@ export default function ShiftsIndex({ shifts, employees, dates, weekStart, month
                                 variant="outline"
                                 onClick={handleBulkAssign}
                                 disabled={false}
-                                className="gap-2 border-[oklch(0.80_0.038_88.5)]/40 text-[oklch(0.48_0.032_195.5)] hover:bg-[oklch(0.80_0.038_88.5)]/10"
                                 title="Terapkan jam yang sama ke semua karyawan yang belum memiliki shift di tanggal ini"
                             >
                                 <Users className="size-4" />
@@ -343,11 +342,10 @@ export default function ShiftsIndex({ shifts, employees, dates, weekStart, month
                             return (
                                 <div
                                     key={date}
-                                    className={`rounded-xl border p-3 transition-all ${
-                                        isToday
+                                    className={`rounded-xl border p-3 transition-all ${isToday
                                             ? 'border-[oklch(0.80_0.038_88.5)]/60 bg-[oklch(0.80_0.038_88.5)]/5 shadow-sm'
                                             : 'border-[oklch(0.80_0.038_88.5)]/20 bg-white/60'
-                                    }`}
+                                        }`}
                                 >
                                     <button
                                         type="button"
@@ -360,11 +358,10 @@ export default function ShiftsIndex({ shifts, employees, dates, weekStart, month
                                         <p className={`font-serif text-lg font-bold ${isToday ? 'text-[oklch(0.80_0.038_88.5)]' : 'text-slate-800'}`}>
                                             {dayNum}
                                         </p>
-                                        <span className={`inline-flex items-center justify-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                                            dayShifts.length > 0
+                                        <span className={`inline-flex items-center justify-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${dayShifts.length > 0
                                                 ? 'bg-[oklch(0.48_0.032_195.5)]/10 text-[oklch(0.48_0.032_195.5)]'
                                                 : 'bg-slate-100 text-slate-400'
-                                        }`}>
+                                            }`}>
                                             {dayShifts.length} shift
                                         </span>
                                     </button>
@@ -414,9 +411,8 @@ export default function ShiftsIndex({ shifts, employees, dates, weekStart, month
                                         return (
                                             <th
                                                 key={date}
-                                                className={`min-w-[110px] px-2 py-2.5 text-center font-semibold ${
-                                                    isToday ? 'text-[oklch(0.80_0.038_88.5)]' : 'text-[oklch(0.48_0.032_195.5)]'
-                                                }`}
+                                                className={`min-w-[110px] px-2 py-2.5 text-center font-semibold ${isToday ? 'text-[oklch(0.80_0.038_88.5)]' : 'text-[oklch(0.48_0.032_195.5)]'
+                                                    }`}
                                             >
                                                 <p>{dayName.slice(0, 3)}</p>
                                                 <p className={`font-serif text-base ${isToday ? 'font-bold' : ''}`}>{dayNum}</p>

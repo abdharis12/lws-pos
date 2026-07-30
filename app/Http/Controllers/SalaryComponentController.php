@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Employee;
 use App\Models\SalaryComponent;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -13,9 +14,11 @@ class SalaryComponentController extends Controller
     public function index(): Response
     {
         $components = SalaryComponent::with('employee.user')->get();
+        $employees = Employee::where('is_active', true)->with('user')->orderBy('position')->get();
 
         return Inertia::render('admin/payroll/SalaryComponents', [
             'components' => $components,
+            'employees' => $employees,
         ]);
     }
 
@@ -29,6 +32,16 @@ class SalaryComponentController extends Controller
             'transport_allowance' => 'nullable|numeric|min:0',
             'overtime_rate_per_hour' => 'nullable|numeric|min:0',
         ]);
+
+        if ($validated['meal_allowance'] === '' || $validated['meal_allowance'] === null) {
+            $validated['meal_allowance'] = 0;
+        }
+        if ($validated['transport_allowance'] === '' || $validated['transport_allowance'] === null) {
+            $validated['transport_allowance'] = 0;
+        }
+        if ($validated['overtime_rate_per_hour'] === '' || $validated['overtime_rate_per_hour'] === null) {
+            $validated['overtime_rate_per_hour'] = 0;
+        }
 
         SalaryComponent::updateOrCreate(
             ['employee_id' => $validated['employee_id']],
@@ -49,6 +62,10 @@ class SalaryComponentController extends Controller
             'transport_allowance' => 'nullable|numeric|min:0',
             'overtime_rate_per_hour' => 'nullable|numeric|min:0',
         ]);
+
+        $validated['meal_allowance'] ??= 0;
+        $validated['transport_allowance'] ??= 0;
+        $validated['overtime_rate_per_hour'] ??= 0;
 
         $salaryComponent->update($validated);
 
