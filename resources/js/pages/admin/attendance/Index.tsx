@@ -440,9 +440,9 @@ export default function AttendanceIndex({
                             {/* Aksen garis atas */}
                             <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#4F6B6A] to-[#CFC0A4]" />
 
-                            <CardHeader className="flex flex-row items-start justify-between pb-2 pt-5">
+                            <CardHeader className="flex flex-row items-start justify-between pt-5">
                                 <div>
-                                    <CardTitle className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#4F6B6A]/70">
+                                    <CardTitle className="text-[15px] font-semibold uppercase tracking-[0.12em] text-[#4F6B6A]/70">
                                         Hadir
                                     </CardTitle>
                                 </div>
@@ -463,8 +463,8 @@ export default function AttendanceIndex({
                         <Card className="group relative overflow-hidden border-[#CFC0A4]/40 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#4F6B6A]/10">
                             <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#CFC0A4] to-[#4F6B6A]" />
 
-                            <CardHeader className="flex flex-row items-start justify-between pb-2 pt-5">
-                                <CardTitle className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#4F6B6A]/70">
+                            <CardHeader className="flex flex-row items-start justify-between pt-5">
+                                <CardTitle className="text-[15px] font-semibold uppercase tracking-[0.12em] text-[#4F6B6A]/70">
                                     Belum Absen
                                 </CardTitle>
                                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#CFC0A4]/25">
@@ -484,8 +484,8 @@ export default function AttendanceIndex({
                         <Card className="group relative overflow-hidden border-[#CFC0A4]/40 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#4F6B6A]/10">
                             <div className="absolute inset-x-0 top-0 h-1 bg-[#4F6B6A]" />
 
-                            <CardHeader className="flex flex-row items-start justify-between pb-2 pt-5">
-                                <CardTitle className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#4F6B6A]/70">
+                            <CardHeader className="flex flex-row items-start justify-between pt-5">
+                                <CardTitle className="text-[15px] font-semibold uppercase tracking-[0.12em] text-[#4F6B6A]/70">
                                     Total Karyawan
                                 </CardTitle>
                                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4F6B6A]/10">
