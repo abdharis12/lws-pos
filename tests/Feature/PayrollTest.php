@@ -240,6 +240,40 @@ test('payslip has correct take home pay calculation', function () {
 
     // base_salary 3.000.000 + allowances 80.000 + bonus 200.000 - deduction 50.000 = 3.230.000
     expect((float) $payslip->take_home_pay)->toBe(3230000.0);
+    expect((float) $payslip->meal_allowance)->toBe(50000.0);
+    expect((float) $payslip->transport_allowance)->toBe(30000.0);
+});
+
+test('payslip stores allowance breakdown for daily salary type', function () {
+    $employee = Employee::factory()->create([
+        'outlet_id' => $this->outlet->id,
+        'is_active' => true,
+    ]);
+
+    SalaryComponent::factory()->create([
+        'employee_id' => $employee->id,
+        'base_salary' => 150000,
+        'salary_type' => 'daily',
+        'meal_allowance' => 50000,
+        'transport_allowance' => 30000,
+    ]);
+
+    collect(range(1, 5))->each(function ($day) use ($employee) {
+        Attendance::factory()->create([
+            'employee_id' => $employee->id,
+            'clock_in_at' => "2026-07-0{$day} 08:00:00",
+            'clock_out_at' => "2026-07-0{$day} 16:00:00",
+        ]);
+    });
+
+    $service = app(PayrollService::class);
+    $service->generatePayslips('2026-07');
+
+    $payslip = Payslip::where('employee_id', $employee->id)->first();
+
+    expect((float) $payslip->meal_allowance)->toBe(250000.0);
+    expect((float) $payslip->transport_allowance)->toBe(150000.0);
+    expect((float) $payslip->allowances_total)->toBe(400000.0);
 });
 
 test('can approve payslip', function () {
@@ -268,6 +302,58 @@ test('can mark payslip as paid', function () {
 
     expect($payslip->fresh()->status)->toBe('paid');
     expect($payslip->fresh()->paid_method)->toBe('transfer');
+});
+
+test('payslips index includes deduction reasons', function () {
+    $employee = Employee::factory()->create([
+        'outlet_id' => $this->outlet->id,
+        'is_active' => true,
+    ]);
+
+    Payslip::factory()->create([
+        'employee_id' => $employee->id,
+        'period' => '2026-07',
+    ]);
+
+    Deduction::factory()->create([
+        'employee_id' => $employee->id,
+        'period' => '2026-07',
+        'type' => 'loan',
+        'amount' => 150000,
+        'notes' => 'Pinjaman karyawan',
+    ]);
+
+    $this->actingAs($this->owner)
+        ->get(route('admin.payslips.index', ['period' => '2026-07']))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('admin/payroll/Payslips')
+            ->has('payslips', 1)
+            ->has('payslips.0.employee.deductions', 1)
+            ->where('payslips.0.employee.deductions.0.type', 'loan')
+            ->where('payslips.0.employee.deductions.0.notes', 'Pinjaman karyawan')
+        );
+});
+
+test('payslip pdf includes deduction reasons', function () {
+    $employee = Employee::factory()->create(['outlet_id' => $this->outlet->id]);
+    $payslip = Payslip::factory()->create([
+        'employee_id' => $employee->id,
+        'period' => '2026-07',
+    ]);
+
+    Deduction::factory()->create([
+        'employee_id' => $employee->id,
+        'period' => '2026-07',
+        'type' => 'loan',
+        'amount' => 150000,
+        'notes' => 'Pinjaman karyawan',
+    ]);
+
+    $this->actingAs($this->owner)
+        ->get(route('payslips.pdf', $payslip))
+        ->assertOk()
+        ->assertHeader('content-type', 'application/pdf');
 });
 
 // ─── Payroll Report ──────────────────────────────────────────

@@ -60,6 +60,9 @@ interface Props {
     outlet: OutletData;
 }
 
+const INK = 'oklch(0.48 0.032 195.5)';
+const INK_LIGHT = 'oklch(0.48 0.032 195.5 / 0.08)';
+
 export default function AttendanceIndex({
     attendances,
     employees,
@@ -68,6 +71,9 @@ export default function AttendanceIndex({
     outlet,
 }: Props) {
     const [selectedEmployee, setSelectedEmployee] = useState<number | null>(null);
+    const [cameraOpen, setCameraOpen] = useState(false);
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
     const [photoFile, setPhotoFile] = useState<File | null>(null);
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
     const [userPosition, setUserPosition] = useState<{ lat: number; lng: number } | null>(null);
@@ -93,6 +99,41 @@ export default function AttendanceIndex({
         longitude: '',
     });
 
+    async function startCamera() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+                videoRef.current.play();
+            }
+        } catch (e) {
+            console.error('Camera error', e);
+            setCameraOpen(false);
+        }
+    }
+
+    function capturePhoto() {
+        if (!videoRef.current || !canvasRef.current) return;
+        const ctx = canvasRef.current.getContext('2d');
+        if (!ctx) return;
+        canvasRef.current.width = videoRef.current.videoWidth;
+        canvasRef.current.height = videoRef.current.videoHeight;
+        ctx.drawImage(videoRef.current, 0, 0);
+        canvasRef.current.toBlob(blob => {
+            if (blob) {
+                const file = new File([blob], 'selfie.jpg', { type: 'image/jpeg' });
+                setPhotoFile(file);
+                setInData('photo', file);
+                const reader = new FileReader();
+                reader.onload = () => setPhotoPreview(reader.result as string);
+                reader.readAsDataURL(file);
+            }
+        }, 'image/jpeg');
+        // stop stream
+        const stream = videoRef.current?.srcObject as MediaStream;
+        stream?.getTracks().forEach(t => t.stop());
+        setCameraOpen(false);
+    }
     function haversineDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
         const R = 6371000;
         const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -105,8 +146,11 @@ export default function AttendanceIndex({
     }
 
     useEffect(() => {
-        if (!outlet.latitude || !outlet.longitude) return;
-
+        if (cameraOpen) {
+            startCamera();
+        }
+    }, [cameraOpen]);
+    useEffect(() => {
         let destroyed = false;
 
         async function initMap() {
@@ -516,7 +560,7 @@ export default function AttendanceIndex({
                                 <CardContent className="space-y-4 pt-5">
                                     <div className="grid gap-2">
                                         <label className="text-xs font-semibold uppercase tracking-wider text-[oklch(0.48_0.032_195.5)]">
-                                            Pilih Karyawan
+                                            Nama Karyawan
                                         </label>
                                         <select
                                             className="flex h-9 w-full rounded-md border border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 px-3 py-1 text-sm shadow-xs focus:border-[oklch(0.48_0.032_195.5)] focus:ring-[oklch(0.48_0.032_195.5)]"
@@ -527,7 +571,7 @@ export default function AttendanceIndex({
                                                 setInData('employee_id', e.target.value);
                                             }}
                                         >
-                                            <option value="">Pilih karyawan...</option>
+                                            <option value="">-- Pilih Karyawan --</option>
                                             {employees.map((emp) => {
                                                 const alreadyIn = todayAttendance[emp.id] && !todayAttendance[emp.id].clock_out_at;
 
@@ -547,17 +591,10 @@ export default function AttendanceIndex({
                                             Foto Selfie
                                         </label>
                                         <div className="flex items-center gap-4">
-                                            <label className="flex cursor-pointer items-center gap-2 rounded-md border border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 px-4 py-2 text-sm transition-colors hover:bg-[oklch(0.80_0.038_88.5)]/10">
+                                            <button type="button" className="flex items-center gap-2 rounded-md border border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 px-4 py-2 text-sm transition-colors hover:bg-[oklch(0.80_0.038_88.5)]/10" onClick={() => setCameraOpen(true)}>
                                                 <Camera className="size-4 text-[oklch(0.48_0.032_195.5)]" />
                                                 <span className="text-slate-600">Ambil Foto</span>
-                                                <input
-                                                    type="file"
-                                                    accept="image/*"
-                                                    capture="user"
-                                                    className="hidden"
-                                                    onChange={handlePhotoChange}
-                                                />
-                                            </label>
+                                            </button>
                                             {photoPreview && (
                                                 <img src={photoPreview} alt="Preview" className="h-14 w-14 rounded-full object-cover border border-[oklch(0.80_0.038_88.5)]/30" />
                                             )}
@@ -593,9 +630,15 @@ export default function AttendanceIndex({
                                 </CardHeader>
                                 <CardContent className="pt-5">
                                     {attendances.length === 0 ? (
-                                        <p className="py-4 text-center text-sm italic text-slate-500">
-                                            Belum ada absensi hari ini.
-                                        </p>
+                                        <div className="flex flex-col items-center px-6 py-12 text-center">
+                                            <div className="mb-4 flex size-16 items-center justify-center rounded-2xl" style={{ backgroundColor: INK_LIGHT }}>
+                                                <Clock className="size-8" style={{ color: INK }} />
+                                            </div>
+                                            <h2 className="font-serif text-xl font-bold" style={{ color: INK }}>Belum Ada Absensi Aktif</h2>
+                                            <p className="mt-1 max-w-sm text-sm" style={{ color: 'oklch(0.60 0.03 88.5)' }}>
+                                                Belum ada karyawan yang melakukan absensi hari ini.
+                                            </p>
+                                        </div>
                                     ) : (
                                         <div className="space-y-3">
                                             {attendances.map((att) => (
@@ -723,6 +766,20 @@ export default function AttendanceIndex({
                         )}
                     </div>
                 </div>
+
+                {/* Camera Dialog */}
+                <Dialog open={cameraOpen} onOpenChange={setCameraOpen}>
+                    <DialogContent className="border-[oklch(0.80_0.038_88.5)]/40 bg-[oklch(0.98_0.005_85.0)] sm:max-w-md">
+                        <DialogHeader>
+                            <DialogTitle className="text-center">Ambil Foto Selfie</DialogTitle>
+                        </DialogHeader>
+                        <div className="flex flex-col items-center gap-4 py-4">
+                            <video ref={videoRef} className="w-full max-h-64 bg-black" autoPlay muted playsInline />
+                            <canvas ref={canvasRef} className="hidden" />
+                            <Button onClick={capturePhoto}>Ambil Foto</Button>
+                        </div>
+                    </DialogContent>
+                </Dialog>
 
                 {/* Geofence Alert Dialog */}
                 {geofenceAlert && (

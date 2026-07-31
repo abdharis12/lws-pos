@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Bonus;
+use App\Models\Employee;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -16,6 +17,7 @@ class BonusController extends Controller
 
         return Inertia::render('admin/payroll/Bonuses', [
             'bonuses' => $bonuses,
+            'employees' => Employee::where('is_active', true)->with('user')->orderBy('position')->get(),
         ]);
     }
 

@@ -12,6 +12,7 @@ class Payslip extends Model
 
     protected $fillable = [
         'employee_id', 'period', 'base_salary', 'allowances_total',
+        'meal_allowance', 'transport_allowance',
         'bonus_total', 'overtime_total', 'deduction_total',
         'take_home_pay', 'status', 'paid_at', 'paid_method',
     ];
@@ -21,6 +22,8 @@ class Payslip extends Model
         return [
             'base_salary' => 'decimal:2',
             'allowances_total' => 'decimal:2',
+            'meal_allowance' => 'decimal:2',
+            'transport_allowance' => 'decimal:2',
             'bonus_total' => 'decimal:2',
             'overtime_total' => 'decimal:2',
             'deduction_total' => 'decimal:2',

@@ -16,7 +16,10 @@ class PayslipController extends Controller
     {
         $period = $request->input('period', date('Y-m'));
 
-        $payslips = Payslip::with('employee.user')
+        $payslips = Payslip::with([
+            'employee.user',
+            'employee.deductions' => fn ($q) => $q->where('period', $period),
+        ])
             ->where('period', $period)
             ->orderBy('created_at', 'desc')
             ->get();
@@ -35,7 +38,10 @@ class PayslipController extends Controller
 
     public function show(Payslip $payslip): Response
     {
-        $payslip->load('employee.user');
+        $payslip->load([
+            'employee.user',
+            'employee.deductions' => fn ($q) => $q->where('period', $payslip->period),
+        ]);
 
         return Inertia::render('admin/payroll/PayslipShow', [
             'payslip' => $payslip,

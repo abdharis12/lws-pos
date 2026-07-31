@@ -170,6 +170,7 @@ class ReportController extends Controller
         ];
 
         $payments = Payment::with('order')
+            ->select('id', 'order_id', 'method', 'gross_amount', 'status', 'created_at')
             ->whereDate('created_at', '>=', $startDate)
             ->whereDate('created_at', '<=', $endDate)
             ->orderByDesc('created_at')

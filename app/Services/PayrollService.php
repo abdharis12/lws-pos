@@ -65,7 +65,15 @@ class PayrollService
         $totalWorkHours = $attendances->sum(fn ($a) => $a->clock_in_at && $a->clock_out_at
             ? $a->clock_in_at->diffInHours($a->clock_out_at) : 0);
 
-        $allowancesTotal = $this->calculateAllowances($salaryComponent, $salaryType, $totalWorkDays);
+        $mealAllowance = (float) $salaryComponent->meal_allowance;
+        $transportAllowance = (float) $salaryComponent->transport_allowance;
+
+        if ($salaryType === 'daily') {
+            $mealAllowance *= $totalWorkDays;
+            $transportAllowance *= $totalWorkDays;
+        }
+
+        $allowancesTotal = $mealAllowance + $transportAllowance;
 
         $overtimeTotal = $this->calculateOvertime($employee, $attendances, $salaryComponent, $period);
 
@@ -79,6 +87,8 @@ class PayrollService
             [
                 'base_salary' => $baseSalary,
                 'allowances_total' => $allowancesTotal,
+                'meal_allowance' => $mealAllowance,
+                'transport_allowance' => $transportAllowance,
                 'bonus_total' => $bonusTotal,
                 'overtime_total' => $overtimeTotal,
                 'deduction_total' => $deductionTotal,
@@ -86,18 +96,6 @@ class PayrollService
                 'status' => 'draft',
             ]
         );
-    }
-
-    protected function calculateAllowances(SalaryComponent $component, string $salaryType, int $workDays): float
-    {
-        $meal = (float) $component->meal_allowance;
-        $transport = (float) $component->transport_allowance;
-
-        if ($salaryType === 'daily') {
-            return ($meal + $transport) * $workDays;
-        }
-
-        return $meal + $transport;
     }
 
     protected function calculateOvertime(Employee $employee, Collection $attendances, SalaryComponent $component, string $period): float

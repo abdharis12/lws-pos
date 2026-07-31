@@ -8,6 +8,7 @@ use App\Models\Outlet;
 use App\Models\Payment;
 use App\Models\TableSession;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
 
 beforeEach(function () {
@@ -73,6 +74,28 @@ test('owner can view reconciliation report', function () {
         'method' => 'qris',
         'gross_amount' => 50000,
         'status' => 'settlement',
+    ]);
+
+    $this->actingAs($this->owner)
+        ->get(route('admin.reports.reconciliation'))
+        ->assertOk();
+});
+
+test('reconciliation report handles payments with legacy unencrypted raw_payload', function () {
+    $order = Order::factory()->create([
+        'table_session_id' => $this->session->id,
+        'status' => 'paid',
+        'total' => 50000,
+    ]);
+    $payment = Payment::factory()->create([
+        'order_id' => $order->id,
+        'method' => 'qris',
+        'gross_amount' => 50000,
+        'status' => 'settlement',
+    ]);
+
+    DB::table('payments')->where('id', $payment->id)->update([
+        'raw_payload' => json_encode(json_encode(['status_code' => '401', 'status_message' => 'Old unencrypted payload'])),
     ]);
 
     $this->actingAs($this->owner)
