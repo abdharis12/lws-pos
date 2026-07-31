@@ -16,8 +16,8 @@ class Order extends Model
     protected $fillable = [
         'table_session_id', 'pos_session_id', 'created_by', 'order_type', 'status',
         'subtotal', 'tax', 'service_charge', 'midtrans_charge', 'discount', 'discount_type',
-        'discount_value', 'discount_approved_by', 'total', 'notes', 'customer_name',
-        'grouped_tables',
+        'discount_value', 'discount_approved_by', 'served_by', 'served_at', 'total', 'notes',
+        'customer_name', 'grouped_tables',
     ];
 
     protected function casts(): array
@@ -30,6 +30,7 @@ class Order extends Model
             'discount' => 'decimal:2',
             'discount_value' => 'decimal:2',
             'total' => 'decimal:2',
+            'served_at' => 'datetime',
             'grouped_tables' => 'array',
             'status' => OrderStatus::class,
         ];
@@ -53,6 +54,11 @@ class Order extends Model
     public function discountApprovedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'discount_approved_by');
+    }
+
+    public function servedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'served_by');
     }
 
     public function items(): HasMany

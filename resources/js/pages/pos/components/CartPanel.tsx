@@ -1,5 +1,5 @@
 import {
-    ShoppingCart, Plus, Minus, X, Percent, SplitSquareVertical,
+    Plus, Minus, X, Percent, SplitSquareVertical,
     Printer, Wallet, Globe, ShieldCheck,
     PackageOpen,
 } from 'lucide-react';
@@ -163,15 +163,13 @@ export default function CartPanel({
                     <div className="mb-3 rounded-xl p-3" style={{ border: `1px solid ${BORDER}`, backgroundColor: `${CREAM}80` }}>
                         <div className="mb-2 flex gap-2">
                             <Button
-                                variant={discountType === 'percentage' ? 'default' : 'outline'}
+                                variant={discountType === 'percentage' ? 'outline' : 'default'}
                                 size="sm" className="h-8 flex-1 text-xs"
-                                style={discountType === 'percentage' ? { backgroundColor: PRIMARY } : { borderColor: BORDER, color: INK }}
                                 onClick={() => onDiscountChange('percentage', discountValue)}
                             >Persen (%)</Button>
                             <Button
-                                variant={discountType === 'nominal' ? 'default' : 'outline'}
+                                variant={discountType === 'nominal' ? 'outline' : 'default'}
                                 size="sm" className="h-8 flex-1 text-xs"
-                                style={discountType === 'nominal' ? { backgroundColor: PRIMARY } : { borderColor: BORDER, color: INK }}
                                 onClick={() => onDiscountChange('nominal', discountValue)}
                             >Nominal (Rp)</Button>
                         </div>

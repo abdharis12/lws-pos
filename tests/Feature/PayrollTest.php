@@ -304,6 +304,41 @@ test('can mark payslip as paid', function () {
     expect($payslip->fresh()->paid_method)->toBe('transfer');
 });
 
+test('regenerating payslips keeps paid status intact', function () {
+    $employee = Employee::factory()->create([
+        'outlet_id' => $this->outlet->id,
+        'is_active' => true,
+    ]);
+
+    SalaryComponent::factory()->create([
+        'employee_id' => $employee->id,
+        'base_salary' => 3000000,
+        'salary_type' => 'monthly',
+        'meal_allowance' => 50000,
+        'transport_allowance' => 30000,
+    ]);
+
+    $service = app(PayrollService::class);
+    $service->generatePayslips('2026-07');
+
+    $payslip = Payslip::where('employee_id', $employee->id)->where('period', '2026-07')->first();
+    expect($payslip->status)->toBe('draft');
+
+    $payslip->update([
+        'status' => 'paid',
+        'paid_at' => now(),
+        'paid_method' => 'cash',
+    ]);
+
+    // Re-generate: paid status must not revert to draft
+    $service->generatePayslips('2026-07');
+
+    $payslip->refresh();
+    expect($payslip->status)->toBe('paid');
+    expect($payslip->paid_method)->toBe('cash');
+    expect($payslip->paid_at)->not->toBeNull();
+});
+
 test('payslips index includes deduction reasons', function () {
     $employee = Employee::factory()->create([
         'outlet_id' => $this->outlet->id,

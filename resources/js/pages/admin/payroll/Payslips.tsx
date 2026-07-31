@@ -1,6 +1,6 @@
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
-import { AlertTriangle, Clock, Download, Eye, FileText, RefreshCw } from 'lucide-react';
+import { AlertTriangle, Banknote, Check, Clock, Download, Eye, FileText, HandCoins, Landmark, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -26,7 +26,7 @@ const deductionLabels: Record<string, string> = { late: 'Keterlambatan', loan: '
 const statusClasses: Record<string, string> = {
     draft: 'rounded-full border border-slate-200 bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-500',
     approved: 'rounded-full border border-[oklch(0.80_0.038_88.5)]/30 bg-[oklch(0.48_0.032_195.5)]/10 px-2.5 py-0.5 text-xs font-medium text-[oklch(0.48_0.032_195.5)]',
-    paid: 'rounded-full border border-[oklch(0.80_0.038_88.5)]/50 bg-[oklch(0.98_0.005_85.0)] px-2.5 py-0.5 text-xs font-semibold tracking-wide text-[oklch(0.48_0.032_195.5)] shadow-sm',
+    paid: 'rounded-full border border-primary/50 bg-primary px-2.5 py-0.5 text-xs font-semibold tracking-wide text-white shadow-sm',
 };
 
 const INK = 'oklch(0.48 0.032 195.5)';
@@ -35,6 +35,9 @@ const INK_LIGHT = 'oklch(0.48 0.032 195.5 / 0.08)';
 export default function Payslips({ payslips, period, periods }: Props) {
     const [showGenerateConfirm, setShowGenerateConfirm] = useState(false);
     const [generating, setGenerating] = useState(false);
+    const [payingPayslip, setPayingPayslip] = useState<PayslipData | null>(null);
+    const [paidMethod, setPaidMethod] = useState<'cash' | 'transfer'>('cash');
+    const [paying, setPaying] = useState(false);
 
     function switchPeriod(p: string) {
         router.get('/admin/payslips', { period: p }, { preserveState: true });
@@ -53,19 +56,31 @@ export default function Payslips({ payslips, period, periods }: Props) {
         router.post(`/admin/payslips/${id}/approve`, {}, { preserveScroll: true });
     }
 
-    function markPaid(id: number) {
-        const method = prompt('Metode pembayaran (cash/transfer):');
+    function openPayDialog(p: PayslipData) {
+        setPaidMethod('cash');
+        setPayingPayslip(p);
+    }
 
-        if (method && ['cash', 'transfer'].includes(method)) {
-            router.post(`/admin/payslips/${id}/mark-paid`, { paid_method: method }, { preserveScroll: true });
+    function confirmPay() {
+        if (!payingPayslip) {
+            return;
         }
+
+        setPaying(true);
+        router.post(`/admin/payslips/${payingPayslip.id}/mark-paid`, { paid_method: paidMethod }, {
+            preserveScroll: true,
+            onFinish: () => {
+                setPaying(false);
+                setPayingPayslip(null);
+            },
+        });
     }
 
     return (
         <div className="min-h-screen bg-[oklch(0.98_0.005_85.0)] p-6 font-sans text-slate-800">
             <Head title="Slip Gaji" />
 
-            <div className="mx-auto max-w-7xl">                
+            <div className="mx-auto max-w-7xl">
                 <div className="mb-8 flex flex-col justify-between gap-4 border-b border-[oklch(0.80_0.038_88.5)]/40 pb-6 sm:flex-row sm:items-end">
                     <div>
                         <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.80_0.038_88.5)]">
@@ -171,13 +186,13 @@ export default function Payslips({ payslips, period, periods }: Props) {
                                                 </Button>
                                             </a>
                                             {p.status === 'draft' && (
-                                                <Button variant="ghost" size="sm" onClick={() => approve(p.id)} className="bg-teal-700 text-white hover:bg-teal-600 hover:text-white transition-colors">
-                                                    Setujui
+                                                <Button variant="ghost" size="icon" onClick={() => approve(p.id)} className="bg-teal-700 text-white hover:bg-teal-600 hover:text-white transition-colors">
+                                                    <Check className="size-4" />
                                                 </Button>
                                             )}
                                             {p.status === 'approved' && (
-                                                <Button variant="ghost" size="sm" onClick={() => markPaid(p.id)} className="bg-[oklch(0.80_0.038_88.5)]/20 text-[oklch(0.48_0.032_195.5)] hover:bg-[oklch(0.80_0.038_88.5)]/30">
-                                                    Bayar
+                                                <Button variant="ghost" size="icon" onClick={() => openPayDialog(p)} className="bg-blue-700 text-white hover:bg-blue-600 hover:text-white transition-colors border border-blue-700">
+                                                    <HandCoins className="size-4" />
                                                 </Button>
                                             )}
                                         </td>
@@ -232,6 +247,106 @@ export default function Payslips({ payslips, period, periods }: Props) {
                                 {generating ? 'Menggenerate...' : 'Ya, Generate'}
                             </Button>
                         </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Payment Confirmation Dialog */}
+                <Dialog open={!!payingPayslip} onOpenChange={(open) => !open && setPayingPayslip(null)}>
+                    <style>{`
+                        @keyframes pay-float {
+                            0%, 100% { transform: translateY(0); }
+                            50% { transform: translateY(-8px); }
+                        }
+                        @keyframes pay-glow {
+                            0%, 100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.35); }
+                            50% { box-shadow: 0 0 0 14px rgba(37, 99, 235, 0); }
+                        }
+                        @keyframes pay-shine {
+                            0% { background-position: -200% center; }
+                            100% { background-position: 200% center; }
+                        }
+                        .pay-float { animation: pay-float 2.6s ease-in-out infinite; }
+                        .pay-glow { animation: pay-glow 2.2s ease-out infinite; }
+                        .pay-shine {
+                            background-image: linear-gradient(120deg, transparent 20%, rgba(255,255,255,0.25) 50%, transparent 80%);
+                            background-size: 200% auto;
+                            animation: pay-shine 2.8s linear infinite;
+                        }
+                    `}</style>
+                    <DialogContent className="border-[oklch(0.80_0.038_88.5)]/40 bg-[oklch(0.98_0.005_85.0)] sm:max-w-md overflow-hidden">
+                        {payingPayslip && (
+                            <>
+                                <DialogHeader>
+                                    <div className="relative mx-auto flex size-15 items-center justify-center">
+                                        <span className="pay-glow absolute inset-0 rounded-full" />
+                                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary/20 [animation-duration:2.2s]" />
+                                        <div className="pay-float relative flex size-15 items-center justify-center rounded-full border-2 border-primary bg-gradient-to-br from-primary/80 to-primary text-white shadow-lg shadow-primary/40">
+                                            <HandCoins className="size-7" />
+                                        </div>
+                                    </div>
+                                    <DialogTitle className="mt-4 text-center font-serif text-2xl font-bold text-[oklch(0.48_0.032_195.5)]">
+                                        Konfirmasi Pembayaran
+                                    </DialogTitle>
+                                    <DialogDescription className="text-center text-slate-500">
+                                        Pastikan data berikut sudah benar sebelum slip gaji ditandai <span className="font-semibold text-[oklch(0.48_0.032_195.5)]">Dibayar</span>.
+                                    </DialogDescription>
+                                </DialogHeader>
+
+                                {/* Payslip Summary */}
+                                <div className="relative overflow-hidden rounded-xl border border-[oklch(0.80_0.038_88.5)]/40 bg-white/80 p-5 text-center shadow-sm">
+                                    <div className="pay-shine pointer-events-none absolute inset-0" />
+                                    <p className="font-medium text-[oklch(0.48_0.032_195.5)]">{payingPayslip.employee.user.name}</p>
+                                    <p className="text-xs text-slate-500">{payingPayslip.employee.position} • Periode {payingPayslip.period}</p>
+                                    <p className="mt-3 font-serif text-3xl font-bold tracking-tight text-[oklch(0.48_0.032_195.5)]">
+                                        Rp {Number(payingPayslip.take_home_pay).toLocaleString('id-ID')}
+                                    </p>
+                                </div>
+
+                                {/* Payment Method */}
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setPaidMethod('cash')}
+                                        className={`flex items-center justify-center gap-2 rounded-xl border-2 px-4 py-3 text-sm font-semibold transition-all duration-200 active:scale-95 ${paidMethod === 'cash'
+                                            ? 'border-primary bg-primary text-white shadow-lg shadow-primary/25'
+                                            : 'border-[oklch(0.80_0.038_88.5)]/40 bg-white/70 text-slate-600 hover:border-primary hover:text-primary'
+                                            }`}
+                                    >
+                                        <Banknote className="size-5" />
+                                        Tunai
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setPaidMethod('transfer')}
+                                        className={`flex items-center justify-center gap-2 rounded-xl border-2 px-4 py-3 text-sm font-semibold transition-all duration-200 active:scale-95 ${paidMethod === 'transfer'
+                                            ? 'border-primary bg-primary text-white shadow-lg shadow-primary/25'
+                                            : 'border-[oklch(0.80_0.038_88.5)]/40 bg-white/70 text-slate-600 hover:border-primary hover:text-primary'
+                                            }`}
+                                    >
+                                        <Landmark className="size-5" />
+                                        Transfer
+                                    </button>
+                                </div>
+
+                                <DialogFooter className="gap-2 sm:justify-center">
+                                    <Button
+                                        variant="ghost"
+                                        onClick={() => setPayingPayslip(null)}
+                                        disabled={paying}
+                                        className="border border-[oklch(0.80_0.038_88.5)]/40 text-slate-600 hover:bg-[oklch(0.80_0.038_88.5)]/10"
+                                    >
+                                        Batal
+                                    </Button>
+                                    <Button
+                                        onClick={confirmPay}
+                                        disabled={paying}
+                                        className="bg-primary text-white hover:bg-primary/80 shadow-lg shadow-primary/25"
+                                    >
+                                        {paying ? 'Memproses...' : 'Konfirmasi Bayar'}
+                                    </Button>
+                                </DialogFooter>
+                            </>
+                        )}
                     </DialogContent>
                 </Dialog>
             </div>

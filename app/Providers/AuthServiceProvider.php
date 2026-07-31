@@ -57,5 +57,9 @@ class AuthServiceProvider extends ServiceProvider
         Gate::define('accessAttendance', function (User $user) {
             return $user->hasAnyRole(['Owner', 'Admin']) || $user->employee()->exists();
         });
+
+        Gate::define('accessWaiterDashboard', function (User $user) {
+            return $user->hasAnyRole(['Owner', 'Admin', 'Cashier', 'Waiter']) || $user->employee()->exists();
+        });
     }
 }

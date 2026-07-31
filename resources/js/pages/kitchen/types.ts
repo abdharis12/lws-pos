@@ -10,6 +10,7 @@ export interface KitchenOrder {
     order_type: string;
     status: string;
     created_at: string;
+    updated_at: string;
     customer_name: string | null;
     items: KitchenOrderItem[];
     table_session: { table: { code: string; floor: string | null } } | null;

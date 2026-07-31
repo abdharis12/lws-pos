@@ -37,6 +37,11 @@ class OrderPolicy
         return $user->hasAnyRole(['Owner', 'Admin', 'Cashier']);
     }
 
+    public function serve(User $user, Order $order): bool
+    {
+        return $user->hasAnyRole(['Owner', 'Admin', 'Cashier', 'Waiter']);
+    }
+
     public function applyLargeDiscount(User $user): bool
     {
         return $user->hasAnyRole(['Owner', 'Admin']);

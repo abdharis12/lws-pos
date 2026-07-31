@@ -71,8 +71,14 @@ class MidtransWebhookController extends Controller
         );
 
         if ($paymentStatus === 'success') {
-            $order->update(['status' => OrderStatus::Paid]);
-            broadcast(new OrderPaid($order))->toOthers();
+            $updated = Order::where('id', $order->id)
+                ->where('status', '!=', OrderStatus::Paid->value)
+                ->update(['status' => OrderStatus::Paid->value]);
+
+            if ($updated) {
+                $order->refresh();
+                broadcast(new OrderPaid($order))->toOthers();
+            }
         } elseif ($paymentStatus === 'failed') {
             $order->update(['status' => OrderStatus::Cancelled]);
         }

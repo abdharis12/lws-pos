@@ -1,7 +1,9 @@
 import { router, usePage } from '@inertiajs/react';
 import { useEcho } from '@laravel/echo-react';
+import type { RefObject } from 'react';
+import { printLabel } from './printLabel';
+import type { LabelData, LabelItem } from './printLabel';
 import { playBeep } from './utils';
-import { printLabel, type LabelData, type LabelItem } from './printLabel';
 
 interface OrderPaidPayload {
     order: {
@@ -18,7 +20,12 @@ interface OrderPaidPayload {
     };
 }
 
-export function useKitchenOrders(printFrameRef: HTMLIFrameElement | null, soundEnabled: boolean): void {
+export function useKitchenOrders(
+    printFrameRef: HTMLIFrameElement | null,
+    printEnabled: boolean,
+    soundEnabled: boolean,
+    printedIdsRef: RefObject<Set<number>>,
+): void {
     const { auth } = usePage<{ auth: { outlet_id?: number } }>().props;
     const outletId = auth?.outlet_id;
 
@@ -32,35 +39,43 @@ export function useKitchenOrders(printFrameRef: HTMLIFrameElement | null, soundE
                 playBeep();
             }
 
-            const stationsMap = new Map<string, LabelItem[]>();
-            for (const item of order.items) {
-                const station = item.menu.station || 'Lainnya';
-                if (!stationsMap.has(station)) stationsMap.set(station, []);
-                stationsMap.get(station)!.push({
-                    name: item.menu.name,
-                    qty: item.qty,
-                    notes: item.notes,
-                    options: [],
-                });
+            if (printedIdsRef.current.has(order.id)) {
+                return;
             }
 
-            setTimeout(() => {
-                for (const [station, items] of stationsMap) {
-                    const labelData: LabelData = {
-                        station,
-                        tableCode: order.table_session?.table?.code ?? null,
-                        orderId: order.id,
-                        items,
-                        customerName: order.customer_name,
-                        orderType: order.order_type,
-                        createdAt: order.created_at,
-                    };
-                    printLabel(printFrameRef, labelData);
-                }
-            }, 500);
+            printedIdsRef.current.add(order.id);
 
-            router.reload({ only: ['stations', 'unassignedOrders'], preserveScroll: true });
+            if (printEnabled) {
+                const stationsMap = new Map<string, LabelItem[]>();
+                for (const item of order.items) {
+                    const station = item.menu.station || 'Lainnya';
+                    if (!stationsMap.has(station)) stationsMap.set(station, []);
+                    stationsMap.get(station)!.push({
+                        name: item.menu.name,
+                        qty: item.qty,
+                        notes: item.notes,
+                        options: [],
+                    });
+                }
+
+                setTimeout(() => {
+                    for (const [station, items] of stationsMap) {
+                        const labelData: LabelData = {
+                            station,
+                            tableCode: order.table_session?.table?.code ?? null,
+                            orderId: order.id,
+                            items,
+                            customerName: order.customer_name,
+                            orderType: order.order_type,
+                            createdAt: order.created_at,
+                        };
+                        printLabel(printFrameRef, labelData);
+                    }
+                }, 500);
+            }
+
+            router.reload({ only: ['stations', 'unassignedOrders', 'readyOrders'] });
         },
-        [outletId, soundEnabled, printFrameRef],
+        [outletId, printEnabled, soundEnabled, printFrameRef, printedIdsRef],
     );
 }

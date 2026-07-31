@@ -24,6 +24,7 @@ use App\Http\Controllers\SalaryComponentController;
 use App\Http\Controllers\SelfOrderController;
 use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\TableController;
+use App\Http\Controllers\WaiterController;
 use App\Http\Middleware\VerifyCsrfToken;
 use App\Http\Middleware\VerifyMidtransIp;
 use Illuminate\Support\Facades\Route;
@@ -83,6 +84,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('reports/reconciliation', [ReportController::class, 'reconciliation'])->name('admin.reports.reconciliation');
         Route::get('reports/attendance', [ReportController::class, 'attendance'])->name('admin.reports.attendance');
         Route::get('reports/overtime', [ReportController::class, 'overtime'])->name('admin.reports.overtime');
+        Route::get('reports/waiter-points', [ReportController::class, 'waiterPoints'])->name('admin.reports.waiter-points');
         Route::get('reports/export', [ReportController::class, 'exportSales'])->name('admin.reports.export');
 
         Route::get('salary-components', [SalaryComponentController::class, 'index'])->name('admin.salary-components.index');
@@ -144,6 +146,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('kitchen', [KitchenDisplayController::class, 'index'])->name('kitchen.index');
     Route::patch('orders/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.update-status');
+
+    Route::get('waiter/ready', [WaiterController::class, 'index'])
+        ->middleware('can:accessWaiterDashboard')
+        ->name('waiter.ready');
+    Route::patch('orders/{order}/serve', [WaiterController::class, 'serve'])
+        ->middleware('can:serve,order')
+        ->name('orders.serve');
 
     Route::get('payslips/{payslip}/pdf', [PdfController::class, 'payslip'])->name('payslips.pdf');
 });

@@ -2,6 +2,7 @@ import { Head } from '@inertiajs/react';
 import { useForm } from '@inertiajs/react';
 import { Clock, MinusCircle, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { CurrencyInput } from '@/components/currency-input';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import {
@@ -149,12 +150,18 @@ export default function Deductions({ deductions, employees }: Props) {
                                 </div>
                                 <div className="grid gap-2">
                                     <Label className="text-xs uppercase tracking-wider text-[oklch(0.48_0.032_195.5)] font-semibold">Jumlah</Label>
-                                    <Input type="number" min="0" value={data.amount} onChange={(e) => setData('amount', e.target.value)} className="border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 focus-visible:border-[oklch(0.48_0.032_195.5)] focus-visible:ring-[oklch(0.48_0.032_195.5)]" />
+                                    <CurrencyInput value={data.amount} onChange={(v) => setData('amount', v)} className="border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 focus-visible:border-[oklch(0.48_0.032_195.5)] focus-visible:ring-[oklch(0.48_0.032_195.5)]" />
                                     <InputError message={errors.amount} />
                                 </div>
                                 <div className="grid gap-2">
                                     <Label className="text-xs uppercase tracking-wider text-[oklch(0.48_0.032_195.5)] font-semibold">Catatan</Label>
-                                    <Input value={data.notes} onChange={(e) => setData('notes', e.target.value)} placeholder="Opsional" className="border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 focus-visible:border-[oklch(0.48_0.032_195.5)] focus-visible:ring-[oklch(0.48_0.032_195.5)]" />
+                                    <textarea
+                                        rows={3}
+                                        value={data.notes}
+                                        onChange={(e) => setData('notes', e.target.value)}
+                                        placeholder="Opsional"
+                                        className="flex min-h-[80px] w-full rounded-md border border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 px-3 py-2 text-sm shadow-xs placeholder:text-muted-foreground focus-visible:border-[oklch(0.48_0.032_195.5)] focus-visible:ring-[oklch(0.48_0.032_195.5)]/50 focus-visible:ring-[3px] focus-visible:outline-none"
+                                    />
                                 </div>
                                 <Button type="submit" disabled={processing} className="w-full bg-[oklch(0.48_0.032_195.5)] text-white hover:bg-[oklch(0.38_0.032_195.5)]">
                                     {editing ? 'Simpan' : 'Tambah Potongan'}

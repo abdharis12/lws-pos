@@ -11,6 +11,7 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
+    useSidebar,
 } from '@/components/ui/sidebar';
 import attendance from '@/routes/attendance';
 import { dashboard } from '@/routes';
@@ -19,6 +20,7 @@ import kitchen from '@/routes/kitchen';
 import owner from '@/routes/owner';
 import pos from '@/routes/pos';
 import sessions from '@/routes/pos/sessions';
+import waiter from '@/routes/waiter';
 import type { NavItem } from '@/types';
 
 type NavGroup = {
@@ -31,6 +33,7 @@ export function AppSidebar() {
     const { auth } = usePage().props;
     const userRoles: string[] = (auth as { roles: string[] }).roles ?? [];
     const hasEmployee: boolean = (auth as { has_employee: boolean }).has_employee ?? false;
+    const { setOpenMobile } = useSidebar();
 
     const hasAnyRole = (roles: string[] | null): boolean => {
         if (roles === null) {
@@ -81,6 +84,13 @@ return true;
             ],
         },
         {
+            label: 'Waiter',
+            roles: ['Owner', 'Admin', 'Cashier', 'Waiter'],
+            items: [
+                { title: 'Siap Saji', href: waiter.ready(), icon: HandPlatter },
+            ],
+        },
+        {
             label: 'Absensi',
             roles: null,
             items: [
@@ -114,6 +124,7 @@ return true;
             items: [
                 { title: 'Kehadiran', href: admin.reports.attendance(), icon: FileUserIcon },
                 { title: 'Lembur', href: admin.reports.overtime(), icon: BarChart3 },
+                { title: 'Poin Waiter', href: admin.reports.waiterPoints(), icon: HandPlatter },
             ],
         },
         {
@@ -155,7 +166,7 @@ return true;
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
-                            <Link href={dashboard()} prefetch>
+                            <Link href={dashboard()} prefetch onClick={() => setOpenMobile(false)}>
                                 <AppLogo />
                             </Link>
                         </SidebarMenuButton>

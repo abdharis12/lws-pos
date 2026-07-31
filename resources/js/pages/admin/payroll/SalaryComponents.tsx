@@ -2,6 +2,7 @@ import { Head } from '@inertiajs/react';
 import { useForm } from '@inertiajs/react';
 import { Clock, Coins, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { CurrencyInput } from '@/components/currency-input';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,7 +14,6 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -167,7 +167,7 @@ export default function SalaryComponents({ components, employees }: Props) {
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="grid gap-2">
                                         <Label className="text-xs uppercase tracking-wider text-[oklch(0.48_0.032_195.5)] font-semibold">Gaji Pokok (Rp)</Label>
-                                        <Input type="number" min="0" step="1000" value={data.base_salary} onChange={(e) => setData('base_salary', e.target.value)} placeholder="0" className="border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 focus-visible:border-[oklch(0.48_0.032_195.5)] focus-visible:ring-[oklch(0.48_0.032_195.5)]" />
+                                        <CurrencyInput value={data.base_salary} onChange={(v) => setData('base_salary', v)} placeholder="0" className="border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 focus-visible:border-[oklch(0.48_0.032_195.5)] focus-visible:ring-[oklch(0.48_0.032_195.5)]" />
                                         <InputError message={errors.base_salary} />
                                     </div>
                                     <div className="grid gap-2">
@@ -186,16 +186,16 @@ export default function SalaryComponents({ components, employees }: Props) {
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="grid gap-2">
                                         <Label className="text-xs uppercase tracking-wider text-[oklch(0.48_0.032_195.5)] font-semibold">Tunjangan Makan (Rp)</Label>
-                                        <Input type="number" min="0" step="1000" value={data.meal_allowance} onChange={(e) => setData('meal_allowance', e.target.value)} placeholder="0" className="border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 focus-visible:border-[oklch(0.48_0.032_195.5)] focus-visible:ring-[oklch(0.48_0.032_195.5)]" />
+                                        <CurrencyInput value={data.meal_allowance} onChange={(v) => setData('meal_allowance', v)} placeholder="0" className="border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 focus-visible:border-[oklch(0.48_0.032_195.5)] focus-visible:ring-[oklch(0.48_0.032_195.5)]" />
                                     </div>
                                     <div className="grid gap-2">
                                         <Label className="text-xs uppercase tracking-wider text-[oklch(0.48_0.032_195.5)] font-semibold">Tunjangan Transport (Rp)</Label>
-                                        <Input type="number" min="0" step="1000" value={data.transport_allowance} onChange={(e) => setData('transport_allowance', e.target.value)} placeholder="0" className="border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 focus-visible:border-[oklch(0.48_0.032_195.5)] focus-visible:ring-[oklch(0.48_0.032_195.5)]" />
+                                        <CurrencyInput value={data.transport_allowance} onChange={(v) => setData('transport_allowance', v)} placeholder="0" className="border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 focus-visible:border-[oklch(0.48_0.032_195.5)] focus-visible:ring-[oklch(0.48_0.032_195.5)]" />
                                     </div>
                                 </div>
                                 <div className="grid gap-2">
                                     <Label className="text-xs uppercase tracking-wider text-[oklch(0.48_0.032_195.5)] font-semibold">Rate Lembur per Jam (Rp)</Label>
-                                    <Input type="number" min="0" step="1000" value={data.overtime_rate_per_hour} onChange={(e) => setData('overtime_rate_per_hour', e.target.value)} placeholder="0" className="border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 focus-visible:border-[oklch(0.48_0.032_195.5)] focus-visible:ring-[oklch(0.48_0.032_195.5)]" />
+                                    <CurrencyInput value={data.overtime_rate_per_hour} onChange={(v) => setData('overtime_rate_per_hour', v)} placeholder="0" className="border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 focus-visible:border-[oklch(0.48_0.032_195.5)] focus-visible:ring-[oklch(0.48_0.032_195.5)]" />
                                 </div>
                                 <Button type="submit" disabled={processing} className="w-full bg-[oklch(0.48_0.032_195.5)] text-white hover:bg-[oklch(0.38_0.032_195.5)]">
                                     {editing ? 'Simpan Perubahan' : 'Simpan'}

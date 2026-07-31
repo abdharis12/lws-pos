@@ -49,7 +49,7 @@ export function Header({
                 <div className="flex items-center justify-between pt-10 sm:pt-4">
                     <div className="flex items-center gap-2.5">
                         <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-[#4F6B6A] to-[#33504F] shadow-sm shadow-[#4F6B6A]/20 sm:h-11 sm:w-11">
-                            <img src="/img/lws-logo.png" alt="Logo" className="h-10 w-10 sm:h-6 sm:w-6" />
+                            <img src="/img/lws-logo-pdf.png" alt="Logo" className="h-10 w-10 sm:h-6 sm:w-6" />
                         </div>
                         <div>
                             <h1 className="text-base font-bold leading-tight text-gray-900 sm:text-lg">{outletName}</h1>

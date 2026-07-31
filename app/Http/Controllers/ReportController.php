@@ -327,6 +327,55 @@ class ReportController extends Controller
         ]);
     }
 
+    public function waiterPoints(Request $request): Response
+    {
+        $outlet = Outlet::first();
+        $month = $request->input('month', today()->format('Y-m'));
+        $year = (int) substr($month, 0, 4);
+        $monthNum = (int) substr($month, 5, 2);
+
+        $monthStart = Carbon::create($year, $monthNum, 1);
+        $monthEnd = $monthStart->copy()->endOfMonth();
+
+        $servedOrders = Order::where('status', OrderStatus::Completed)
+            ->whereNotNull('served_by')
+            ->whereBetween('served_at', [$monthStart, $monthEnd])
+            ->get(['served_by']);
+
+        $servedUserIds = $servedOrders->pluck('served_by')->unique();
+        $points = $servedOrders->groupBy('served_by')->map->count();
+
+        $waiters = Employee::with('user')
+            ->where('outlet_id', $outlet?->id)
+            ->whereHas('user', fn ($q) => $q->role('Waiter'))
+            ->where(function ($query) use ($servedUserIds) {
+                $query->where('is_active', true)
+                    ->orWhereIn('user_id', $servedUserIds);
+            })
+            ->get();
+
+        $summary = $waiters
+            ->map(fn ($employee) => [
+                'employee_id' => $employee->id,
+                'name' => $employee->user?->name ?? 'Unknown',
+                'position' => $employee->position,
+                'points' => $points->get($employee->user_id, 0),
+            ])
+            ->sortByDesc('points')
+            ->values()
+            ->map(fn ($row, $index) => [...$row, 'rank' => $index + 1]);
+
+        return Inertia::render('admin/reports/WaiterPoints', [
+            'summary' => $summary,
+            'month' => $month,
+            'monthLabel' => $monthStart->locale('id')->translatedFormat('F Y'),
+            'totalWaiters' => $summary->count(),
+            'totalPoints' => $summary->sum('points'),
+            'topWaiter' => $summary->first()['name'] ?? '—',
+            'maxPoints' => $summary->first()['points'] ?? 0,
+        ]);
+    }
+
     public function exportSales(Request $request): BinaryFileResponse
     {
         $period = $request->input('period', 'daily');

@@ -186,6 +186,28 @@ test('KDS shows unassigned orders without station', function () {
         );
 });
 
+test('KDS shows ready orders in dedicated readyOrders prop', function () {
+    $ready = Order::factory()->create([
+        'table_session_id' => $this->session->id,
+        'status' => 'ready',
+    ]);
+    $ready->items()->create([
+        'menu_id' => $this->mainStationMenu->id,
+        'qty' => 2,
+        'base_price' => 25000,
+        'total_price' => 50000,
+    ]);
+
+    $this->actingAs($this->kitchenStaff)
+        ->get(route('kitchen.index'))
+        ->assertInertia(fn ($page) => $page
+            ->component('kitchen/Index')
+            ->has('readyOrders', 1)
+            ->where('readyOrders.0.id', $ready->id)
+            ->has('stations', 0)
+        );
+});
+
 // ─── Status Updates ──────────────────────────────────────────
 
 test('kitchen staff can mark order as processing', function () {

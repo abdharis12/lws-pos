@@ -82,6 +82,16 @@ class PayrollService
 
         $takeHomePay = $baseSalary + $allowancesTotal + $overtimeTotal + $bonusTotal - $deductionTotal;
 
+        $status = 'draft';
+
+        $existing = Payslip::where('employee_id', $employee->id)
+            ->where('period', $period)
+            ->first();
+
+        if ($existing && $existing->status === 'paid') {
+            $status = 'paid';
+        }
+
         return Payslip::updateOrCreate(
             ['employee_id' => $employee->id, 'period' => $period],
             [
@@ -93,7 +103,7 @@ class PayrollService
                 'overtime_total' => $overtimeTotal,
                 'deduction_total' => $deductionTotal,
                 'take_home_pay' => max(0, $takeHomePay),
-                'status' => 'draft',
+                'status' => $status,
             ]
         );
     }

@@ -161,9 +161,15 @@ class SelfOrderController extends Controller
             $order->payment->update(['status' => $mapped]);
 
             if ($mapped === 'settlement') {
-                $order->update(['status' => OrderStatus::Paid]);
-                broadcast(new OrderPaid($order))->toOthers();
-                broadcast(new OrderStatusUpdated($order))->toOthers();
+                $updated = Order::where('id', $order->id)
+                    ->where('status', '!=', OrderStatus::Paid->value)
+                    ->update(['status' => OrderStatus::Paid->value]);
+
+                if ($updated) {
+                    $order->refresh();
+                    broadcast(new OrderPaid($order))->toOthers();
+                    broadcast(new OrderStatusUpdated($order))->toOthers();
+                }
             } elseif ($mapped === 'failed') {
                 $order->update(['status' => OrderStatus::Cancelled]);
                 broadcast(new OrderStatusUpdated($order))->toOthers();

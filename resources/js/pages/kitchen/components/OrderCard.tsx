@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { Check, CookingPot, MapPin, Play } from 'lucide-react';
+import { Check, CookingPot, MapPin, Play, Printer } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { getStatusConfig, stationIcon } from '../lib/utils';
@@ -7,10 +7,12 @@ import type { KitchenOrder } from '../types';
 
 interface Props {
     order: KitchenOrder;
+    isNew?: boolean;
     stationName?: string;
+    onPrint?: () => void;
 }
 
-export default function OrderCard({ order, isNew, stationName }: Props) {
+export default function OrderCard({ order, isNew, stationName, onPrint }: Props) {
     const [loading, setLoading] = useState(false);
     const [checkedItems, setCheckedItems] = useState<Set<number>>(new Set());
     const statusCfg = getStatusConfig(order.status);
@@ -76,12 +78,23 @@ next.add(itemId);
                             {tableCode ?? order.order_type}
                         </span>
                     </div>
-                    <span className="flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium"
-                        style={{ backgroundColor: `${statusCfg.color}18`, color: statusCfg.color }}
-                    >
-                        <span className="size-1.5 rounded-full" style={{ backgroundColor: statusCfg.dotColor }} />
-                        {statusCfg.label}
-                    </span>
+                    <div className="flex items-center gap-2">
+                        <span className="flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium"
+                            style={{ backgroundColor: `${statusCfg.color}18`, color: statusCfg.color }}
+                        >
+                            <span className="size-1.5 rounded-full" style={{ backgroundColor: statusCfg.dotColor }} />
+                            {statusCfg.label}
+                        </span>
+                        {onPrint && (
+                            <button
+                                onClick={onPrint}
+                                title="Print label dapur"
+                                className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-white/10 text-white/60 transition-colors hover:bg-white/20 hover:text-white"
+                            >
+                                <Printer className="size-3.5" />
+                            </button>
+                        )}
+                    </div>
                 </div>
                 {(floor || order.customer_name || showStation) && (
                     <div className="flex flex-wrap items-center gap-1.5 pl-8 pb-3">

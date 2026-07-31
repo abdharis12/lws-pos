@@ -13,7 +13,7 @@ class KitchenDisplayController extends Controller
     public function index(): Response
     {
         $orders = Order::with(['items.menu', 'tableSession.table'])
-            ->whereIn('status', [OrderStatus::Paid, OrderStatus::Processing])
+            ->whereIn('status', [OrderStatus::Paid, OrderStatus::Processing, OrderStatus::Ready])
             ->orderBy('created_at', 'asc')
             ->get();
 
@@ -24,10 +24,13 @@ class KitchenDisplayController extends Controller
             ->values()
             ->toArray();
 
+        $activeOrders = $orders->whereIn('status', [OrderStatus::Paid, OrderStatus::Processing]);
+        $readyOrders = $orders->where('status', OrderStatus::Ready)->values();
+
         $grouped = [];
 
         foreach ($stations as $station) {
-            $filtered = $orders->filter(function (Order $order) use ($station): bool {
+            $filtered = $activeOrders->filter(function (Order $order) use ($station): bool {
                 return $order->items->contains(fn ($item) => $item->menu?->station === $station);
             })->map(function (Order $order) use ($station) {
                 $order->setRelation('items', $order->items->filter(
@@ -45,7 +48,7 @@ class KitchenDisplayController extends Controller
             }
         }
 
-        $unassigned = $orders->filter(function (Order $order): bool {
+        $unassigned = $activeOrders->filter(function (Order $order): bool {
             return $order->items->contains(fn ($item) => blank($item->menu?->station));
         })->map(function (Order $order) {
             $order->setRelation('items', $order->items->filter(
@@ -58,6 +61,7 @@ class KitchenDisplayController extends Controller
         return Inertia::render('kitchen/Index', [
             'stations' => $grouped,
             'unassignedOrders' => $unassigned,
+            'readyOrders' => $readyOrders,
         ]);
     }
 }

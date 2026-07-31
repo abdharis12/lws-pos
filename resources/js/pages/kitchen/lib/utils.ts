@@ -1,7 +1,7 @@
 import type { KitchenOrder, StatusConfig } from '../types';
 
-export function calcElapsed(createdAt: string): { text: string; mins: number } {
-    const diff = Date.now() - new Date(createdAt).getTime();
+export function calcElapsed(createdAt: string, now = Date.now()): { text: string; mins: number } {
+    const diff = now - new Date(createdAt).getTime();
     const mins = Math.floor(diff / 60000);
 
     if (mins < 60) {

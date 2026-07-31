@@ -2,6 +2,7 @@ import { Head } from '@inertiajs/react';
 import { useForm } from '@inertiajs/react';
 import { Clock, Gift, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { CurrencyInput } from '@/components/currency-input';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import {
@@ -136,7 +137,7 @@ export default function Bonuses({ bonuses, employees }: Props) {
                                     </div>
                                     <div className="grid gap-2">
                                         <Label className="text-xs uppercase tracking-wider text-[oklch(0.48_0.032_195.5)] font-semibold">Jumlah</Label>
-                                        <Input type="number" min="0" value={data.amount} onChange={(e) => setData('amount', e.target.value)} className="border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 focus-visible:border-[oklch(0.48_0.032_195.5)] focus-visible:ring-[oklch(0.48_0.032_195.5)]" />
+                                        <CurrencyInput value={data.amount} onChange={(v) => setData('amount', v)} className="border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 focus-visible:border-[oklch(0.48_0.032_195.5)] focus-visible:ring-[oklch(0.48_0.032_195.5)]" />
                                         <InputError message={errors.amount} />
                                     </div>
                                 </div>

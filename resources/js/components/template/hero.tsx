@@ -129,7 +129,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenReservation, onExploreMenu }) 
                             <div className="relative h-80 rounded-lg overflow-hidden border border-[#CFC0A4]/30 shadow-inner">
                                 <img
                                     src="https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=1200&q=80"
-                                    alt="LW's European Classic Cafe Interior"
+                                    alt="LW's by Bubur Kang LW - European Bistro Ambience"
                                     className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 brightness-90"
                                 />
 
