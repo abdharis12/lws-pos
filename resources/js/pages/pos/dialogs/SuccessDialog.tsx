@@ -16,10 +16,18 @@ interface Props {
 
 export default function SuccessDialog({ open, onClose, onPrint, type, changeAmount, title, message }: Props) {
     const [show, setShow] = useState(false);
+    const [prevOpen, setPrevOpen] = useState(open);
+
+    if (open !== prevOpen) {
+        setPrevOpen(open);
+
+        if (open) {
+            setShow(false);
+        }
+    }
 
     useEffect(() => {
         if (open) {
-            setShow(false);
             const t = setTimeout(() => setShow(true), 100);
 
             return () => clearTimeout(t);

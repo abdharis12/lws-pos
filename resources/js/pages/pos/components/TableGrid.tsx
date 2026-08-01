@@ -1,7 +1,7 @@
 import { Check, Lock, Link as LinkIcon } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
-import { BORDER, CREAM, INK, MUTED, PRIMARY, SAND, TABLE_COLORS } from '../constants';
+import { BORDER, INK, MUTED, PRIMARY, SAND, TABLE_COLORS } from '../constants';
 import type { TableData } from '../types';
 import FloorTabs from './FloorTabs';
 
@@ -52,14 +52,12 @@ function useGroupedBy(groupedTables: Record<number, number[]> | null): Record<nu
 function TableCard({
     table,
     isSelected,
-    isDineIn,
     onSelect,
     onLockToggle,
     groupLabel,
 }: {
     table: TableData;
     isSelected: boolean;
-    isDineIn: boolean;
     onSelect: () => void;
     onLockToggle: () => void;
     groupLabel: string | null;
@@ -72,7 +70,11 @@ function TableCard({
             onClick={onSelect}
             role="button"
             tabIndex={0}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSelect(); }}
+            onKeyDown={(e) => {
+ if (e.key === 'Enter' || e.key === ' ') {
+onSelect();
+} 
+}}
             className={cn(
                 'relative flex cursor-pointer flex-col items-center rounded-xl p-3 text-sm font-medium transition-all hover:opacity-90',
                 isSelected && 'ring-1',
@@ -209,7 +211,6 @@ return tables;
                             key={table.id}
                             table={table}
                             isSelected={isSelected}
-                            isDineIn={true}
                             onSelect={() => onTableClick(table)}
                             onLockToggle={() => onLockToggle(table)}
                             groupLabel={groupLabel}

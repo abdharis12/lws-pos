@@ -1,7 +1,6 @@
 import { cn } from '@/lib/utils';
 
 const INK = 'oklch(0.48 0.032 195.5)';
-const INK_LIGHT = 'oklch(0.48 0.032 195.5 / 0.08)';
 const BORDER = 'oklch(0.80 0.038 88.5 / 0.35)';
 
 interface Props {

@@ -39,17 +39,17 @@ class SelfOrderService
         $serviceChargeRate = (float) config('pos.service_charge_rate', 0.05);
         $chargePercent = (float) config('pos.midtrans.charge_percentage', 2.5);
 
-        $tax = round($subtotal * $taxRate, 2);
+        $tax = round($subtotal * $taxRate / 500) * 500;
 
         if ($paymentMethod === 'online') {
-            $serviceCharge = round($subtotal * $serviceChargeRate, 2);
+            $serviceCharge = round($subtotal * $serviceChargeRate / 500) * 500;
             $totalBeforeCharge = $subtotal + $tax + $serviceCharge;
             $midtransCharge = round($totalBeforeCharge * $chargePercent / 100 / 100) * 100;
-            $total = $subtotal + $tax + $serviceCharge + $midtransCharge;
+            $total = round(($subtotal + $tax + $serviceCharge + $midtransCharge) / 500) * 500;
         } else {
             $serviceCharge = 0;
             $midtransCharge = 0;
-            $total = $subtotal + $tax;
+            $total = round(($subtotal + $tax) / 500) * 500;
         }
 
         return compact('tax', 'serviceCharge', 'midtransCharge', 'total');

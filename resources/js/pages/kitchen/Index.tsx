@@ -1,6 +1,6 @@
 import { Head, usePoll } from '@inertiajs/react';
 import { BellRing, ChefHat } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import KitchenHeader from './components/KitchenHeader';
 import OrderCard from './components/OrderCard';
 import ReadyOrderCard from './components/ReadyOrderCard';
@@ -16,49 +16,74 @@ interface Props {
     readyOrders: KitchenOrder[];
 }
 
-export default function KitchenIndex({ stations, unassignedOrders, readyOrders }: Props) {
+export default function KitchenIndex({
+    stations,
+    unassignedOrders,
+    readyOrders,
+}: Props) {
     const [newIds, setNewIds] = useState<Set<number>>(new Set());
     const [soundEnabled, setSoundEnabled] = useState(true);
-    const [printEnabled, setPrintEnabled] = useState(true);
     const prevIds = useRef<Set<number>>(new Set());
     const printedIdsRef = useRef<Set<number>>(new Set());
     const initialized = useRef(false);
     const printFrameRef = useRef<HTMLIFrameElement>(null);
+    const printEnabled = true;
 
-    useKitchenOrders(printFrameRef.current, printEnabled, soundEnabled, printedIdsRef);
+    useKitchenOrders(
+        printFrameRef,
+        printEnabled,
+        soundEnabled,
+        printedIdsRef,
+    );
 
     usePoll(10000, { only: ['stations', 'unassignedOrders', 'readyOrders'] });
 
-    const allOrders = [...stations.flatMap(s => s.orders), ...unassignedOrders];
-
-    const flatOrders = stations.flatMap(s =>
-        s.orders.map(o => ({ ...o, _stationName: s.name }))
+    const allOrders = useMemo(
+        () => [
+            ...stations.flatMap((s) => s.orders),
+            ...unassignedOrders,
+        ],
+        [stations, unassignedOrders],
     );
-    const flatUnassigned = unassignedOrders.map(o => ({ ...o, _stationName: 'Lainnya' as string }));
-    const allFlat = [...flatOrders, ...flatUnassigned];
 
-    const printOrderLabel = useCallback((order: KitchenOrder, stationName?: string) => {
-        const station = stationName && stationName !== "LW's by Bubur Kang LW"
-            ? stationName
-            : (order.items[0]?.menu.station || "LW's by Bubur Kang LW");
+    const allFlat = useMemo(() => {
+        const flatOrders = stations.flatMap((s) =>
+            s.orders.map((o) => ({ ...o, _stationName: s.name })),
+        );
+        const flatUnassigned = unassignedOrders.map((o) => ({
+            ...o,
+            _stationName: 'Lainnya' as string,
+        }));
 
-        const labelData: LabelData = {
-            station,
-            tableCode: order.table_session?.table?.code ?? null,
-            orderId: order.id,
-            items: order.items.map(item => ({
-                name: item.menu.name,
-                qty: item.qty,
-                notes: item.notes,
-                options: [],
-            })),
-            customerName: order.customer_name,
-            orderType: order.order_type,
-            createdAt: order.created_at,
-        };
+        return [...flatOrders, ...flatUnassigned];
+    }, [stations, unassignedOrders]);
 
-        printLabel(printFrameRef.current, labelData);
-    }, [printFrameRef]);
+    const printOrderLabel = useCallback(
+        (order: KitchenOrder, stationName?: string) => {
+            const station =
+                stationName && stationName !== "LW's by Bubur Kang LW"
+                    ? stationName
+                    : order.items[0]?.menu.station || "LW's by Bubur Kang LW";
+
+            const labelData: LabelData = {
+                station,
+                tableCode: order.table_session?.table?.code ?? null,
+                orderId: order.id,
+                items: order.items.map((item) => ({
+                    name: item.menu.name,
+                    qty: item.qty,
+                    notes: item.notes,
+                    options: [],
+                })),
+                customerName: order.customer_name,
+                orderType: order.order_type,
+                createdAt: order.created_at,
+            };
+
+            printLabel(printFrameRef.current, labelData);
+        },
+        [printFrameRef],
+    );
 
     useEffect(() => {
         const fresh = filterNewOrderIds(allOrders, prevIds.current);
@@ -73,12 +98,16 @@ export default function KitchenIndex({ stations, unassignedOrders, readyOrders }
             }
 
             if (!isFirstRun) {
-                const unprinted = [...fresh].filter(id => !printedIdsRef.current.has(id));
+                const unprinted = [...fresh].filter(
+                    (id) => !printedIdsRef.current.has(id),
+                );
 
                 if (unprinted.length > 0 && printEnabled) {
-                    const copies = allFlat.filter(o => unprinted.includes(o.id));
+                    const copies = allFlat.filter((o) =>
+                        unprinted.includes(o.id),
+                    );
 
-                    copies.forEach(copy => {
+                    copies.forEach((copy) => {
                         printedIdsRef.current.add(copy.id);
                         printOrderLabel(copy, copy._stationName);
                     });
@@ -86,19 +115,19 @@ export default function KitchenIndex({ stations, unassignedOrders, readyOrders }
             }
 
             const t = setTimeout(() => setNewIds(new Set()), 4000);
-            prevIds.current = new Set(allOrders.map(o => o.id));
+            prevIds.current = new Set(allOrders.map((o) => o.id));
 
             return () => clearTimeout(t);
         }
 
-        prevIds.current = new Set(allOrders.map(o => o.id));
+        prevIds.current = new Set(allOrders.map((o) => o.id));
     }, [allOrders, allFlat, printEnabled, soundEnabled, printOrderLabel]);
 
     const hasOrders = allOrders.length > 0 || readyOrders.length > 0;
 
     return (
-        <div className="min-h-screen text-white"
-            style={{ backgroundColor: '#0f172a' }}
+        <div
+            className="min-h-screen text-white bg-black"
         >
             <Head title="Kitchen Display" />
 
@@ -114,20 +143,18 @@ export default function KitchenIndex({ stations, unassignedOrders, readyOrders }
                 ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
             `}</style>
 
-            <div className="mx-auto max-w-7xl px-4 p-8">
+            <div className="mx-auto max-w-7xl p-4 px-4">
                 <KitchenHeader
                     orderCount={allOrders.length}
                     soundEnabled={soundEnabled}
-                    onSoundToggle={() => setSoundEnabled(s => !s)}
-                    printEnabled={printEnabled}
-                    onPrintToggle={() => setPrintEnabled(s => !s)}
+                    onSoundToggle={() => setSoundEnabled((s) => !s)}
                 />
 
                 {readyOrders.length > 0 && (
                     <div className="mb-8">
                         <div className="mb-3 flex items-center gap-2">
                             <BellRing className="size-4 text-emerald-400" />
-                            <h2 className="text-sm font-semibold uppercase tracking-widest text-emerald-300">
+                            <h2 className="text-sm font-semibold tracking-widest text-emerald-300 uppercase">
                                 Siap Saji
                             </h2>
                             <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs font-bold text-emerald-300">
@@ -135,7 +162,7 @@ export default function KitchenIndex({ stations, unassignedOrders, readyOrders }
                             </span>
                         </div>
                         <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                            {readyOrders.map(order => (
+                            {readyOrders.map((order) => (
                                 <ReadyOrderCard key={order.id} order={order} />
                             ))}
                         </div>
@@ -145,25 +172,40 @@ export default function KitchenIndex({ stations, unassignedOrders, readyOrders }
                 {!hasOrders ? (
                     <div className="flex flex-col items-center justify-center py-32 text-white/30">
                         <ChefHat className="mb-6 size-20 opacity-80" />
-                        <p className="text-lg font-medium">Belum ada pesanan masuk</p>
-                        <p className="mt-1 text-sm">Pesanan akan muncul di sini setelah pembayaran</p>
+                        <p className="text-lg font-medium">
+                            Belum ada pesanan masuk
+                        </p>
+                        <p className="mt-1 text-sm">
+                            Pesanan akan muncul di sini setelah pembayaran
+                        </p>
                     </div>
                 ) : (
                     <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                        {allFlat.map(order => (
+                        {allFlat.map((order) => (
                             <OrderCard
                                 key={order.id}
                                 order={order}
                                 isNew={newIds.has(order.id)}
                                 stationName={order._stationName}
-                                onPrint={() => printOrderLabel(order, order._stationName)}
+                                onPrint={() =>
+                                    printOrderLabel(order, order._stationName)
+                                }
                             />
                         ))}
                     </div>
                 )}
             </div>
 
-            <iframe ref={printFrameRef} style={{ position: 'absolute', width: 0, height: 0, border: 'none' }} title="print-label" />
+            <iframe
+                ref={printFrameRef}
+                style={{
+                    position: 'absolute',
+                    width: 0,
+                    height: 0,
+                    border: 'none',
+                }}
+                title="print-label"
+            />
         </div>
     );
 }

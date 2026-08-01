@@ -87,5 +87,7 @@ export function playBeep() {
         gain.gain.value = 0.3;
         osc.start();
         osc.stop(ctx.currentTime + 0.3);
-    } catch {}
+    } catch {
+        // audio not available
+    }
 }

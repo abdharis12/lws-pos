@@ -13,9 +13,9 @@ import {
     SidebarMenuItem,
     useSidebar,
 } from '@/components/ui/sidebar';
-import attendance from '@/routes/attendance';
 import { dashboard } from '@/routes';
 import admin from '@/routes/admin';
+import attendance from '@/routes/attendance';
 import kitchen from '@/routes/kitchen';
 import owner from '@/routes/owner';
 import pos from '@/routes/pos';

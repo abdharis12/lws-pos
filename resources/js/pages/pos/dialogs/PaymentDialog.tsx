@@ -1,7 +1,7 @@
 import { Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { BORDER, CREAM, INK, PRIMARY } from '../constants';
+import { CREAM, INK, PRIMARY } from '../constants';
 
 interface Props {
     open: boolean;

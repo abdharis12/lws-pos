@@ -48,25 +48,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('shifts/bulk', [ShiftController::class, 'bulkStore'])->name('admin.shifts.bulk-store');
         Route::put('shifts/{shift}', [ShiftController::class, 'update'])->name('admin.shifts.update');
         Route::delete('shifts/{shift}', [ShiftController::class, 'destroy'])->name('admin.shifts.destroy');
-        Route::get('menu-categories', [MenuCategoryController::class, 'index'])->name('admin.menu-categories.index');
-        Route::post('menu-categories', [MenuCategoryController::class, 'store'])->name('admin.menu-categories.store');
-        Route::put('menu-categories/{menuCategory}', [MenuCategoryController::class, 'update'])->name('admin.menu-categories.update');
-        Route::delete('menu-categories/{menuCategory}', [MenuCategoryController::class, 'destroy'])->name('admin.menu-categories.destroy');
-
-        Route::get('menus', [MenuController::class, 'index'])->name('admin.menus.index');
-        Route::get('menus/create', [MenuController::class, 'create'])->name('admin.menus.create');
-        Route::post('menus', [MenuController::class, 'store'])->name('admin.menus.store');
-        Route::get('menus/{menu}', [MenuController::class, 'show'])->name('admin.menus.show');
-        Route::get('menus/{menu}/edit', [MenuController::class, 'edit'])->name('admin.menus.edit');
-        Route::put('menus/{menu}', [MenuController::class, 'update'])->name('admin.menus.update');
-        Route::delete('menus/{menu}', [MenuController::class, 'destroy'])->name('admin.menus.destroy');
-        Route::patch('menus/{menu}/toggle-availability', [MenuController::class, 'toggleAvailability'])->name('admin.menus.toggle-availability');
-
-        Route::get('option-groups', [OptionGroupController::class, 'index'])->name('admin.option-groups.index');
-        Route::post('option-groups', [OptionGroupController::class, 'store'])->name('admin.option-groups.store');
-        Route::put('option-groups/{optionGroup}', [OptionGroupController::class, 'update'])->name('admin.option-groups.update');
-        Route::delete('option-groups/{optionGroup}', [OptionGroupController::class, 'destroy'])->name('admin.option-groups.destroy');
-
         Route::get('tables', [TableController::class, 'index'])->name('admin.tables.index');
         Route::post('tables', [TableController::class, 'store'])->name('admin.tables.store');
         Route::put('tables/{table}', [TableController::class, 'update'])->name('admin.tables.update');
@@ -121,6 +102,31 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::get('outlet-settings', [OutletController::class, 'edit'])->name('admin.outlet.edit');
         Route::put('outlet-settings', [OutletController::class, 'update'])->name('admin.outlet.update');
+    });
+
+    Route::prefix('admin')->middleware('can:viewAny,App\Models\MenuCategory')->group(function () {
+        Route::get('menu-categories', [MenuCategoryController::class, 'index'])->name('admin.menu-categories.index');
+        Route::post('menu-categories', [MenuCategoryController::class, 'store'])->name('admin.menu-categories.store');
+        Route::put('menu-categories/{menuCategory}', [MenuCategoryController::class, 'update'])->name('admin.menu-categories.update');
+        Route::delete('menu-categories/{menuCategory}', [MenuCategoryController::class, 'destroy'])->name('admin.menu-categories.destroy');
+    });
+
+    Route::prefix('admin')->middleware('can:viewAny,App\Models\Menu')->group(function () {
+        Route::get('menus', [MenuController::class, 'index'])->name('admin.menus.index');
+        Route::get('menus/create', [MenuController::class, 'create'])->name('admin.menus.create');
+        Route::post('menus', [MenuController::class, 'store'])->name('admin.menus.store');
+        Route::get('menus/{menu}', [MenuController::class, 'show'])->name('admin.menus.show');
+        Route::get('menus/{menu}/edit', [MenuController::class, 'edit'])->name('admin.menus.edit');
+        Route::put('menus/{menu}', [MenuController::class, 'update'])->name('admin.menus.update');
+        Route::delete('menus/{menu}', [MenuController::class, 'destroy'])->name('admin.menus.destroy');
+        Route::patch('menus/{menu}/toggle-availability', [MenuController::class, 'toggleAvailability'])->name('admin.menus.toggle-availability');
+    });
+
+    Route::prefix('admin')->middleware('can:viewAny,App\Models\OptionGroup')->group(function () {
+        Route::get('option-groups', [OptionGroupController::class, 'index'])->name('admin.option-groups.index');
+        Route::post('option-groups', [OptionGroupController::class, 'store'])->name('admin.option-groups.store');
+        Route::put('option-groups/{optionGroup}', [OptionGroupController::class, 'update'])->name('admin.option-groups.update');
+        Route::delete('option-groups/{optionGroup}', [OptionGroupController::class, 'destroy'])->name('admin.option-groups.destroy');
     });
 
     Route::get('owner/dashboard', [OwnerDashboardController::class, 'index'])->name('owner.dashboard')->middleware('can:viewOwnerDashboard');

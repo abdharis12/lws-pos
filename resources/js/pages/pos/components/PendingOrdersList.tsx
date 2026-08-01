@@ -1,7 +1,7 @@
+import { Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BORDER, CREAM, INK, MUTED, PRIMARY } from '../constants';
 import type { PendingOrder } from '../types';
-import { Trash2 } from 'lucide-react';
 
 interface Props {
     orders: PendingOrder[];
@@ -45,8 +45,9 @@ export default function PendingOrdersList({
                             role="button"
                             tabIndex={0}
                             onKeyDown={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ')
-                                    onSelect(order);
+                                if (e.key === 'Enter' || e.key === ' ') {
+onSelect(order);
+}
                             }}
                             className="group relative flex-shrink-0 cursor-pointer rounded-xl p-3 text-left transition-all"
                             style={{
@@ -118,8 +119,9 @@ export default function PendingOrdersList({
                         role="button"
                         tabIndex={0}
                         onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === ' ')
-                                onSelect(order);
+                            if (e.key === 'Enter' || e.key === ' ') {
+onSelect(order);
+}
                         }}
                         className={cn(
                             'group relative w-full cursor-pointer rounded-xl p-3 text-left transition-all',

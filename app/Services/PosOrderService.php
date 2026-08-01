@@ -78,12 +78,12 @@ class PosOrderService
 
     public function calculateTax(float $subtotal): float
     {
-        return round($subtotal * $this->getTaxRate(), 2);
+        return round($subtotal * $this->getTaxRate() / 500) * 500;
     }
 
     public function calculateServiceCharge(float $subtotal): float
     {
-        return round($subtotal * (float) config('pos.service_charge_rate', 0.05), 2);
+        return round($subtotal * (float) config('pos.service_charge_rate', 0.05) / 500) * 500;
     }
 
     public function calculateMidtransCharge(float $amount): float
@@ -107,15 +107,21 @@ class PosOrderService
         $total = max(0, $subtotal + $tax - $discountAmount);
 
         $splitCount = (int) ($validated['split_count'] ?? 1);
-        $splitSubtotal = round($subtotal / $splitCount, 2);
-        $splitTax = round($tax / $splitCount, 2);
-        $splitTotal = round($total / $splitCount, 2);
-        $splitDiscount = round($discountAmount / $splitCount, 2);
+
+        $splitSubtotal = round($subtotal / $splitCount / 500) * 500;
+        $splitTax = round($tax / $splitCount / 500) * 500;
+        $splitTotal = round($total / $splitCount / 500) * 500;
+        $splitDiscount = round($discountAmount / $splitCount / 500) * 500;
 
         $createdOrders = [];
 
         for ($i = 0; $i < $splitCount; $i++) {
             $isLast = $i === $splitCount - 1;
+
+            $orderSubtotal = $isLast ? $subtotal - $splitSubtotal * ($splitCount - 1) : $splitSubtotal;
+            $orderTax = $isLast ? $tax - $splitTax * ($splitCount - 1) : $splitTax;
+            $orderDiscount = $isLast ? $discountAmount - $splitDiscount * ($splitCount - 1) : $splitDiscount;
+            $orderTotal = $isLast ? $total - $splitTotal * ($splitCount - 1) : $splitTotal;
 
             $shared = [
                 'created_by' => $user->id,
@@ -132,17 +138,17 @@ class PosOrderService
 
             $order = $session?->orders()->create([
                 ...$shared,
-                'subtotal' => $isLast ? round($subtotal - $splitSubtotal * $i, 2) : $splitSubtotal,
-                'tax' => $isLast ? round($tax - $splitTax * $i, 2) : $splitTax,
-                'discount' => $isLast ? round($discountAmount - $splitDiscount * $i, 2) : $splitDiscount,
-                'total' => $isLast ? round($total - $splitTotal * $i, 2) : $splitTotal,
+                'subtotal' => $orderSubtotal,
+                'tax' => $orderTax,
+                'discount' => $orderDiscount,
+                'total' => $orderTotal,
                 'notes' => $splitCount > 1 ? "Split {$i}/{$splitCount}" : null,
             ]) ?? Order::create([
                 ...$shared,
-                'subtotal' => $isLast ? round($subtotal - $splitSubtotal * $i, 2) : $splitSubtotal,
-                'tax' => $isLast ? round($tax - $splitTax * $i, 2) : $splitTax,
-                'discount' => $isLast ? round($discountAmount - $splitDiscount * $i, 2) : $splitDiscount,
-                'total' => $isLast ? round($total - $splitTotal * $i, 2) : $splitTotal,
+                'subtotal' => $orderSubtotal,
+                'tax' => $orderTax,
+                'discount' => $orderDiscount,
+                'total' => $orderTotal,
                 'notes' => $splitCount > 1 ? "Split {$i}/{$splitCount}" : null,
             ]);
 
@@ -216,7 +222,7 @@ class PosOrderService
             'discount_type' => $validated['discount_type'] ?? null,
             'discount_value' => $validated['discount_value'] ?? null,
             'discount_approved_by' => $validated['discount_approved_by'] ?? null,
-            'total' => max(0, $newSubtotal + $tax - $discountAmount),
+            'total' => max(0, round(($newSubtotal + $tax - $discountAmount) / 500) * 500),
         ]);
 
         $order->payment()->create([
@@ -241,7 +247,7 @@ class PosOrderService
         $order->update([
             'subtotal' => $newSubtotal,
             'tax' => $this->calculateTax($newSubtotal),
-            'total' => max(0, $newSubtotal + $this->calculateTax($newSubtotal) + ($order->service_charge ?? 0) - ($order->discount ?? 0)),
+            'total' => max(0, round(($newSubtotal + $this->calculateTax($newSubtotal) + ($order->service_charge ?? 0) - ($order->discount ?? 0)) / 500) * 500),
         ]);
 
         OrderStatusUpdated::dispatch($order);
@@ -278,7 +284,7 @@ class PosOrderService
         $tax = $this->calculateTax($subtotal);
         $serviceCharge = $this->calculateServiceCharge($subtotal);
 
-        $totalBeforeCharge = max(0, $subtotal + $tax + $serviceCharge - $discountAmount);
+        $totalBeforeCharge = max(0, round(($subtotal + $tax + $serviceCharge - $discountAmount) / 500) * 500);
         $midtransCharge = $this->calculateMidtransCharge($totalBeforeCharge);
 
         $orderData = [

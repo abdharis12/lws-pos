@@ -1,10 +1,21 @@
 import { Head } from '@inertiajs/react';
 import { useForm } from '@inertiajs/react';
-import { Camera, Clock, MapPin, CheckCircle2, XCircle, UserCheck, Navigation, UserX, Users, User } from 'lucide-react';
+import {
+    Camera,
+    Clock,
+    MapPin,
+    CheckCircle2,
+    XCircle,
+    UserCheck,
+    Navigation,
+    UserX,
+    Users,
+} from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Dialog,
     DialogContent,
@@ -13,7 +24,6 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface UserData {
     id: number;
@@ -70,29 +80,57 @@ export default function AttendanceIndex({
     stats,
     outlet,
 }: Props) {
-    const [selectedEmployee, setSelectedEmployee] = useState<number | null>(null);
+    const [selectedEmployee, setSelectedEmployee] = useState<number | null>(
+        null,
+    );
     const [cameraOpen, setCameraOpen] = useState(false);
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [photoFile, setPhotoFile] = useState<File | null>(null);
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-    const [userPosition, setUserPosition] = useState<{ lat: number; lng: number } | null>(null);
-    const [distanceToOutlet, setDistanceToOutlet] = useState<number | null>(null);
-    const [geoError, setGeoError] = useState<string | null>(null);
-    const [geofenceAlert, setGeofenceAlert] = useState<{ open: boolean; isClockIn: boolean; loc: { lat: number; lng: number } } | null>(null);
-    const [locationAlert, setLocationAlert] = useState<{ open: boolean; isClockIn: boolean; type: 'no_location' | 'no_gps'; employeeId?: number } | null>(null);
+    const [userPosition, setUserPosition] = useState<{
+        lat: number;
+        lng: number;
+    } | null>(null);
+    const [distanceToOutlet, setDistanceToOutlet] = useState<number | null>(
+        null,
+    );
+    const [geoError, setGeoError] = useState<string | null>(() => {
+        if (typeof navigator === 'undefined') {
+            return null;
+        }
+
+        if (!navigator.geolocation) {
+            return 'Geolocation tidak didukung browser';
+        }
+
+        if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+            return 'Akses via HTTPS diperlukan. Gunakan https://' + location.host;
+        }
+
+        return null;
+    });
+    const [geofenceAlert, setGeofenceAlert] = useState<{
+        open: boolean;
+        isClockIn: boolean;
+        loc: { lat: number; lng: number };
+    } | null>(null);
+    const [locationAlert, setLocationAlert] = useState<{
+        open: boolean;
+        isClockIn: boolean;
+        type: 'no_location' | 'no_gps';
+        employeeId?: number;
+    } | null>(null);
     const mapRef = useRef<HTMLDivElement>(null);
     const mapInstanceRef = useRef<unknown>(null);
-    const markerRef = useRef<unknown>(null);
 
-    const { data: inData, setData: setInData, post: postIn, processing: inProcessing, errors: inErrors, reset: resetIn } = useForm({
-        employee_id: '',
-        photo: null as File | null,
-        latitude: '',
-        longitude: '',
-    });
-
-    const { data: outData, setData: setOutData, post: postOut, processing: outProcessing, errors: outErrors, reset: resetOut } = useForm({
+    const {
+        setData: setInFormData,
+        post: postIn,
+        processing: inProcessing,
+        errors: inErrors,
+        reset: resetIn,
+    } = useForm({
         employee_id: '',
         photo: null as File | null,
         latitude: '',
@@ -101,29 +139,42 @@ export default function AttendanceIndex({
 
     async function startCamera() {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: true,
+            });
+
             if (videoRef.current) {
                 videoRef.current.srcObject = stream;
                 videoRef.current.play();
             }
         } catch (e) {
             console.error('Camera error', e);
-            setCameraOpen(false);
+
+            throw e;
         }
     }
 
     function capturePhoto() {
-        if (!videoRef.current || !canvasRef.current) return;
+        if (!videoRef.current || !canvasRef.current) {
+return;
+}
+
         const ctx = canvasRef.current.getContext('2d');
-        if (!ctx) return;
+
+        if (!ctx) {
+return;
+}
+
         canvasRef.current.width = videoRef.current.videoWidth;
         canvasRef.current.height = videoRef.current.videoHeight;
         ctx.drawImage(videoRef.current, 0, 0);
-        canvasRef.current.toBlob(blob => {
+        canvasRef.current.toBlob((blob) => {
             if (blob) {
-                const file = new File([blob], 'selfie.jpg', { type: 'image/jpeg' });
+                const file = new File([blob], 'selfie.jpg', {
+                    type: 'image/jpeg',
+                });
                 setPhotoFile(file);
-                setInData('photo', file);
+                setInFormData('photo', file);
                 const reader = new FileReader();
                 reader.onload = () => setPhotoPreview(reader.result as string);
                 reader.readAsDataURL(file);
@@ -131,23 +182,30 @@ export default function AttendanceIndex({
         }, 'image/jpeg');
         // stop stream
         const stream = videoRef.current?.srcObject as MediaStream;
-        stream?.getTracks().forEach(t => t.stop());
+        stream?.getTracks().forEach((t) => t.stop());
         setCameraOpen(false);
     }
-    function haversineDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
+    function haversineDistance(
+        lat1: number,
+        lng1: number,
+        lat2: number,
+        lng2: number,
+    ): number {
         const R = 6371000;
         const dLat = ((lat2 - lat1) * Math.PI) / 180;
         const dLng = ((lng2 - lng1) * Math.PI) / 180;
         const a =
             Math.sin(dLat / 2) ** 2 +
-            Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+            Math.cos((lat1 * Math.PI) / 180) *
+                Math.cos((lat2 * Math.PI) / 180) *
+                Math.sin(dLng / 2) ** 2;
 
         return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 
     useEffect(() => {
         if (cameraOpen) {
-            startCamera();
+            startCamera().catch(() => setCameraOpen(false));
         }
     }, [cameraOpen]);
     useEffect(() => {
@@ -158,27 +216,46 @@ export default function AttendanceIndex({
             const L = (await import('leaflet')).default;
 
             const container = mapRef.current;
-            if (destroyed || !container) return;
+
+            if (destroyed || !container) {
+return;
+}
 
             const lat = outlet.latitude!;
             const lng = outlet.longitude!;
             const radius = outlet.geofence_radius_meters ?? 20;
 
-            const mapInstance = L.map(container, { center: [lat, lng], zoom: 17, zoomControl: false });
-
-            const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; OpenStreetMap',
-                maxZoom: 18,
+            const mapInstance = L.map(container, {
+                center: [lat, lng],
+                zoom: 17,
+                zoomControl: false,
             });
 
-            const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                attribution: '&copy; Esri',
-                maxZoom: 18,
-            });
+            const streetLayer = L.tileLayer(
+                'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                {
+                    attribution: '&copy; OpenStreetMap',
+                    maxZoom: 18,
+                },
+            );
+
+            const satelliteLayer = L.tileLayer(
+                'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+                {
+                    attribution: '&copy; Esri',
+                    maxZoom: 18,
+                },
+            );
 
             satelliteLayer.addTo(mapInstance);
 
-            L.control.layers({ 'Satelit': satelliteLayer, 'Street': streetLayer }, undefined, { position: 'topleft' }).addTo(mapInstance);
+            L.control
+                .layers(
+                    { Satelit: satelliteLayer, Street: streetLayer },
+                    undefined,
+                    { position: 'topleft' },
+                )
+                .addTo(mapInstance);
 
             L.control.zoom({ position: 'bottomright' }).addTo(mapInstance);
 
@@ -205,6 +282,7 @@ export default function AttendanceIndex({
 
         return () => {
             destroyed = true;
+
             if (mapInstanceRef.current) {
                 (mapInstanceRef.current as { remove: () => void }).remove();
                 mapInstanceRef.current = null;
@@ -214,7 +292,10 @@ export default function AttendanceIndex({
 
     useEffect(() => {
         const map = mapInstanceRef.current;
-        if (!map || !userPosition) return;
+
+        if (!map || !userPosition) {
+return;
+}
 
         const { lat: userLat, lng: userLng } = userPosition;
 
@@ -222,9 +303,12 @@ export default function AttendanceIndex({
             await import('leaflet/dist/leaflet.css');
             const L = (await import('leaflet')).default;
 
-            const existing = (map as Record<string, unknown>).userMarker as L.Marker | undefined;
+            const existing = (map as Record<string, unknown>).userMarker as
+                L.Marker | undefined;
+
             if (existing) {
                 existing.setLatLng([userLat, userLng]);
+
                 return;
             }
 
@@ -255,19 +339,22 @@ export default function AttendanceIndex({
 
     useEffect(() => {
         if (!navigator.geolocation) {
-            setGeoError('Geolocation tidak didukung browser');
-
             return;
         }
 
-        if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
-            setGeoError('Akses via HTTPS diperlukan untuk GPS. Gunakan https://' + location.host);
-
+        if (
+            location.protocol !== 'https:' &&
+            location.hostname !== 'localhost'
+        ) {
             return;
         }
 
         let fallback = false;
-        const opts = { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 };
+        const opts = {
+            enableHighAccuracy: true,
+            timeout: 8000,
+            maximumAge: 30000,
+        };
 
         const watchId = navigator.geolocation.watchPosition(
             (pos) => {
@@ -276,21 +363,47 @@ export default function AttendanceIndex({
                 setGeoError(null);
 
                 if (outlet.latitude && outlet.longitude) {
-                    setDistanceToOutlet(haversineDistance(lat, lng, outlet.latitude, outlet.longitude));
+                    setDistanceToOutlet(
+                        haversineDistance(
+                            lat,
+                            lng,
+                            outlet.latitude,
+                            outlet.longitude,
+                        ),
+                    );
                 }
             },
             (err) => {
-                if (!fallback && (err.code === err.TIMEOUT || err.code === err.POSITION_UNAVAILABLE)) {
+                if (
+                    !fallback &&
+                    (err.code === err.TIMEOUT ||
+                        err.code === err.POSITION_UNAVAILABLE)
+                ) {
                     fallback = true;
                     navigator.geolocation.getCurrentPosition(
                         (pos) => {
-                            const { latitude: lat, longitude: lng } = pos.coords;
+                            const { latitude: lat, longitude: lng } =
+                                pos.coords;
                             setUserPosition({ lat, lng });
                             setGeoError(null);
-                            setDistanceToOutlet(haversineDistance(lat, lng, outlet.latitude!, outlet.longitude!));
+                            setDistanceToOutlet(
+                                haversineDistance(
+                                    lat,
+                                    lng,
+                                    outlet.latitude!,
+                                    outlet.longitude!,
+                                ),
+                            );
                         },
-                        () => setGeoError('Lokasi tidak terdeteksi. Pastikan situs diakses via HTTPS dan izin lokasi browser diaktifkan.'),
-                        { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 },
+                        () =>
+                            setGeoError(
+                                'Lokasi tidak terdeteksi. Pastikan situs diakses via HTTPS dan izin lokasi browser diaktifkan.',
+                            ),
+                        {
+                            enableHighAccuracy: false,
+                            timeout: 15000,
+                            maximumAge: 60000,
+                        },
                     );
                 } else if (!fallback) {
                     setGeoError('Gagal mendapatkan lokasi GPS');
@@ -304,7 +417,10 @@ export default function AttendanceIndex({
 
     async function getLocation() {
         if (userPosition) {
-            return { lat: String(userPosition.lat), lng: String(userPosition.lng) };
+            return {
+                lat: String(userPosition.lat),
+                lng: String(userPosition.lng),
+            };
         }
 
         return new Promise<{ lat: string; lng: string } | null>((resolve) => {
@@ -316,11 +432,22 @@ export default function AttendanceIndex({
 
             function attempt(highAccuracy: boolean) {
                 navigator.geolocation.getCurrentPosition(
-                    (pos) => resolve({ lat: String(pos.coords.latitude), lng: String(pos.coords.longitude) }),
+                    (pos) =>
+                        resolve({
+                            lat: String(pos.coords.latitude),
+                            lng: String(pos.coords.longitude),
+                        }),
                     (err) => {
                         if (import.meta.env.DEV) {
-                            console.warn('[GPS] getLocation attempt (highAccuracy=' + highAccuracy + ') failed:', err.code, err.message);
+                            console.warn(
+                                '[GPS] getLocation attempt (highAccuracy=' +
+                                    highAccuracy +
+                                    ') failed:',
+                                err.code,
+                                err.message,
+                            );
                         }
+
                         if (highAccuracy) {
                             attempt(false);
                         } else {
@@ -340,7 +467,7 @@ export default function AttendanceIndex({
     }
 
     function submitClockIn(loc?: { lat: string; lng: string }) {
-        setInData({
+        setInFormData({
             employee_id: String(selectedEmployee),
             photo: photoFile,
             latitude: loc?.lat ?? '',
@@ -363,17 +490,34 @@ export default function AttendanceIndex({
         }
 
         if (!outlet.latitude || !outlet.longitude) {
-            setLocationAlert({ open: true, isClockIn: true, type: 'no_location' });
+            setLocationAlert({
+                open: true,
+                isClockIn: true,
+                type: 'no_location',
+            });
+
             return;
         }
 
         const loc = await getLocation();
+
         if (!loc) {
-            setLocationAlert({ open: true, isClockIn: true, type: 'no_gps', employeeId: selectedEmployee });
+            setLocationAlert({
+                open: true,
+                isClockIn: true,
+                type: 'no_gps',
+                employeeId: selectedEmployee,
+            });
+
             return;
         }
 
-        const distance = haversineDistance(outlet.latitude, outlet.longitude, loc.lat, loc.lng);
+        const distance = haversineDistance(
+            outlet.latitude,
+            outlet.longitude,
+            loc.lat,
+            loc.lng,
+        );
         const radius = outlet.geofence_radius_meters ?? 20;
 
         if (distance > radius) {
@@ -382,13 +526,17 @@ export default function AttendanceIndex({
                 isClockIn: true,
                 loc: { lat: loc.lat, lng: loc.lng },
             });
+
             return;
         }
 
         submitClockIn(loc);
     }
 
-    function submitClockOut(employeeId: number, loc?: { lat: string; lng: string }) {
+    function submitClockOut(
+        employeeId: number,
+        loc?: { lat: string; lng: string },
+    ) {
         setOutData({
             employee_id: String(employeeId),
             photo: outData.photo,
@@ -407,17 +555,34 @@ export default function AttendanceIndex({
 
     async function handleClockOut(employeeId: number) {
         if (!outlet.latitude || !outlet.longitude) {
-            setLocationAlert({ open: true, isClockIn: false, type: 'no_location' });
+            setLocationAlert({
+                open: true,
+                isClockIn: false,
+                type: 'no_location',
+            });
+
             return;
         }
 
         const loc = await getLocation();
+
         if (!loc) {
-            setLocationAlert({ open: true, isClockIn: false, type: 'no_gps', employeeId });
+            setLocationAlert({
+                open: true,
+                isClockIn: false,
+                type: 'no_gps',
+                employeeId,
+            });
+
             return;
         }
 
-        const distance = haversineDistance(outlet.latitude, outlet.longitude, loc.lat, loc.lng);
+        const distance = haversineDistance(
+            outlet.latitude,
+            outlet.longitude,
+            loc.lat,
+            loc.lng,
+        );
         const radius = outlet.geofence_radius_meters ?? 20;
 
         if (distance > radius) {
@@ -426,22 +591,11 @@ export default function AttendanceIndex({
                 isClockIn: false,
                 loc: { lat: loc.lat, lng: loc.lng },
             });
+
             return;
         }
 
         submitClockOut(employeeId, loc);
-    }
-
-    function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
-        const file = e.target.files?.[0];
-
-        if (file) {
-            setPhotoFile(file);
-            setInData('photo', file);
-            const reader = new FileReader();
-            reader.onload = () => setPhotoPreview(reader.result as string);
-            reader.readAsDataURL(file);
-        }
     }
 
     const now = new Date();
@@ -457,20 +611,20 @@ export default function AttendanceIndex({
     });
 
     return (
-        <div className="min-h-screen bg-[oklch(0.98_0.005_85.0)] p-6 font-sans text-slate-800">
+        <div className="min-h-screen bg-[#F6F2E9] p-6 font-sans text-slate-800">
             <Head title="Absensi" />
             <div className="mx-auto max-w-7xl">
                 {/* Header Section */}
-                <div className="mb-8 flex flex-col justify-between gap-4 border-b border-[oklch(0.80_0.038_88.5)]/40 pb-6 sm:flex-row sm:items-end">
+                <div className="mb-8 flex flex-col justify-between gap-4 border-b border-[#CFC0A4]/40 pb-6 sm:flex-row sm:items-end">
                     <div>
-                        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.80_0.038_88.5)]">
-                            <UserCheck className="size-3.5 text-[oklch(0.48_0.032_195.5)]" />
+                        <div className="flex items-center gap-2 text-xs font-semibold tracking-[0.2em] text-[#CFC0A4] uppercase">
+                            <UserCheck className="size-3.5 text-[#4F6B6A]" />
                             <span>Sistem Kehadiran</span>
                         </div>
-                        <h1 className="mt-1 font-serif text-3xl font-bold tracking-tight text-[oklch(0.48_0.032_195.5)]">
+                        <h1 className="mt-1 font-serif text-3xl font-bold tracking-tight text-[#4F6B6A]">
                             Absensi Karyawan
                         </h1>
-                        <p className="mt-1 text-sm italic text-slate-500">
+                        <p className="mt-1 text-sm text-slate-500 italic">
                             {dateStr} &mdash; {timeStr}
                         </p>
                     </div>
@@ -479,19 +633,21 @@ export default function AttendanceIndex({
                 <div className="flex flex-col gap-6">
                     {/* Stats Cards */}
                     <div className="hidden gap-5 md:grid md:grid-cols-3">
-                                                
                         <Card className="group relative overflow-hidden border-[#CFC0A4]/40 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#4F6B6A]/10">
                             {/* Aksen garis atas */}
                             <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#4F6B6A] to-[#CFC0A4]" />
 
                             <CardHeader className="flex flex-row items-start justify-between pt-5">
                                 <div>
-                                    <CardTitle className="text-[15px] font-semibold uppercase tracking-[0.12em] text-[#4F6B6A]/70">
+                                    <CardTitle className="text-[15px] font-semibold tracking-[0.12em] text-[#4F6B6A]/70 uppercase">
                                         Hadir
                                     </CardTitle>
                                 </div>
                                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4F6B6A]/10">
-                                    <CheckCircle2 className="h-4.5 w-4.5 text-[#4F6B6A]" strokeWidth={2} />
+                                    <CheckCircle2
+                                        className="h-4.5 w-4.5 text-[#4F6B6A]"
+                                        strokeWidth={2}
+                                    />
                                 </div>
                             </CardHeader>
                             <CardContent>
@@ -499,7 +655,11 @@ export default function AttendanceIndex({
                                     {stats.hadir}
                                 </p>
                                 <p className="mt-1.5 text-xs text-slate-500">
-                                    Dari <span className="font-medium text-slate-700">{stats.total_karyawan}</span> karyawan
+                                    Dari{' '}
+                                    <span className="font-medium text-slate-700">
+                                        {stats.total_karyawan}
+                                    </span>{' '}
+                                    karyawan
                                 </p>
                             </CardContent>
                         </Card>
@@ -508,11 +668,14 @@ export default function AttendanceIndex({
                             <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#CFC0A4] to-[#4F6B6A]" />
 
                             <CardHeader className="flex flex-row items-start justify-between pt-5">
-                                <CardTitle className="text-[15px] font-semibold uppercase tracking-[0.12em] text-[#4F6B6A]/70">
+                                <CardTitle className="text-[15px] font-semibold tracking-[0.12em] text-[#4F6B6A]/70 uppercase">
                                     Belum Absen
                                 </CardTitle>
                                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#CFC0A4]/25">
-                                    <UserX className="h-4.5 w-4.5 text-[#4F6B6A]" strokeWidth={2} />
+                                    <UserX
+                                        className="h-4.5 w-4.5 text-[#4F6B6A]"
+                                        strokeWidth={2}
+                                    />
                                 </div>
                             </CardHeader>
                             <CardContent>
@@ -529,11 +692,14 @@ export default function AttendanceIndex({
                             <div className="absolute inset-x-0 top-0 h-1 bg-[#4F6B6A]" />
 
                             <CardHeader className="flex flex-row items-start justify-between pt-5">
-                                <CardTitle className="text-[15px] font-semibold uppercase tracking-[0.12em] text-[#4F6B6A]/70">
+                                <CardTitle className="text-[15px] font-semibold tracking-[0.12em] text-[#4F6B6A]/70 uppercase">
                                     Total Karyawan
                                 </CardTitle>
                                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4F6B6A]/10">
-                                    <Users className="h-4.5 w-4.5 text-[#4F6B6A]" strokeWidth={2} />
+                                    <Users
+                                        className="h-4.5 w-4.5 text-[#4F6B6A]"
+                                        strokeWidth={2}
+                                    />
                                 </div>
                             </CardHeader>
                             <CardContent>
@@ -551,52 +717,83 @@ export default function AttendanceIndex({
                         {/* Left Column: Clock-In + Daftar Absensi */}
                         <div className="flex flex-col gap-6">
                             {/* Clock-In Card */}
-                            <Card className="border-[oklch(0.80_0.038_88.5)]/40 bg-white/80 shadow-sm backdrop-blur-sm">
-                                <CardHeader className="border-b border-[oklch(0.80_0.038_88.5)]/20">
-                                    <CardTitle className="font-serif text-lg font-medium text-[oklch(0.48_0.032_195.5)]">
+                            <Card className="border-[#CFC0A4]/40 bg-white shadow-sm backdrop-blur-sm">
+                                <CardHeader className="border-b border-[#CFC0A4]/20">
+                                    <CardTitle className="font-serif text-lg font-medium text-[#4F6B6A]">
                                         Clock-In
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-4 pt-5">
                                     <div className="grid gap-2">
-                                        <label className="text-xs font-semibold uppercase tracking-wider text-[oklch(0.48_0.032_195.5)]">
+                                        <label className="text-xs font-semibold tracking-wider text-[#4F6B6A] uppercase">
                                             Nama Karyawan
                                         </label>
                                         <select
-                                            className="flex h-9 w-full rounded-md border border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 px-3 py-1 text-sm shadow-xs focus:border-[oklch(0.48_0.032_195.5)] focus:ring-[oklch(0.48_0.032_195.5)]"
+                                            className="flex h-9 w-full rounded-md border border-[#CFC0A4]/50 bg-white px-3 py-1 text-sm shadow-xs focus:border-[#4F6B6A] focus:ring-[#4F6B6A]"
                                             value={selectedEmployee ?? ''}
                                             onChange={(e) => {
-                                                const id = e.target.value ? Number(e.target.value) : null;
+                                                const id = e.target.value
+                                                    ? Number(e.target.value)
+                                                    : null;
                                                 setSelectedEmployee(id);
-                                                setInData('employee_id', e.target.value);
+        setInFormData(
+            'employee_id',
+            e.target.value,
+        );
                                             }}
                                         >
-                                            <option value="">-- Pilih Karyawan --</option>
+                                            <option value="">
+                                                -- Pilih Karyawan --
+                                            </option>
                                             {employees.map((emp) => {
-                                                const alreadyIn = todayAttendance[emp.id] && !todayAttendance[emp.id].clock_out_at;
+                                                const alreadyIn =
+                                                    todayAttendance[emp.id] &&
+                                                    !todayAttendance[emp.id]
+                                                        .clock_out_at;
 
                                                 return (
-                                                    <option key={emp.id} value={emp.id} disabled={!!alreadyIn}>
-                                                        {emp.user.name} — {emp.position}
-                                                        {alreadyIn ? ' (sudah clock-in)' : ''}
+                                                    <option
+                                                        key={emp.id}
+                                                        value={emp.id}
+                                                        disabled={!!alreadyIn}
+                                                    >
+                                                        {emp.user.name} —{' '}
+                                                        {emp.position}
+                                                        {alreadyIn
+                                                            ? ' (sudah clock-in)'
+                                                            : ''}
                                                     </option>
                                                 );
                                             })}
                                         </select>
-                                        <InputError message={inErrors.employee_id} />
+                                        <InputError
+                                            message={inErrors.employee_id}
+                                        />
                                     </div>
 
                                     <div className="grid gap-2">
-                                        <label className="text-xs font-semibold uppercase tracking-wider text-[oklch(0.48_0.032_195.5)]">
+                                        <label className="text-xs font-semibold tracking-wider text-[#4F6B6A] uppercase">
                                             Foto Selfie
                                         </label>
                                         <div className="flex items-center gap-4">
-                                            <button type="button" className="flex items-center gap-2 rounded-md border border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 px-4 py-2 text-sm transition-colors hover:bg-[oklch(0.80_0.038_88.5)]/10" onClick={() => setCameraOpen(true)}>
-                                                <Camera className="size-4 text-[oklch(0.48_0.032_195.5)]" />
-                                                <span className="text-slate-600">Ambil Foto</span>
+                                            <button
+                                                type="button"
+                                                className="flex items-center gap-2 rounded-md border border-[#CFC0A4]/50 bg-white px-4 py-2 text-sm transition-colors hover:bg-[#CFC0A4]/10"
+                                                onClick={() =>
+                                                    setCameraOpen(true)
+                                                }
+                                            >
+                                                <Camera className="size-4 text-[#4F6B6A]" />
+                                                <span className="text-slate-600">
+                                                    Ambil Foto
+                                                </span>
                                             </button>
                                             {photoPreview && (
-                                                <img src={photoPreview} alt="Preview" className="h-14 w-14 rounded-full object-cover border border-[oklch(0.80_0.038_88.5)]/30" />
+                                                <img
+                                                    src={photoPreview}
+                                                    alt="Preview"
+                                                    className="h-14 w-14 rounded-full border border-[#CFC0A4]/30 object-cover"
+                                                />
                                             )}
                                         </div>
                                     </div>
@@ -604,7 +801,10 @@ export default function AttendanceIndex({
                                     {outlet.latitude && outlet.longitude && (
                                         <div className="flex items-center gap-2 text-xs text-slate-500">
                                             <MapPin className="size-3" />
-                                            Geofencing aktif ({outlet.geofence_radius_meters ?? 100}m radius)
+                                            Geofencing aktif (
+                                            {outlet.geofence_radius_meters ??
+                                                100}
+                                            m radius)
                                         </div>
                                     )}
 
@@ -612,31 +812,54 @@ export default function AttendanceIndex({
 
                                     <Button
                                         onClick={handleClockIn}
-                                        disabled={!selectedEmployee || inProcessing}
-                                        className="w-full gap-2 bg-[oklch(0.48_0.032_195.5)] font-serif tracking-wider text-white hover:bg-[oklch(0.38_0.032_195.5)]"
+                                        disabled={
+                                            !selectedEmployee || inProcessing
+                                        }
+                                        className="w-full gap-2 bg-[#4F6B6A] font-serif tracking-wider text-white hover:bg-[#3B5655]"
                                     >
                                         <Clock className="size-4" />
-                                        {inProcessing ? 'Memproses...' : 'Clock-In'}
+                                        {inProcessing
+                                            ? 'Memproses...'
+                                            : 'Clock-In'}
                                     </Button>
                                 </CardContent>
                             </Card>
 
                             {/* Today's Attendance */}
-                            <Card className="border-[oklch(0.80_0.038_88.5)]/40 bg-white/80 shadow-sm backdrop-blur-sm">
-                                <CardHeader className="border-b border-[oklch(0.80_0.038_88.5)]/20">
-                                    <CardTitle className="font-serif text-lg font-medium text-[oklch(0.48_0.032_195.5)]">
+                            <Card className="border-[#CFC0A4]/40 bg-white shadow-sm backdrop-blur-sm">
+                                <CardHeader className="border-b border-[#CFC0A4]/20">
+                                    <CardTitle className="font-serif text-lg font-medium text-[#4F6B6A]">
                                         Absensi Hari Ini
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="pt-5">
                                     {attendances.length === 0 ? (
                                         <div className="flex flex-col items-center px-6 py-12 text-center">
-                                            <div className="mb-4 flex size-16 items-center justify-center rounded-2xl" style={{ backgroundColor: INK_LIGHT }}>
-                                                <Clock className="size-8" style={{ color: INK }} />
+                                            <div
+                                                className="mb-4 flex size-16 items-center justify-center rounded-2xl"
+                                                style={{
+                                                    backgroundColor: INK_LIGHT,
+                                                }}
+                                            >
+                                                <Clock
+                                                    className="size-8"
+                                                    style={{ color: INK }}
+                                                />
                                             </div>
-                                            <h2 className="font-serif text-xl font-bold" style={{ color: INK }}>Belum Ada Absensi Aktif</h2>
-                                            <p className="mt-1 max-w-sm text-sm" style={{ color: 'oklch(0.60 0.03 88.5)' }}>
-                                                Belum ada karyawan yang melakukan absensi hari ini.
+                                            <h2
+                                                className="font-serif text-xl font-bold"
+                                                style={{ color: INK }}
+                                            >
+                                                Belum Ada Absensi Aktif
+                                            </h2>
+                                            <p
+                                                className="mt-1 max-w-sm text-sm"
+                                                style={{
+                                                    color: 'oklch(0.60 0.03 88.5)',
+                                                }}
+                                            >
+                                                Belum ada karyawan yang
+                                                melakukan absensi hari ini.
                                             </p>
                                         </div>
                                     ) : (
@@ -644,47 +867,86 @@ export default function AttendanceIndex({
                                             {attendances.map((att) => (
                                                 <div
                                                     key={att.id}
-                                                    className="flex items-center justify-between rounded-lg border border-[oklch(0.80_0.038_88.5)]/20 p-3 transition-colors hover:bg-[oklch(0.80_0.038_88.5)]/5"
+                                                    className="flex items-center justify-between rounded-lg border border-[#CFC0A4]/20 p-3 transition-colors hover:bg-[#CFC0A4]/5"
                                                 >
                                                     <div className="flex items-center gap-3">
-                                                        <div className="flex size-9 items-center justify-center rounded-full bg-[oklch(0.48_0.032_195.5)]/10 font-serif text-sm font-semibold text-[oklch(0.48_0.032_195.5)]">
-                                                            {att.employee.user.name.charAt(0)}
+                                                        <div className="flex size-9 items-center justify-center rounded-full bg-[#4F6B6A]/10 font-serif text-sm font-semibold text-[#4F6B6A]">
+                                                            {att.employee.user.name.charAt(
+                                                                0,
+                                                            )}
                                                         </div>
                                                         <div>
                                                             <p className="text-sm font-medium text-slate-800">
-                                                                {att.employee.user.name}
+                                                                {
+                                                                    att.employee
+                                                                        .user
+                                                                        .name
+                                                                }
                                                             </p>
                                                             <div className="flex items-center gap-2 text-xs text-slate-500">
                                                                 <Clock className="size-3" />
-                                                                {att.clock_in_at ? new Date(att.clock_in_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'}
+                                                                {att.clock_in_at
+                                                                    ? new Date(
+                                                                          att.clock_in_at,
+                                                                      ).toLocaleTimeString(
+                                                                          'id-ID',
+                                                                          {
+                                                                              hour: '2-digit',
+                                                                              minute: '2-digit',
+                                                                          },
+                                                                      )
+                                                                    : '-'}
                                                                 {att.clock_out_at && (
-                                                                    <> → {new Date(att.clock_out_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</>
+                                                                    <>
+                                                                        {' '}
+                                                                        →{' '}
+                                                                        {new Date(
+                                                                            att.clock_out_at,
+                                                                        ).toLocaleTimeString(
+                                                                            'id-ID',
+                                                                            {
+                                                                                hour: '2-digit',
+                                                                                minute: '2-digit',
+                                                                            },
+                                                                        )}
+                                                                    </>
                                                                 )}
                                                             </div>
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center gap-2">
                                                         <Badge
-                                                            className={`border-none font-semibold rounded-full ${
-                                                                att.status === 'late'
-                                                                    ? 'bg-[oklch(0.80_0.038_88.5)]/20 text-[oklch(0.80_0.038_88.5)]'
-                                                                    : 'bg-[oklch(0.48_0.032_195.5)]/10 text-[oklch(0.48_0.032_195.5)]'
+                                                            className={`rounded-full border-none font-semibold ${
+                                                                att.status ===
+                                                                'late'
+                                                                    ? 'bg-[#CFC0A4]/20 text-[#CFC0A4]'
+                                                                    : 'bg-[#4F6B6A]/10 text-[#4F6B6A]'
                                                             }`}
                                                         >
-                                                            {att.status === 'late' ? 'Terlambat' : 'Hadir'}
+                                                            {att.status ===
+                                                            'late'
+                                                                ? 'Terlambat'
+                                                                : 'Hadir'}
                                                         </Badge>
-                                                        {att.early_leave && att.clock_out_at && (
-                                                            <Badge className="rounded-full border-none bg-[oklch(0.55_0.15_30)]/20 font-semibold text-[oklch(0.55_0.15_30)]">
-                                                                Pulang Cepat
-                                                            </Badge>
-                                                        )}
+                                                        {att.early_leave &&
+                                                            att.clock_out_at && (
+                                                                <Badge className="rounded-full border-none bg-[#E11D48]/20 font-semibold text-[#E11D48]">
+                                                                    Pulang Cepat
+                                                                </Badge>
+                                                            )}
                                                         {!att.clock_out_at && (
                                                             <Button
                                                                 size="sm"
                                                                 variant="outline"
                                                                 className="gap-1 text-xs"
-                                                                onClick={() => handleClockOut(att.employee_id)}
-                                                                disabled={outProcessing}
+                                                                onClick={() =>
+                                                                    handleClockOut(
+                                                                        att.employee_id,
+                                                                    )
+                                                                }
+                                                                disabled={
+                                                                    outProcessing
+                                                                }
                                                             >
                                                                 Clock-Out
                                                             </Button>
@@ -700,22 +962,26 @@ export default function AttendanceIndex({
 
                         {/* Right Column: Map */}
                         {outlet.latitude && outlet.longitude ? (
-                            <Card className="h-fit overflow-hidden border-[oklch(0.80_0.038_88.5)]/40 bg-white/80 shadow-sm backdrop-blur-sm">
-                                <CardHeader className="border-b border-[oklch(0.80_0.038_88.5)]/20">
+                            <Card className="h-fit overflow-hidden border-[#CFC0A4]/40 bg-white shadow-sm backdrop-blur-sm">
+                                <CardHeader className="border-b border-[#CFC0A4]/20">
                                     <div className="flex items-center justify-between">
-                                        <CardTitle className="font-serif text-lg font-medium text-[oklch(0.48_0.032_195.5)]">
+                                        <CardTitle className="font-serif text-lg font-medium text-[#4F6B6A]">
                                             Peta Geofence
                                         </CardTitle>
                                         <div className="flex items-center gap-4 text-xs">
                                             {distanceToOutlet !== null && (
                                                 <span
                                                     className={`flex items-center gap-1.5 font-medium ${
-                                                        distanceToOutlet <= (outlet.geofence_radius_meters ?? 20)
+                                                        distanceToOutlet <=
+                                                        (outlet.geofence_radius_meters ??
+                                                            20)
                                                             ? 'text-emerald-600'
                                                             : 'text-red-500'
                                                     }`}
                                                 >
-                                                    {distanceToOutlet <= (outlet.geofence_radius_meters ?? 20) ? (
+                                                    {distanceToOutlet <=
+                                                    (outlet.geofence_radius_meters ??
+                                                        20) ? (
                                                         <CheckCircle2 className="size-3.5" />
                                                     ) : (
                                                         <XCircle className="size-3.5" />
@@ -742,21 +1008,24 @@ export default function AttendanceIndex({
                                 </CardContent>
                             </Card>
                         ) : (
-                            <Card className="border-[oklch(0.80_0.038_88.5)]/40 bg-white/80 shadow-sm backdrop-blur-sm">
-                                <CardHeader className="border-b border-[oklch(0.80_0.038_88.5)]/20">
-                                    <CardTitle className="font-serif text-lg font-medium text-[oklch(0.48_0.032_195.5)]">
+                            <Card className="border-[#CFC0A4]/40 bg-white shadow-sm backdrop-blur-sm">
+                                <CardHeader className="border-b border-[#CFC0A4]/20">
+                                    <CardTitle className="font-serif text-lg font-medium text-[#4F6B6A]">
                                         Peta Geofence
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="flex flex-col items-center justify-center py-12">
                                     <MapPin className="mb-3 size-10 text-slate-300" />
-                                    <p className="mb-1 text-sm font-medium text-slate-600">Lokasi outlet belum diatur</p>
+                                    <p className="mb-1 text-sm font-medium text-slate-600">
+                                        Lokasi outlet belum diatur
+                                    </p>
                                     <p className="mb-4 text-center text-xs text-slate-400">
-                                        Atur lokasi outlet untuk mengaktifkan peta geofence dan validasi absensi.
+                                        Atur lokasi outlet untuk mengaktifkan
+                                        peta geofence dan validasi absensi.
                                     </p>
                                     <a
                                         href="/admin/outlet-settings"
-                                        className="inline-flex items-center gap-1.5 rounded-md bg-[oklch(0.48_0.032_195.5)] px-4 py-2 text-xs font-medium text-white hover:bg-[oklch(0.38_0.032_195.5)]"
+                                        className="inline-flex items-center gap-1.5 rounded-md bg-[#4F6B6A] px-4 py-2 text-xs font-medium text-white hover:bg-[#3B5655]"
                                     >
                                         <Navigation className="size-3.5" />
                                         Atur Lokasi Outlet
@@ -769,12 +1038,20 @@ export default function AttendanceIndex({
 
                 {/* Camera Dialog */}
                 <Dialog open={cameraOpen} onOpenChange={setCameraOpen}>
-                    <DialogContent className="border-[oklch(0.80_0.038_88.5)]/40 bg-[oklch(0.98_0.005_85.0)] sm:max-w-md">
+                    <DialogContent className="border-[#CFC0A4]/40 bg-[#F6F2E9] sm:max-w-md">
                         <DialogHeader>
-                            <DialogTitle className="text-center">Ambil Foto Selfie</DialogTitle>
+                            <DialogTitle className="text-center">
+                                Ambil Foto Selfie
+                            </DialogTitle>
                         </DialogHeader>
                         <div className="flex flex-col items-center gap-4 py-4">
-                            <video ref={videoRef} className="w-full max-h-64 bg-black" autoPlay muted playsInline />
+                            <video
+                                ref={videoRef}
+                                className="max-h-64 w-full bg-black"
+                                autoPlay
+                                muted
+                                playsInline
+                            />
                             <canvas ref={canvasRef} className="hidden" />
                             <Button onClick={capturePhoto}>Ambil Foto</Button>
                         </div>
@@ -783,24 +1060,38 @@ export default function AttendanceIndex({
 
                 {/* Geofence Alert Dialog */}
                 {geofenceAlert && (
-                    <Dialog open={geofenceAlert.open} onOpenChange={() => setGeofenceAlert(null)}>
-                        <DialogContent className="border-[oklch(0.80_0.038_88.5)]/40 bg-[oklch(0.98_0.005_85.0)] sm:max-w-md">
+                    <Dialog
+                        open={geofenceAlert.open}
+                        onOpenChange={() => setGeofenceAlert(null)}
+                    >
+                        <DialogContent className="border-[#CFC0A4]/40 bg-[#F6F2E9] sm:max-w-md">
                             <DialogHeader>
                                 <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-rose-100">
                                     <XCircle className="size-6 text-rose-600" />
                                 </div>
-                                <DialogTitle className="mt-2 text-center font-serif text-xl font-bold text-[oklch(0.48_0.032_195.5)]">
-                                    {geofenceAlert.isClockIn ? 'Tidak Bisa Clock-In' : 'Tidak Bisa Clock-Out'}
+                                <DialogTitle className="mt-2 text-center font-serif text-xl font-bold text-[#4F6B6A]">
+                                    {geofenceAlert.isClockIn
+                                        ? 'Tidak Bisa Clock-In'
+                                        : 'Tidak Bisa Clock-Out'}
                                 </DialogTitle>
                                 <DialogDescription className="text-center text-slate-500">
-                                    Anda berada di luar radius geofence absensi. Anda harus berada dalam radius <span className="font-semibold text-[oklch(0.48_0.032_195.5)]">{outlet.geofence_radius_meters ?? 20}m</span> dari outlet untuk bisa {geofenceAlert.isClockIn ? 'clock-in' : 'clock-out'}.
+                                    Anda berada di luar radius geofence absensi.
+                                    Anda harus berada dalam radius{' '}
+                                    <span className="font-semibold text-[#4F6B6A]">
+                                        {outlet.geofence_radius_meters ?? 20}m
+                                    </span>{' '}
+                                    dari outlet untuk bisa{' '}
+                                    {geofenceAlert.isClockIn
+                                        ? 'clock-in'
+                                        : 'clock-out'}
+                                    .
                                 </DialogDescription>
                             </DialogHeader>
                             <DialogFooter className="gap-2 sm:justify-center">
                                 <Button
                                     variant="ghost"
                                     onClick={() => setGeofenceAlert(null)}
-                                    className="border border-[oklch(0.80_0.038_88.5)]/40 text-slate-600 hover:bg-[oklch(0.80_0.038_88.5)]/10"
+                                    className="border border-[#CFC0A4]/40 text-slate-600 hover:bg-[#CFC0A4]/10"
                                 >
                                     Tutup
                                 </Button>
@@ -811,14 +1102,19 @@ export default function AttendanceIndex({
 
                 {/* Location Alert Dialog */}
                 {locationAlert && (
-                    <Dialog open={locationAlert.open} onOpenChange={() => setLocationAlert(null)}>
-                        <DialogContent className="border-[oklch(0.80_0.038_88.5)]/40 bg-[oklch(0.98_0.005_85.0)] sm:max-w-md">
+                    <Dialog
+                        open={locationAlert.open}
+                        onOpenChange={() => setLocationAlert(null)}
+                    >
+                        <DialogContent className="border-[#CFC0A4]/40 bg-[#F6F2E9] sm:max-w-md">
                             <DialogHeader>
                                 <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-amber-100">
                                     <Navigation className="size-6 text-amber-600" />
                                 </div>
-                                <DialogTitle className="mt-2 text-center font-serif text-xl font-bold text-[oklch(0.48_0.032_195.5)]">
-                                    {locationAlert.type === 'no_location' ? 'Lokasi Belum Dikonfigurasi' : 'GPS Tidak Tersedia'}
+                                <DialogTitle className="mt-2 text-center font-serif text-xl font-bold text-[#4F6B6A]">
+                                    {locationAlert.type === 'no_location'
+                                        ? 'Lokasi Belum Dikonfigurasi'
+                                        : 'GPS Tidak Tersedia'}
                                 </DialogTitle>
                                 <DialogDescription className="text-center text-slate-500">
                                     {locationAlert.type === 'no_location'
@@ -833,10 +1129,19 @@ export default function AttendanceIndex({
                                         onClick={() => {
                                             const alert = locationAlert;
                                             setLocationAlert(null);
-                                            if (alert.isClockIn && selectedEmployee) {
+
+                                            if (
+                                                alert.isClockIn &&
+                                                selectedEmployee
+                                            ) {
                                                 submitClockIn();
-                                            } else if (!alert.isClockIn && alert.employeeId) {
-                                                submitClockOut(alert.employeeId);
+                                            } else if (
+                                                !alert.isClockIn &&
+                                                alert.employeeId
+                                            ) {
+                                                submitClockOut(
+                                                    alert.employeeId,
+                                                );
                                             }
                                         }}
                                         className="border-amber-400 text-amber-700 hover:bg-amber-50"
@@ -847,7 +1152,7 @@ export default function AttendanceIndex({
                                 <Button
                                     variant="ghost"
                                     onClick={() => setLocationAlert(null)}
-                                    className="border border-[oklch(0.80_0.038_88.5)]/40 text-slate-600 hover:bg-[oklch(0.80_0.038_88.5)]/10"
+                                    className="border border-[#CFC0A4]/40 text-slate-600 hover:bg-[#CFC0A4]/10"
                                 >
                                     Tutup
                                 </Button>

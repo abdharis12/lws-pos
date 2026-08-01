@@ -1,11 +1,8 @@
-import { Head, Link } from '@inertiajs/react';
-import { home } from '@/routes';
+import { Head } from '@inertiajs/react';
 import type { AuthLayoutProps } from '@/types';
 
 const CREAM = '#F6F2E9';
-const PRIMARY = '#4F6B6A';
 const INK = '#25332F';
-const SAND = '#CFC0A4';
 
 export default function AuthSimpleLayout({
     children,

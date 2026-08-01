@@ -12,26 +12,26 @@ export function calcSubtotal(items: CartItem[]): number {
     }, 0);
 }
 
+export function roundTo500(n: number): number {
+    return Math.round(n / 500) * 500;
+}
+
 export function calcDiscount(subtotal: number, type: string | null, value: number): number {
     if (!type || !value) {
-return 0;
-}
+        return 0;
+    }
 
     if (type === 'percentage') {
-return Math.min(subtotal * (value / 100), subtotal);
-}
+        return roundTo500(Math.min(subtotal * (value / 100), subtotal));
+    }
 
-    return Math.min(value, subtotal);
+    return roundTo500(Math.min(value, subtotal));
 }
 
 export function calcTax(subtotal: number): number {
-    return Math.round(subtotal * TAX_RATE);
+    return roundTo500(subtotal * TAX_RATE);
 }
 
 export function calcServiceCharge(subtotal: number): number {
-    return roundPrice(subtotal * SERVICE_RATE);
-}
-
-export function roundPrice(n: number): number {
-    return Math.round(n * 100) / 100;
+    return roundTo500(subtotal * SERVICE_RATE);
 }

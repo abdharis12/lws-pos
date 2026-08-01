@@ -1,5 +1,4 @@
-import { formatPrice, formatDate, formatTime, paymentLabel, orderTypeLabel } from './format';
-import { roundPrice } from './pricing';
+import { formatPrice, formatDate, formatTime, paymentLabel } from './format';
 
 export interface ReceiptData {
     orderNumber: string;

@@ -21,7 +21,7 @@ interface OrderPaidPayload {
 }
 
 export function useKitchenOrders(
-    printFrameRef: HTMLIFrameElement | null,
+    printFrameRef: RefObject<HTMLIFrameElement | null>,
     printEnabled: boolean,
     soundEnabled: boolean,
     printedIdsRef: RefObject<Set<number>>,
@@ -47,9 +47,14 @@ export function useKitchenOrders(
 
             if (printEnabled) {
                 const stationsMap = new Map<string, LabelItem[]>();
+
                 for (const item of order.items) {
                     const station = item.menu.station || 'Lainnya';
-                    if (!stationsMap.has(station)) stationsMap.set(station, []);
+
+                    if (!stationsMap.has(station)) {
+stationsMap.set(station, []);
+}
+
                     stationsMap.get(station)!.push({
                         name: item.menu.name,
                         qty: item.qty,
@@ -69,7 +74,7 @@ export function useKitchenOrders(
                             orderType: order.order_type,
                             createdAt: order.created_at,
                         };
-                        printLabel(printFrameRef, labelData);
+                        printLabel(printFrameRef.current, labelData);
                     }
                 }, 500);
             }

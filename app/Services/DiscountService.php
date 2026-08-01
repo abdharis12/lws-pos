@@ -15,11 +15,11 @@ class DiscountService
 
         $value = (float) $value;
 
-        return match ($type) {
+        return round((match ($type) {
             'percentage' => min($subtotal * ($value / 100), $subtotal),
             'nominal' => min($value, $subtotal),
             default => 0,
-        };
+        }) / 500) * 500;
     }
 
     public function needsApproval(float $subtotal, ?string $type, mixed $value): bool

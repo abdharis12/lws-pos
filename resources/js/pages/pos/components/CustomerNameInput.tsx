@@ -1,4 +1,4 @@
-import { BORDER, CREAM, INK, MUTED, PRIMARY } from '../constants';
+import { BORDER, INK, MUTED, PRIMARY } from '../constants';
 
 interface Props {
     value: string;

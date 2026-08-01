@@ -1,4 +1,4 @@
-import { Search, Filter, Sparkles, Clock, Star, Info, Check, Plus, Utensils, Award } from 'lucide-react';
+import { Search, Sparkles, Clock, Star, Info, Check, Plus, Utensils, Award } from 'lucide-react';
 import React, { useState, useMemo } from 'react';
 import { MENU_ITEMS } from '../template/data/mockData';
 import type { MenuItem } from '../template/types/types';
@@ -10,8 +10,6 @@ interface MenuSectionProps {
 export const MenuSection: React.FC<MenuSectionProps> = ({ onSelectDishForReservation }) => {
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
     const [searchQuery, setSearchQuery] = useState<string>('');
-    const [dietaryFilter, setDietaryFilter] = useState<string>('all');
-    const [sortBy, setSortBy] = useState<'popular' | 'price-asc' | 'price-desc'>('popular');
     const [activeModalItem, setActiveModalItem] = useState<MenuItem | null>(null);
 
     const categories = [

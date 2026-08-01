@@ -1,8 +1,18 @@
 import { Head } from '@inertiajs/react';
-import { DollarSign, ShoppingCart, TrendingUp, ChefHat, Users, Clock } from 'lucide-react';
+import {
+    DollarSign,
+    ShoppingCart,
+    TrendingUp,
+    ChefHat,
+    Users,
+    Clock,
+} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { dashboard } from '@/routes';
+
+const INK = 'oklch(0.48 0.032 195.5)';
+const INK_LIGHT = 'oklch(0.48 0.032 195.5 / 0.08)';
 
 interface TopMenu {
     id: number;
@@ -43,110 +53,166 @@ export default function Dashboard({
     todayAttendances = [],
 }: Props) {
     return (
-        <div className="min-h-screen bg-[oklch(0.98_0.005_85.0)] p-6 font-sans text-slate-800">
+        <div className="min-h-screen bg-[#F6F2E9] p-6 font-sans text-slate-800">
             <Head title="Dashboard" />
 
-            <div className="mb-8 flex flex-col justify-between gap-4 border-b border-[oklch(0.80_0.038_88.5)]/40 pb-6 sm:flex-row sm:items-end">
+            <div className="mb-8 flex flex-col justify-between gap-4 border-b border-[#CFC0A4]/40 pb-6 sm:flex-row sm:items-end">
                 <div>
-                    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.80_0.038_88.5)]">
-                        <DollarSign className="size-3.5 text-[oklch(0.48_0.032_195.5)]" />
+                    <div className="flex items-center gap-2 text-xs font-semibold tracking-[0.2em] text-[#CFC0A4] uppercase">
+                        <DollarSign className="size-3.5 text-[#4F6B6A]" />
                         <span>Dashboard</span>
                     </div>
-                    <h1 className="mt-1 font-serif text-3xl font-bold tracking-tight text-[oklch(0.48_0.032_195.5)]">
+                    <h1 className="mt-1 font-serif text-3xl font-bold tracking-tight text-[#4F6B6A]">
                         Dashboard
                     </h1>
-                    <p className="mt-1 text-sm italic text-slate-500">
+                    <p className="mt-1 text-sm text-slate-500 italic">
                         Ringkasan operasional restoran
                     </p>
                 </div>
             </div>
 
             <div className="mb-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <Card className="group relative overflow-hidden border-[oklch(0.80_0.038_88.5)]/40 bg-white/80 shadow-sm backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
-                    <CardContent className="p-6">
-                        <div className="flex items-start justify-between">
-                            <div className="space-y-1">
-                                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Penjualan Hari Ini</p>
-                                <p className="font-serif text-2xl font-bold tracking-tight text-slate-800">
-                                    Rp {Number(todaySales).toLocaleString('id-ID')}
-                                </p>
-                                <p className="text-xs text-slate-400">Total pendapatan hari ini</p>
-                            </div>
-                            <div className="flex size-10 items-center justify-center rounded-xl bg-[oklch(0.48_0.032_195.5)] text-white transition-transform duration-300 group-hover:scale-110">
-                                <DollarSign className="size-5" />
-                            </div>
+                <Card className="group relative overflow-hidden border-[#CFC0A4]/40 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#4F6B6A]/10">
+                    <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#4F6B6A] to-[#CFC0A4]" />
+                    <CardHeader className="flex flex-row items-start justify-between pt-5">
+                        <CardTitle className="text-[15px] font-semibold tracking-[0.12em] text-[#4F6B6A]/70 uppercase">
+                            Penjualan Hari Ini
+                        </CardTitle>
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4F6B6A]/10">
+                            <DollarSign
+                                className="h-4.5 w-4.5 text-[#4F6B6A]"
+                                strokeWidth={2}
+                            />
                         </div>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="font-serif text-2xl font-bold tracking-tight text-[#4F6B6A]">
+                            Rp {Number(todaySales).toLocaleString('id-ID')}
+                        </p>
+                        <p className="mt-1.5 text-xs text-slate-500">
+                            Total pendapatan hari ini
+                        </p>
                     </CardContent>
                 </Card>
-                <Card className="group relative overflow-hidden border-[oklch(0.80_0.038_88.5)]/40 bg-white/80 shadow-sm backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
-                    <CardContent className="p-6">
-                        <div className="flex items-start justify-between">
-                            <div className="space-y-1">
-                                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Order Hari Ini</p>
-                                <p className="font-serif text-2xl font-bold tracking-tight text-slate-800">{todayOrdersCount}</p>
-                                <p className="text-xs text-slate-400">Jumlah order hari ini</p>
-                            </div>
-                            <div className="flex size-10 items-center justify-center rounded-xl bg-[oklch(0.48_0.032_195.5)] text-white transition-transform duration-300 group-hover:scale-110">
-                                <ShoppingCart className="size-5" />
-                            </div>
+                <Card className="group relative overflow-hidden border-[#CFC0A4]/40 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#4F6B6A]/10">
+                    <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#CFC0A4] to-[#4F6B6A]" />
+                    <CardHeader className="flex flex-row items-start justify-between pt-5">
+                        <CardTitle className="text-[15px] font-semibold tracking-[0.12em] text-[#4F6B6A]/70 uppercase">
+                            Order Hari Ini
+                        </CardTitle>
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4F6B6A]/10">
+                            <ShoppingCart
+                                className="h-4.5 w-4.5 text-[#4F6B6A]"
+                                strokeWidth={2}
+                            />
                         </div>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="font-serif text-4xl font-bold tracking-tight text-[#4F6B6A]">
+                            {todayOrdersCount}
+                        </p>
+                        <p className="mt-1.5 text-xs text-slate-500">
+                            Jumlah order hari ini
+                        </p>
                     </CardContent>
                 </Card>
-                <Card className="group relative overflow-hidden border-[oklch(0.80_0.038_88.5)]/40 bg-white/80 shadow-sm backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
-                    <CardContent className="p-6">
-                        <div className="flex items-start justify-between">
-                            <div className="space-y-1">
-                                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Menu Terlaris</p>
-                                <p className="font-serif text-2xl font-bold tracking-tight text-slate-800">
-                                    {topMenus.length > 0 ? topMenus[0].name : '-'}
-                                </p>
-                                <p className="text-xs text-slate-400">
-                                    {topMenus.length > 0 ? `${topMenus[0].total_qty} terjual hari ini` : 'Belum ada data'}
-                                </p>
-                            </div>
-                            <div className="flex size-10 items-center justify-center rounded-xl bg-[oklch(0.48_0.032_195.5)] text-white transition-transform duration-300 group-hover:scale-110">
-                                <TrendingUp className="size-5" />
-                            </div>
+                <Card className="group relative overflow-hidden border-[#CFC0A4]/40 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#4F6B6A]/10">
+                    <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#4F6B6A] to-[#CFC0A4]" />
+                    <CardHeader className="flex flex-row items-start justify-between pt-5">
+                        <CardTitle className="text-[15px] font-semibold tracking-[0.12em] text-[#4F6B6A]/70 uppercase">
+                            Menu Terlaris
+                        </CardTitle>
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4F6B6A]/10">
+                            <TrendingUp
+                                className="h-4.5 w-4.5 text-[#4F6B6A]"
+                                strokeWidth={2}
+                            />
                         </div>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="font-serif text-xl font-bold tracking-tight text-[#4F6B6A]">
+                            {topMenus.length > 0 ? topMenus[0].name : '-'}
+                        </p>
+                        <p className="mt-1.5 text-xs text-slate-500">
+                            {topMenus.length > 0
+                                ? `${topMenus[0].total_qty} terjual hari ini`
+                                : 'Belum ada data'}
+                        </p>
                     </CardContent>
                 </Card>
-                <Card className="group relative overflow-hidden border-[oklch(0.80_0.038_88.5)]/40 bg-white/80 shadow-sm backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
-                    <CardContent className="p-6">
-                        <div className="flex items-start justify-between">
-                            <div className="space-y-1">
-                                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Karyawan Hadir</p>
-                                <p className="font-serif text-2xl font-bold tracking-tight text-slate-800">
-                                    {todayAttendances.filter((a) => a.clock_in).length}
-                                </p>
-                                <p className="text-xs text-slate-400">Dari {todayAttendances.length} karyawan</p>
-                            </div>
-                            <div className="flex size-10 items-center justify-center rounded-xl bg-[oklch(0.48_0.032_195.5)] text-white transition-transform duration-300 group-hover:scale-110">
-                                <Users className="size-5" />
-                            </div>
+                <Card className="group relative overflow-hidden border-[#CFC0A4]/40 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#4F6B6A]/10">
+                    <div className="absolute inset-x-0 top-0 h-1 bg-[#4F6B6A]" />
+                    <CardHeader className="flex flex-row items-start justify-between pt-5">
+                        <CardTitle className="text-[15px] font-semibold tracking-[0.12em] text-[#4F6B6A]/70 uppercase">
+                            Karyawan Hadir
+                        </CardTitle>
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4F6B6A]/10">
+                            <Users
+                                className="h-4.5 w-4.5 text-[#4F6B6A]"
+                                strokeWidth={2}
+                            />
                         </div>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="font-serif text-4xl font-bold tracking-tight text-[#4F6B6A]">
+                            {todayAttendances.filter((a) => a.clock_in).length}
+                        </p>
+                        <p className="mt-1.5 text-xs text-slate-500">
+                            Dari {todayAttendances.length} karyawan
+                        </p>
                     </CardContent>
                 </Card>
             </div>
 
             <div className="mb-6 grid gap-6 lg:grid-cols-2">
-                <Card className="border-[oklch(0.80_0.038_88.5)]/40 bg-white/80 shadow-sm backdrop-blur-sm">
-                    <CardHeader className="border-b border-[oklch(0.80_0.038_88.5)]/20">
-                        <CardTitle className="flex items-center gap-2 font-serif text-lg font-medium text-[oklch(0.48_0.032_195.5)]">
-                            <ChefHat className="size-5 text-[oklch(0.80_0.038_88.5)]" />
+                <Card className="border-[#CFC0A4]/40 bg-white shadow-sm backdrop-blur-sm">
+                    <CardHeader className="border-b border-[#CFC0A4]/20">
+                        <CardTitle className="flex items-center gap-2 font-serif text-lg font-medium text-[#4F6B6A]">
+                            <ChefHat className="size-5 text-[#CFC0A4]" />
                             Order Aktif di Dapur
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-0">
                         {activeOrders.length === 0 ? (
-                            <p className="py-8 text-center text-sm italic text-slate-500">Tidak ada order aktif.</p>
+                            <div className="flex flex-col items-center px-6 py-12 text-center">
+                                <div
+                                    className="mb-4 flex size-16 items-center justify-center rounded-2xl"
+                                    style={{ backgroundColor: INK_LIGHT }}
+                                >
+                                    <ChefHat
+                                        className="size-8"
+                                        style={{ color: INK }}
+                                    />
+                                </div>
+                                <h3
+                                    className="font-serif text-xl font-bold"
+                                    style={{ color: INK }}
+                                >
+                                    Belum Ada Order Aktif
+                                </h3>
+                                <p
+                                    className="mt-1 max-w-sm text-sm"
+                                    style={{ color: 'oklch(0.60 0.03 88.5)' }}
+                                >
+                                    Tidak ada order yang sedang diproses dapur.
+                                </p>
+                            </div>
                         ) : (
-                            <div className="divide-y divide-[oklch(0.80_0.038_88.5)]/15">
+                            <div className="divide-y divide-[#CFC0A4]/15">
                                 {activeOrders.map((order) => (
-                                    <div key={order.id} className="flex items-center justify-between px-6 py-4 transition-colors hover:bg-[oklch(0.80_0.038_88.5)]/5">
+                                    <div
+                                        key={order.id}
+                                        className="flex items-center justify-between px-6 py-4 transition-colors hover:bg-[#CFC0A4]/5"
+                                    >
                                         <div>
                                             <div className="flex items-center gap-2">
-                                                <span className="font-medium text-slate-800">Meja {order.table_code}</span>
-                                                <Badge variant="outline" className="border-[oklch(0.80_0.038_88.5)]/30 text-[11px] text-[oklch(0.48_0.032_195.5)]">
+                                                <span className="font-medium text-slate-800">
+                                                    Meja {order.table_code}
+                                                </span>
+                                                <Badge
+                                                    variant="outline"
+                                                    className="border-[#CFC0A4]/30 text-[11px] text-[#4F6B6A]"
+                                                >
                                                     {order.items_count} item
                                                 </Badge>
                                             </div>
@@ -155,8 +221,12 @@ export default function Dashboard({
                                                 {order.created_at}
                                             </p>
                                         </div>
-                                        <Badge className={`border-none font-semibold ${order.status === 'pending' ? 'bg-[oklch(0.80_0.038_88.5)]/20 text-[oklch(0.80_0.038_88.5)]' : 'bg-[oklch(0.48_0.032_195.5)]/12 text-[oklch(0.48_0.032_195.5)]'}`}>
-                                            {order.status === 'pending' ? 'Menunggu' : 'Diproses'}
+                                        <Badge
+                                            className={`border-none font-semibold ${order.status === 'pending' ? 'bg-[#CFC0A4]/20 text-[#CFC0A4]' : 'bg-[#4F6B6A]/12 text-[#4F6B6A]'}`}
+                                        >
+                                            {order.status === 'pending'
+                                                ? 'Menunggu'
+                                                : 'Diproses'}
                                         </Badge>
                                     </div>
                                 ))}
@@ -165,30 +235,62 @@ export default function Dashboard({
                     </CardContent>
                 </Card>
 
-                <Card className="border-[oklch(0.80_0.038_88.5)]/40 bg-white/80 shadow-sm backdrop-blur-sm">
-                    <CardHeader className="border-b border-[oklch(0.80_0.038_88.5)]/20">
-                        <CardTitle className="flex items-center gap-2 font-serif text-lg font-medium text-[oklch(0.48_0.032_195.5)]">
-                            <TrendingUp className="size-5 text-[oklch(0.80_0.038_88.5)]" />
+                <Card className="border-[#CFC0A4]/40 bg-white shadow-sm backdrop-blur-sm">
+                    <CardHeader className="border-b border-[#CFC0A4]/20">
+                        <CardTitle className="flex items-center gap-2 font-serif text-lg font-medium text-[#4F6B6A]">
+                            <TrendingUp className="size-5 text-[#CFC0A4]" />
                             Menu Terlaris Hari Ini
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-0">
                         {topMenus.length === 0 ? (
-                            <p className="py-8 text-center text-sm italic text-slate-500">Belum ada data penjualan.</p>
+                            <div className="flex flex-col items-center px-6 py-12 text-center">
+                                <div
+                                    className="mb-4 flex size-16 items-center justify-center rounded-2xl"
+                                    style={{ backgroundColor: INK_LIGHT }}
+                                >
+                                    <TrendingUp
+                                        className="size-8"
+                                        style={{ color: INK }}
+                                    />
+                                </div>
+                                <h3
+                                    className="font-serif text-xl font-bold"
+                                    style={{ color: INK }}
+                                >
+                                    Belum Ada Data
+                                </h3>
+                                <p
+                                    className="mt-1 max-w-sm text-sm"
+                                    style={{ color: 'oklch(0.60 0.03 88.5)' }}
+                                >
+                                    Belum ada penjualan menu hari ini.
+                                </p>
+                            </div>
                         ) : (
-                            <div className="divide-y divide-[oklch(0.80_0.038_88.5)]/15">
+                            <div className="divide-y divide-[#CFC0A4]/15">
                                 {topMenus.map((menu, i) => (
-                                    <div key={menu.id} className="flex items-center justify-between px-6 py-4 transition-colors hover:bg-[oklch(0.80_0.038_88.5)]/5">
+                                    <div
+                                        key={menu.id}
+                                        className="flex items-center justify-between px-6 py-4 transition-colors hover:bg-[#CFC0A4]/5"
+                                    >
                                         <div className="flex items-center gap-3">
-                                            <span className="flex size-7 items-center justify-center rounded-full bg-[oklch(0.48_0.032_195.5)]/10 text-xs font-bold text-[oklch(0.48_0.032_195.5)]">
+                                            <span className="flex size-7 items-center justify-center rounded-full bg-[#4F6B6A]/10 text-xs font-bold text-[#4F6B6A]">
                                                 {i + 1}
                                             </span>
-                                            <span className="font-medium text-slate-800">{menu.name}</span>
+                                            <span className="font-medium text-slate-800">
+                                                {menu.name}
+                                            </span>
                                         </div>
                                         <div className="text-right">
-                                            <p className="text-sm font-semibold text-slate-800">{menu.total_qty}</p>
+                                            <p className="text-sm font-semibold text-slate-800">
+                                                {menu.total_qty}
+                                            </p>
                                             <p className="text-xs text-slate-400">
-                                                Rp {Number(menu.total_revenue).toLocaleString('id-ID')}
+                                                Rp{' '}
+                                                {Number(
+                                                    menu.total_revenue,
+                                                ).toLocaleString('id-ID')}
                                             </p>
                                         </div>
                                     </div>
@@ -199,36 +301,80 @@ export default function Dashboard({
                 </Card>
             </div>
 
-            <Card className="border-[oklch(0.80_0.038_88.5)]/40 bg-white/80 shadow-sm backdrop-blur-sm">
-                <CardHeader className="border-b border-[oklch(0.80_0.038_88.5)]/20">
-                    <CardTitle className="flex items-center gap-2 font-serif text-lg font-medium text-[oklch(0.48_0.032_195.5)]">
-                        <Users className="size-5 text-[oklch(0.80_0.038_88.5)]" />
+            <Card className="border-[#CFC0A4]/40 bg-white shadow-sm backdrop-blur-sm">
+                <CardHeader className="border-b border-[#CFC0A4]/20">
+                    <CardTitle className="flex items-center gap-2 font-serif text-lg font-medium text-[#4F6B6A]">
+                        <Users className="size-5 text-[#CFC0A4]" />
                         Kehadiran Karyawan Hari Ini
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
                     {todayAttendances.length === 0 ? (
-                        <p className="py-8 text-center text-sm italic text-slate-500">Belum ada data kehadiran.</p>
+                        <div className="flex flex-col items-center px-6 py-12 text-center">
+                            <div
+                                className="mb-4 flex size-16 items-center justify-center rounded-2xl"
+                                style={{ backgroundColor: INK_LIGHT }}
+                            >
+                                <Users
+                                    className="size-8"
+                                    style={{ color: INK }}
+                                />
+                            </div>
+                            <h3
+                                className="font-serif text-xl font-bold"
+                                style={{ color: INK }}
+                            >
+                                Belum Ada Kehadiran
+                            </h3>
+                            <p
+                                className="mt-1 max-w-sm text-sm"
+                                style={{ color: 'oklch(0.60 0.03 88.5)' }}
+                            >
+                                Belum ada karyawan yang melakukan absensi hari
+                                ini.
+                            </p>
+                        </div>
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm">
                                 <thead>
-                                    <tr className="border-b border-[oklch(0.80_0.038_88.5)]/20 bg-[oklch(0.48_0.032_195.5)]/5 text-left text-xs uppercase tracking-wider text-[oklch(0.48_0.032_195.5)]">
-                                        <th className="px-6 py-3.5 font-semibold">Nama</th>
-                                        <th className="px-6 py-3.5 font-semibold">Posisi</th>
-                                        <th className="px-6 py-3.5 font-semibold">Jam Masuk</th>
-                                        <th className="px-6 py-3.5 font-semibold">Status</th>
+                                    <tr className="border-b border-[#CFC0A4]/20 bg-[#4F6B6A]/5 text-left text-xs tracking-wider text-[#4F6B6A] uppercase">
+                                        <th className="px-6 py-3.5 font-semibold">
+                                            Nama
+                                        </th>
+                                        <th className="px-6 py-3.5 font-semibold">
+                                            Posisi
+                                        </th>
+                                        <th className="px-6 py-3.5 font-semibold">
+                                            Jam Masuk
+                                        </th>
+                                        <th className="px-6 py-3.5 font-semibold">
+                                            Status
+                                        </th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-[oklch(0.80_0.038_88.5)]/15">
+                                <tbody className="divide-y divide-[#CFC0A4]/15">
                                     {todayAttendances.map((att) => (
-                                        <tr key={att.id} className="transition-colors hover:bg-[oklch(0.80_0.038_88.5)]/5">
-                                            <td className="px-6 py-4 font-medium text-slate-800">{att.name}</td>
-                                            <td className="px-6 py-4 text-slate-500">{att.position}</td>
-                                            <td className="px-6 py-4 text-slate-500">{att.clock_in || '-'}</td>
+                                        <tr
+                                            key={att.id}
+                                            className="transition-colors hover:bg-[#CFC0A4]/5"
+                                        >
+                                            <td className="px-6 py-4 font-medium text-slate-800">
+                                                {att.name}
+                                            </td>
+                                            <td className="px-6 py-4 text-slate-500">
+                                                {att.position}
+                                            </td>
+                                            <td className="px-6 py-4 text-slate-500">
+                                                {att.clock_in || '-'}
+                                            </td>
                                             <td className="px-6 py-4">
-                                                <Badge className={`border-none font-semibold ${att.clock_in ? 'bg-[oklch(0.48_0.032_195.5)]/12 text-[oklch(0.48_0.032_195.5)]' : 'bg-[oklch(0.80_0.038_88.5)]/20 text-[oklch(0.80_0.038_88.5)]'}`}>
-                                                    {att.clock_in ? 'Hadir' : 'Belum Absen'}
+                                                <Badge
+                                                    className={`border-none font-semibold ${att.clock_in ? 'bg-[#4F6B6A]/12 text-[#4F6B6A]' : 'bg-[#CFC0A4]/20 text-[#CFC0A4]'}`}
+                                                >
+                                                    {att.clock_in
+                                                        ? 'Hadir'
+                                                        : 'Belum Absen'}
                                                 </Badge>
                                             </td>
                                         </tr>

@@ -1,5 +1,14 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import { Download, Plus, Printer, RefreshCw, Trash2, Search, Table2, Sparkles, Pencil } from 'lucide-react';
+import {
+    Download,
+    Plus,
+    Printer,
+    RefreshCw,
+    Trash2,
+    Table2,
+    Sparkles,
+    Pencil,
+} from 'lucide-react';
 import QRCode from 'qrcode';
 import { useEffect, useRef, useState } from 'react';
 import InputError from '@/components/input-error';
@@ -77,7 +86,11 @@ function TableCard({
             QRCode.toCanvas(
                 canvasRef.current,
                 `${window.location.origin}/t/${table.table_token}`,
-                { width: 140, margin: 1, color: { dark: '#233433', light: '#FFFFFF' } },
+                {
+                    width: 140,
+                    margin: 1,
+                    color: { dark: '#233433', light: '#FFFFFF' },
+                },
             ).catch(console.error);
         }
     }, [table.table_token]);
@@ -86,6 +99,7 @@ function TableCard({
         const spacing = 32;
         const dotR = 1.5;
         ctx.fillStyle = 'rgba(79,107,106,0.06)';
+
         for (let x = spacing; x < w; x += spacing) {
             for (let y = spacing; y < h; y += spacing) {
                 ctx.beginPath();
@@ -97,7 +111,10 @@ function TableCard({
 
     async function renderCard() {
         const qrCanvas = canvasRef.current;
-        if (!qrCanvas) return null;
+
+        if (!qrCanvas) {
+return null;
+}
 
         const size = 600;
         const qrSize = 200;
@@ -105,7 +122,10 @@ function TableCard({
         card.width = size;
         card.height = size;
         const ctx = card.getContext('2d');
-        if (!ctx) return null;
+
+        if (!ctx) {
+return null;
+}
 
         const bg = '#F6F2E9';
         const primary = '#4F6B6A';
@@ -133,11 +153,19 @@ function TableCard({
 
         const logoSize = 56;
         const logoX = (size - logoSize) / 2;
-        let logoY = 56;
+        const logoY = 56;
+
         if (logo.complete && logo.naturalWidth > 0) {
             ctx.save();
             ctx.beginPath();
-            roundRect(ctx, logoX - 8, logoY - 8, logoSize + 16, logoSize + 16, 14);
+            roundRect(
+                ctx,
+                logoX - 8,
+                logoY - 8,
+                logoSize + 16,
+                logoSize + 16,
+                14,
+            );
             ctx.clip();
             ctx.drawImage(logo, logoX, logoY, logoSize, logoSize);
             ctx.restore();
@@ -189,12 +217,23 @@ function TableCard({
 
         ctx.fillStyle = border;
         ctx.font = '10px sans-serif';
-        ctx.fillText(`${window.location.origin}/t/${table.table_token}`, size / 2, size - 52);
+        ctx.fillText(
+            `${window.location.origin}/t/${table.table_token}`,
+            size / 2,
+            size - 52,
+        );
 
         return card;
     }
 
-    function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+    function roundRect(
+        ctx: CanvasRenderingContext2D,
+        x: number,
+        y: number,
+        w: number,
+        h: number,
+        r: number,
+    ) {
         ctx.moveTo(x + r, y);
         ctx.lineTo(x + w - r, y);
         ctx.quadraticCurveTo(x + w, y, x + w, y + r);
@@ -210,7 +249,10 @@ function TableCard({
     async function downloadQR() {
         try {
             const card = await renderCard();
-            if (!card) return;
+
+            if (!card) {
+return;
+}
 
             const link = document.createElement('a');
             link.download = `meja-${table.code}-qr.png`;
@@ -224,10 +266,16 @@ function TableCard({
     async function printQR() {
         try {
             const card = await renderCard();
-            if (!card) return;
+
+            if (!card) {
+return;
+}
 
             const win = window.open('', '_blank');
-            if (!win) return;
+
+            if (!win) {
+return;
+}
 
             win.document.write(`
                 <html>
@@ -251,38 +299,48 @@ function TableCard({
     }
 
     const statusConfig: Record<string, { label: string; className: string }> = {
-        available: { label: 'Tersedia', className: 'border border-[oklch(0.80_0.038_88.5)]/30 bg-[oklch(0.48_0.032_195.5)] text-xs font-normal tracking-wide text-white' },
-        occupied: { label: 'Terisi', className: 'border border-slate-200 bg-slate-100 text-xs font-normal text-slate-500' },
-        reserved: { label: 'Reserved', className: 'border border-amber-200 bg-amber-50 text-xs font-normal text-amber-700' },
+        available: {
+            label: 'Tersedia',
+            className:
+                'border border-[#CFC0A4]/30 bg-[#4F6B6A] text-xs font-normal tracking-wide text-white',
+        },
+        occupied: {
+            label: 'Terisi',
+            className:
+                'border border-slate-200 bg-slate-100 text-xs font-normal text-slate-500',
+        },
+        reserved: {
+            label: 'Reserved',
+            className:
+                'border border-amber-200 bg-amber-50 text-xs font-normal text-amber-700',
+        },
     };
 
     const status = statusConfig[table.status] ?? statusConfig.available;
 
     return (
-        <Card className="group overflow-hidden border-[oklch(0.80_0.038_88.5)]/40 bg-white/80 shadow-sm backdrop-blur-sm transition-all duration-300 hover:border-[oklch(0.80_0.038_88.5)] hover:shadow-md">
+        <Card className="group overflow-hidden border-[#CFC0A4]/40 bg-white shadow-sm backdrop-blur-sm transition-all duration-300 hover:border-[#CFC0A4] hover:shadow-md">
             {/* QR Code Container */}
-            <div className="relative flex items-center justify-center border-b border-[oklch(0.80_0.038_88.5)]/20 bg-gradient-to-br from-[oklch(0.48_0.032_195.5)]/5 to-[oklch(0.80_0.038_88.5)]/10 p-4">
+            <div className="relative flex items-center justify-center border-b border-[#CFC0A4]/20 bg-gradient-to-br from-[#4F6B6A]/5 to-[#CFC0A4]/10 p-4">
                 <canvas ref={canvasRef} className="size-[140px]" />
 
                 {/* Floating Badge */}
-                <div className="absolute right-3 top-3">
-                    <Badge className={status.className}>
-                        {status.label}
-                    </Badge>
+                <div className="absolute top-3 right-3">
+                    <Badge className={status.className}>{status.label}</Badge>
                 </div>
             </div>
 
             {/* Card Header */}
-            <CardHeader className="pb-2 pt-4">
+            <CardHeader className="pt-4 pb-2">
                 <div className="flex items-start justify-between gap-2">
                     <div>
-                        <Badge className="border border-primary bg-secondary/30 text-xs font-normal text-primary rounded-full">
+                        <Badge className="rounded-full border border-primary bg-secondary/30 text-xs font-normal text-primary">
                             {table.floor ?? 'Tanpa Lantai'}
                         </Badge>
-                        <h3 className="font-serif mt-1 text-xl font-medium tracking-tight text-[oklch(0.48_0.032_195.5)] group-hover:text-[oklch(0.38_0.032_195.5)]">
+                        <h3 className="mt-1 font-serif text-xl font-medium tracking-tight text-[#4F6B6A] group-hover:text-[#3B5655]">
                             {table.code}
                         </h3>
-                        <p className="mt-1 text-xs italic text-slate-500">
+                        <p className="mt-1 text-xs text-slate-500 italic">
                             {table.capacity} orang
                         </p>
                     </div>
@@ -291,7 +349,7 @@ function TableCard({
 
             {/* Card Content & Actions */}
             <CardContent className="pt-2">
-                <div className="flex items-center justify-between border-t border-[oklch(0.80_0.038_88.5)]/20 pt-3">
+                <div className="flex items-center justify-between border-t border-[#CFC0A4]/20 pt-3">
                     <div className="flex items-center gap-1">
                         <Button
                             variant="secondary"
@@ -329,7 +387,7 @@ function TableCard({
                             variant="ghost"
                             size="icon"
                             onClick={() => onEdit(table)}
-                            className="size-8 bg-primary text-secondary hover:bg-primary/70 hover:text-secondary transition-colors"
+                            className="size-8 bg-primary text-secondary transition-colors hover:bg-primary/70 hover:text-secondary"
                             title="Edit Meja"
                         >
                             <Pencil className="size-4" />
@@ -354,11 +412,19 @@ function TableCard({
 export default function TablesIndex({ tables, floors, filters }: Props) {
     const [open, setOpen] = useState(false);
     const [editing, setEditing] = useState<TableData | null>(null);
-    const [selectedTable, setSelectedTable] = useState<TableData | null>(null);
     const [deleteConfirm, setDeleteConfirm] = useState<TableData | null>(null);
     const [filterFloor, setFilterFloor] = useState(filters.floor ?? '');
 
-    const { data, setData, post, put, delete: destroy, processing, errors, reset } = useForm({
+    const {
+        data,
+        setData,
+        post,
+        put,
+        delete: destroy,
+        processing,
+        errors,
+        reset,
+    } = useForm({
         code: '',
         capacity: '4',
         floor: '',
@@ -418,39 +484,47 @@ export default function TablesIndex({ tables, floors, filters }: Props) {
     }
 
     function confirmDelete() {
-        if (!deleteConfirm) return;
+        if (!deleteConfirm) {
+return;
+}
+
         destroy(`/admin/tables/${deleteConfirm.id}`);
         setDeleteConfirm(null);
     }
 
-    const [tokenToRegenerate, setTokenToRegenerate] = useState<number | null>(null);
+    const [tokenToRegenerate, setTokenToRegenerate] = useState<number | null>(
+        null,
+    );
 
     function regenerateToken(tableId: number) {
         setTokenToRegenerate(tableId);
     }
 
     function confirmRegenerateToken() {
-        if (tokenToRegenerate === null) return;
+        if (tokenToRegenerate === null) {
+return;
+}
+
         router.post(`/admin/tables/${tokenToRegenerate}/regenerate-token`);
         setTokenToRegenerate(null);
     }
 
     return (
-        <div className="min-h-screen bg-[oklch(0.98_0.005_85.0)] p-6 font-sans text-slate-800">
+        <div className="min-h-screen bg-[#F6F2E9] p-6 font-sans text-slate-800">
             <Head title="Meja - European Classic" />
 
-            <div className="mx-auto max-w-7xl">             
+            <div className="mx-auto max-w-7xl">
                 {/* Header Section */}
-                <div className="mb-8 flex flex-col justify-between gap-4 border-b border-[oklch(0.80_0.038_88.5)]/40 pb-6 sm:flex-row sm:items-end">
+                <div className="mb-8 flex flex-col justify-between gap-4 border-b border-[#CFC0A4]/40 pb-6 sm:flex-row sm:items-end">
                     <div>
-                        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.80_0.038_88.5)]">
-                            <Table2 className="size-3.5 text-[oklch(0.48_0.032_195.5)]" />
+                        <div className="flex items-center gap-2 text-xs font-semibold tracking-[0.2em] text-[#CFC0A4] uppercase">
+                            <Table2 className="size-3.5 text-[#4F6B6A]" />
                             <span>Pengaturan Tempat Duduk</span>
                         </div>
-                        <h1 className="mt-1 font-serif text-3xl font-bold tracking-tight text-[oklch(0.48_0.032_195.5)]">
+                        <h1 className="mt-1 font-serif text-3xl font-bold tracking-tight text-[#4F6B6A]">
                             Daftar Meja
                         </h1>
-                        <p className="mt-1 text-sm italic text-slate-500">
+                        <p className="mt-1 text-sm text-slate-500 italic">
                             Kelola meja dan QR code pemesanan restoran Anda.
                         </p>
                     </div>
@@ -458,13 +532,15 @@ export default function TablesIndex({ tables, floors, filters }: Props) {
                     <Dialog open={open} onOpenChange={setOpen}>
                         <DialogTrigger asChild>
                             <Button onClick={openCreate}>
-                                <Plus className="size-4 text-[oklch(0.80_0.038_88.5)]" />
-                                <span className="font-medium tracking-wide">Tambah Meja</span>
+                                <Plus className="size-4 text-[#CFC0A4]" />
+                                <span className="font-medium tracking-wide">
+                                    Tambah Meja
+                                </span>
                             </Button>
                         </DialogTrigger>
-                        <DialogContent className="border-[oklch(0.80_0.038_88.5)]/40 bg-[oklch(0.98_0.005_85.0)]">
+                        <DialogContent className="border-[#CFC0A4]/40 bg-[#F6F2E9]">
                             <DialogHeader>
-                                <DialogTitle className="font-serif text-xl text-[oklch(0.48_0.032_195.5)]">
+                                <DialogTitle className="font-serif text-xl text-[#4F6B6A]">
                                     {editing ? 'Edit Meja' : 'Tambah Meja'}
                                 </DialogTitle>
                             </DialogHeader>
@@ -474,9 +550,11 @@ export default function TablesIndex({ tables, floors, filters }: Props) {
                                     <Input
                                         id="code"
                                         value={data.code}
-                                        onChange={(e) => setData('code', e.target.value)}
+                                        onChange={(e) =>
+                                            setData('code', e.target.value)
+                                        }
                                         placeholder="Contoh: A1, B2"
-                                        className="border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 focus-visible:border-[oklch(0.48_0.032_195.5)] focus-visible:ring-[oklch(0.48_0.032_195.5)]"
+                                        className="border-[#CFC0A4]/50 bg-white focus-visible:border-[#4F6B6A] focus-visible:ring-[#4F6B6A]"
                                     />
                                     <InputError message={errors.code} />
                                 </div>
@@ -488,8 +566,10 @@ export default function TablesIndex({ tables, floors, filters }: Props) {
                                         min="1"
                                         max="20"
                                         value={data.capacity}
-                                        onChange={(e) => setData('capacity', e.target.value)}
-                                        className="border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 focus-visible:border-[oklch(0.48_0.032_195.5)] focus-visible:ring-[oklch(0.48_0.032_195.5)]"
+                                        onChange={(e) =>
+                                            setData('capacity', e.target.value)
+                                        }
+                                        className="border-[#CFC0A4]/50 bg-white focus-visible:border-[#4F6B6A] focus-visible:ring-[#4F6B6A]"
                                     />
                                     <InputError message={errors.capacity} />
                                 </div>
@@ -497,15 +577,24 @@ export default function TablesIndex({ tables, floors, filters }: Props) {
                                     <Label htmlFor="floor">Lantai / Area</Label>
                                     <Select
                                         value={data.floor || '__none__'}
-                                        onValueChange={(v) => setData('floor', v === '__none__' ? '' : v)}
+                                        onValueChange={(v) =>
+                                            setData(
+                                                'floor',
+                                                v === '__none__' ? '' : v,
+                                            )
+                                        }
                                     >
-                                        <SelectTrigger className="border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 focus:ring-[oklch(0.48_0.032_195.5)]">
+                                        <SelectTrigger className="border-[#CFC0A4]/50 bg-white focus:ring-[#4F6B6A]">
                                             <SelectValue placeholder="Pilih lantai" />
                                         </SelectTrigger>
-                                        <SelectContent className="border-[oklch(0.80_0.038_88.5)]/40 bg-[oklch(0.98_0.005_85.0)]">
-                                            <SelectItem value="__none__">Tidak ada</SelectItem>
+                                        <SelectContent className="border-[#CFC0A4]/40 bg-[#F6F2E9]">
+                                            <SelectItem value="__none__">
+                                                Tidak ada
+                                            </SelectItem>
                                             {floors.map((f) => (
-                                                <SelectItem key={f} value={f}>{f}</SelectItem>
+                                                <SelectItem key={f} value={f}>
+                                                    {f}
+                                                </SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
@@ -516,15 +605,23 @@ export default function TablesIndex({ tables, floors, filters }: Props) {
                                         <Label htmlFor="status">Status</Label>
                                         <Select
                                             value={data.status}
-                                            onValueChange={(v) => setData('status', v as any)}
+                                            onValueChange={(v) =>
+                                                setData('status', v as any)
+                                            }
                                         >
-                                            <SelectTrigger className="border-[oklch(0.80_0.038_88.5)]/50 bg-white/80 focus:ring-[oklch(0.48_0.032_195.5)]">
+                                            <SelectTrigger className="border-[#CFC0A4]/50 bg-white focus:ring-[#4F6B6A]">
                                                 <SelectValue />
                                             </SelectTrigger>
-                                            <SelectContent className="border-[oklch(0.80_0.038_88.5)]/40 bg-[oklch(0.98_0.005_85.0)]">
-                                                <SelectItem value="available">Tersedia</SelectItem>
-                                                <SelectItem value="occupied">Terisi</SelectItem>
-                                                <SelectItem value="reserved">Reserved</SelectItem>
+                                            <SelectContent className="border-[#CFC0A4]/40 bg-[#F6F2E9]">
+                                                <SelectItem value="available">
+                                                    Tersedia
+                                                </SelectItem>
+                                                <SelectItem value="occupied">
+                                                    Terisi
+                                                </SelectItem>
+                                                <SelectItem value="reserved">
+                                                    Reserved
+                                                </SelectItem>
                                             </SelectContent>
                                         </Select>
                                         <InputError message={errors.status} />
@@ -533,7 +630,7 @@ export default function TablesIndex({ tables, floors, filters }: Props) {
                                 <Button
                                     type="submit"
                                     disabled={processing}
-                                    className="w-full bg-[oklch(0.48_0.032_195.5)] text-white hover:bg-[oklch(0.42_0.032_195.5)]"
+                                    className="w-full bg-[#4F6B6A] text-white hover:bg-[#455F5E]"
                                 >
                                     {editing ? 'Simpan Perubahan' : 'Simpan'}
                                 </Button>
@@ -543,12 +640,12 @@ export default function TablesIndex({ tables, floors, filters }: Props) {
                 </div>
 
                 {/* Floor Filter Tabs */}
-                <div className="mb-8 inline-flex flex-wrap gap-1.5 rounded-xl border border-[oklch(0.80_0.038_88.5)]/30 bg-white/50 p-1.5">
+                <div className="mb-8 inline-flex flex-wrap gap-1.5 rounded-xl border border-[#CFC0A4]/30 bg-white/50 p-1.5">
                     <button
                         onClick={() => setFilterFloor('')}
                         className={`rounded-lg px-3.5 py-1.5 text-xs font-medium transition-all duration-200 ${
                             !filterFloor
-                                ? 'bg-[oklch(0.48_0.032_195.5)] text-white shadow-sm'
+                                ? 'bg-[#4F6B6A] text-white shadow-sm'
                                 : 'text-slate-500 hover:bg-white/60 hover:text-slate-700'
                         }`}
                     >
@@ -563,11 +660,13 @@ export default function TablesIndex({ tables, floors, filters }: Props) {
                                 onClick={() => setFilterFloor(f)}
                                 className={`rounded-lg px-3.5 py-1.5 text-xs font-medium transition-all duration-200 ${
                                     filterFloor === f
-                                        ? 'bg-[oklch(0.48_0.032_195.5)] text-white shadow-sm'
+                                        ? 'bg-[#4F6B6A] text-white shadow-sm'
                                         : 'text-slate-500 hover:bg-white/60 hover:text-slate-700'
                                 }`}
                             >
-                                <span className="mr-1 opacity-60">{icons[i] ?? ''}</span>
+                                <span className="mr-1 opacity-60">
+                                    {icons[i] ?? ''}
+                                </span>
                                 {f}
                             </button>
                         );
@@ -590,12 +689,15 @@ export default function TablesIndex({ tables, floors, filters }: Props) {
                     {tables.data.length === 0 && (
                         <div className="col-span-full py-16 text-center">
                             <div className="mx-auto flex max-w-sm flex-col items-center justify-center text-center">
-                                <div className="mb-3 rounded-full bg-[oklch(0.80_0.038_88.5)]/20 p-4 text-[oklch(0.48_0.032_195.5)]">
+                                <div className="mb-3 rounded-full bg-[#CFC0A4]/20 p-4 text-[#4F6B6A]">
                                     <Sparkles className="size-6" />
                                 </div>
-                                <h4 className="font-serif text-lg font-medium text-slate-700">Meja Tidak Ditemukan</h4>
-                                <p className="mt-1 text-xs italic text-slate-500">
-                                    Cobalah untuk mengganti filter lantai atau tambahkan meja baru.
+                                <h4 className="font-serif text-lg font-medium text-slate-700">
+                                    Meja Tidak Ditemukan
+                                </h4>
+                                <p className="mt-1 text-xs text-slate-500 italic">
+                                    Cobalah untuk mengganti filter lantai atau
+                                    tambahkan meja baru.
                                 </p>
                             </div>
                         </div>
@@ -604,29 +706,36 @@ export default function TablesIndex({ tables, floors, filters }: Props) {
 
                 {/* Pagination */}
                 <div className="mt-8">
-                    <hr className="border border-[oklch(0.80_0.038_88.5)]/40" />
+                    <hr className="border border-[#CFC0A4]/40" />
                     <Pagination meta={tables} />
                 </div>
 
                 {/* Delete Confirmation Dialog */}
-                <Dialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
-                    <DialogContent className="border-[oklch(0.80_0.038_88.5)]/40 bg-[oklch(0.98_0.005_85.0)] sm:max-w-md">
+                <Dialog
+                    open={!!deleteConfirm}
+                    onOpenChange={(open) => !open && setDeleteConfirm(null)}
+                >
+                    <DialogContent className="border-[#CFC0A4]/40 bg-[#F6F2E9] sm:max-w-md">
                         <DialogHeader>
                             <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-rose-100">
                                 <Trash2 className="size-6 text-rose-600" />
                             </div>
-                            <DialogTitle className="mt-2 text-center font-serif text-xl font-bold text-[oklch(0.48_0.032_195.5)]">
+                            <DialogTitle className="mt-2 text-center font-serif text-xl font-bold text-[#4F6B6A]">
                                 Hapus Meja
                             </DialogTitle>
                             <DialogDescription className="text-center text-slate-500">
-                                Apakah Anda yakin ingin menghapus meja <span className="font-semibold text-[oklch(0.48_0.032_195.5)]">{deleteConfirm?.code}</span>? Tindakan ini tidak dapat dibatalkan.
+                                Apakah Anda yakin ingin menghapus meja{' '}
+                                <span className="font-semibold text-[#4F6B6A]">
+                                    {deleteConfirm?.code}
+                                </span>
+                                ? Tindakan ini tidak dapat dibatalkan.
                             </DialogDescription>
                         </DialogHeader>
                         <DialogFooter className="gap-2 sm:justify-center">
                             <Button
                                 variant="ghost"
                                 onClick={() => setDeleteConfirm(null)}
-                                className="border border-[oklch(0.80_0.038_88.5)]/40 text-slate-600 hover:bg-[oklch(0.80_0.038_88.5)]/10"
+                                className="border border-[#CFC0A4]/40 text-slate-600 hover:bg-[#CFC0A4]/10"
                             >
                                 Batal
                             </Button>
@@ -642,24 +751,28 @@ export default function TablesIndex({ tables, floors, filters }: Props) {
                 </Dialog>
 
                 {/* Token Regeneration Confirmation Dialog */}
-                <Dialog open={tokenToRegenerate !== null} onOpenChange={(open) => !open && setTokenToRegenerate(null)}>
-                    <DialogContent className="border-[oklch(0.80_0.038_88.5)]/40 bg-[oklch(0.98_0.005_85.0)] sm:max-w-md">
+                <Dialog
+                    open={tokenToRegenerate !== null}
+                    onOpenChange={(open) => !open && setTokenToRegenerate(null)}
+                >
+                    <DialogContent className="border-[#CFC0A4]/40 bg-[#F6F2E9] sm:max-w-md">
                         <DialogHeader>
                             <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-amber-100">
                                 <RefreshCw className="size-6 text-amber-600" />
                             </div>
-                            <DialogTitle className="mt-2 text-center font-serif text-xl font-bold text-[oklch(0.48_0.032_195.5)]">
+                            <DialogTitle className="mt-2 text-center font-serif text-xl font-bold text-[#4F6B6A]">
                                 Regenerasi Token QR
                             </DialogTitle>
                             <DialogDescription className="text-center text-slate-500">
-                                Apakah Anda yakin ingin menghapus token QR? Tautan QR sebelumnya tidak akan berfungsi lagi.
+                                Apakah Anda yakin ingin menghapus token QR?
+                                Tautan QR sebelumnya tidak akan berfungsi lagi.
                             </DialogDescription>
                         </DialogHeader>
                         <DialogFooter className="gap-2 sm:justify-center">
                             <Button
                                 variant="ghost"
                                 onClick={() => setTokenToRegenerate(null)}
-                                className="border border-[oklch(0.80_0.038_88.5)]/40 text-slate-600 hover:bg-[oklch(0.80_0.038_88.5)]/10"
+                                className="border border-[#CFC0A4]/40 text-slate-600 hover:bg-[#CFC0A4]/10"
                             >
                                 Batal
                             </Button>

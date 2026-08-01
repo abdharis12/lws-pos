@@ -9,7 +9,6 @@ import { dashboard, login } from '@/routes';
 const CREAM = '#F6F2E9';
 const PRIMARY = '#4F6B6A';
 const INK = '#25332F';
-const SAND = '#CFC0A4';
 
 const features = [
     {
@@ -57,11 +56,7 @@ const steps = [
     { label: 'Dapur Masak', detail: 'Order muncul realtime di KDS' },
 ];
 
-const stats = [
-    { value: '40%', label: 'Efisiensi operasional' },
-    { value: '<3', label: 'Detik konfirmasi bayar' },
-    { value: '100%', label: 'Order tercatat otomatis' },
-];
+
 
 export default function Welcome() {
     const { auth } = usePage().props;

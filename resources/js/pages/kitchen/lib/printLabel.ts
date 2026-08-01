@@ -16,7 +16,9 @@ export interface LabelData {
 }
 
 export function printLabel(iframe: HTMLIFrameElement | null, data: LabelData): void {
-    if (!iframe?.contentWindow) return;
+    if (!iframe?.contentWindow) {
+return;
+}
 
     const timeStr = new Date(data.createdAt).toLocaleTimeString('id-ID', {
         hour: '2-digit', minute: '2-digit',
@@ -24,13 +26,17 @@ export function printLabel(iframe: HTMLIFrameElement | null, data: LabelData): v
     const dateStr = new Date(data.createdAt).toLocaleDateString('id-ID', {
         day: 'numeric', month: 'short',
     });
-    const tableInfo = data.tableCode ? `Meja ${data.tableCode}` : 'Bungkus';
     const orderTypeLabel = data.orderType === 'takeaway' ? 'BUNGKUS' : `MEJA ${data.tableCode ?? '—'}`;
 
     const groupedByStation: Record<string, LabelItem[]> = {};
+
     for (const item of data.items) {
         const key = data.station || 'Lainnya';
-        if (!groupedByStation[key]) groupedByStation[key] = [];
+
+        if (!groupedByStation[key]) {
+groupedByStation[key] = [];
+}
+
         groupedByStation[key].push(item);
     }
 

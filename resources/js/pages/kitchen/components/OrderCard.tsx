@@ -12,35 +12,46 @@ interface Props {
     onPrint?: () => void;
 }
 
-export default function OrderCard({ order, isNew, stationName, onPrint }: Props) {
+export default function OrderCard({
+    order,
+    isNew,
+    stationName,
+    onPrint,
+}: Props) {
     const [loading, setLoading] = useState(false);
     const [checkedItems, setCheckedItems] = useState<Set<number>>(new Set());
     const statusCfg = getStatusConfig(order.status);
 
     function handleAction(status: 'processing' | 'ready') {
         setLoading(true);
-        router.patch(`/orders/${order.id}/status`, { status }, {
-            preserveState: true,
-            onFinish: () => setLoading(false),
-        });
+        router.patch(
+            `/orders/${order.id}/status`,
+            { status },
+            {
+                preserveState: true,
+                onFinish: () => setLoading(false),
+            },
+        );
     }
 
     function toggleItem(itemId: number) {
-        setCheckedItems(prev => {
+        setCheckedItems((prev) => {
             const next = new Set(prev);
 
             if (next.has(itemId)) {
-next.delete(itemId);
-} else {
-next.add(itemId);
-}
+                next.delete(itemId);
+            } else {
+                next.add(itemId);
+            }
 
             return next;
         });
     }
 
-    const allChecked = order.items.length > 0 && order.items.every(i => checkedItems.has(i.id));
-    const hasNotes = order.items.some(i => i.notes);
+    const allChecked =
+        order.items.length > 0 &&
+        order.items.every((i) => checkedItems.has(i.id));
+    const hasNotes = order.items.some((i) => i.notes);
     const floor = order.table_session?.table?.floor;
     const tableCode = order.table_session?.table?.code;
     const showStation = stationName && stationName !== 'Lainnya';
@@ -52,15 +63,15 @@ next.add(itemId);
                 isNew ? 'border-emerald-500/40' : 'border-transparent',
             )}
             style={{
-                backgroundColor: 'rgba(30,41,59,0.6)',
+                backgroundColor: 'rgba(35,52,51,0.6)',
                 backdropFilter: 'blur(8px)',
                 boxShadow: isNew
                     ? '0 0 30px rgba(34,197,94,0.15), inset 0 1px 0 rgba(255,255,255,0.05)'
                     : '0 1px 3px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.04)',
             }}
         >
-
-            <div className="absolute bottom-0 left-0 right-0 h-32 rounded-b-xl opacity-[0.03]"
+            <div
+                className="absolute right-0 bottom-0 left-0 h-32 rounded-b-xl opacity-[0.03]"
                 style={{
                     background: `linear-gradient(to top, ${statusCfg.color}, transparent)`,
                 }}
@@ -69,8 +80,12 @@ next.add(itemId);
             <div className="relative z-10 min-w-0 p-4">
                 <div className="mb-2 flex items-center justify-between gap-2">
                     <div className="flex items-center gap-1.5">
-                        <span className="flex shrink-0 size-7 items-center justify-center rounded-lg text-xs font-bold"
-                            style={{ backgroundColor: 'rgba(79,107,106,0.2)', color: '#CFC0A4' }}
+                        <span
+                            className="flex size-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold"
+                            style={{
+                                backgroundColor: 'rgba(79,107,106,0.2)',
+                                color: '#CFC0A4',
+                            }}
                         >
                             #{order.id}
                         </span>
@@ -79,10 +94,17 @@ next.add(itemId);
                         </span>
                     </div>
                     <div className="flex items-center gap-2">
-                        <span className="flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium"
-                            style={{ backgroundColor: `${statusCfg.color}18`, color: statusCfg.color }}
+                        <span
+                            className="flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium"
+                            style={{
+                                backgroundColor: `${statusCfg.color}18`,
+                                color: statusCfg.color,
+                            }}
                         >
-                            <span className="size-1.5 rounded-full" style={{ backgroundColor: statusCfg.dotColor }} />
+                            <span
+                                className="size-1.5 rounded-full"
+                                style={{ backgroundColor: statusCfg.dotColor }}
+                            />
                             {statusCfg.label}
                         </span>
                         {onPrint && (
@@ -97,21 +119,31 @@ next.add(itemId);
                     </div>
                 </div>
                 {(floor || order.customer_name || showStation) && (
-                    <div className="flex flex-wrap items-center gap-1.5 pl-8 pb-3">
+                    <div className="flex flex-wrap items-center gap-1.5 pb-3 pl-8">
                         {floor && (
-                            <span className="flex shrink-0 items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[10px] font-medium"
-                                style={{ backgroundColor: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)' }}
+                            <span
+                                className="flex shrink-0 items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[10px] font-medium"
+                                style={{
+                                    backgroundColor: 'rgba(255,255,255,0.06)',
+                                    color: 'rgba(255,255,255,0.5)',
+                                }}
                             >
                                 <MapPin className="size-2.5" />
                                 {floor}
                             </span>
                         )}
                         {order.customer_name && (
-                            <span className="truncate text-[11px] text-white/50">{order.customer_name}</span>
+                            <span className="truncate text-[11px] text-white/50">
+                                {order.customer_name}
+                            </span>
                         )}
                         {showStation && (
-                            <span className="flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium"
-                                style={{ backgroundColor: 'rgba(79,107,106,0.2)', color: '#CFC0A4' }}
+                            <span
+                                className="flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium"
+                                style={{
+                                    backgroundColor: 'rgba(79,107,106,0.2)',
+                                    color: '#CFC0A4',
+                                }}
                             >
                                 {stationIcon(stationName)}
                                 {stationName}
@@ -121,7 +153,7 @@ next.add(itemId);
                 )}
 
                 <div className="min-w-0 space-y-1">
-                    {order.items.map(item => {
+                    {order.items.map((item) => {
                         const checked = checkedItems.has(item.id);
 
                         return (
@@ -151,9 +183,18 @@ next.add(itemId);
                                 >
                                     {item.qty}x
                                 </span>
-                                <span className={cn('min-w-0 truncate text-white', checked && 'line-through')}>{item.menu.name}</span>
+                                <span
+                                    className={cn(
+                                        'min-w-0 truncate text-white',
+                                        checked && 'line-through',
+                                    )}
+                                >
+                                    {item.menu.name}
+                                </span>
                                 {item.notes && (
-                                    <span className="shrink-0 text-[10px] italic text-amber-400/80">📝</span>
+                                    <span className="shrink-0 text-[10px] text-amber-400/80 italic">
+                                        📝
+                                    </span>
                                 )}
                             </div>
                         );
@@ -161,22 +202,37 @@ next.add(itemId);
                 </div>
 
                 {hasNotes && (
-                    <div className="mb-3 mt-2 overflow-hidden space-y-1 rounded-lg p-2 text-xs"
-                        style={{ backgroundColor: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.15)' }}
+                    <div
+                        className="mt-2 mb-3 space-y-1 overflow-hidden rounded-lg p-2 text-xs"
+                        style={{
+                            backgroundColor: 'rgba(251,191,36,0.08)',
+                            border: '1px solid rgba(251,191,36,0.15)',
+                        }}
                     >
-                        {order.items.filter(i => i.notes).map(i => (
-                            <p key={i.id} className="truncate text-amber-300/80">
-                                <strong className="text-amber-200">{i.menu.name}:</strong> {i.notes}
-                            </p>
-                        ))}
+                        {order.items
+                            .filter((i) => i.notes)
+                            .map((i) => (
+                                <p
+                                    key={i.id}
+                                    className="truncate text-amber-300/80"
+                                >
+                                    <strong className="text-amber-200">
+                                        {i.menu.name}:
+                                    </strong>{' '}
+                                    {i.notes}
+                                </p>
+                            ))}
                     </div>
                 )}
 
-                <div className="mt-3 flex items-center justify-between gap-2 border-t pt-3"
+                <div
+                    className="mt-3 flex items-center justify-between gap-2 border-t pt-3"
                     style={{ borderColor: 'rgba(255,255,255,0.06)' }}
                 >
                     <div className="flex items-center gap-1.5">
-                        <span className="text-[11px] text-white/40">{order.items.length} item</span>
+                        <span className="text-[11px] text-white/40">
+                            {order.items.length} item
+                        </span>
                         {allChecked && (
                             <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-medium text-emerald-400">
                                 Semua selesai

@@ -104,12 +104,12 @@ return null;
 }
 
         const sub = subtotal;
-        const tx = Math.round(sub * 0.10);
-        const sc = Math.round(sub * 0.05);
+        const tx = Math.round(sub * 0.10 / 500) * 500;
+        const sc = Math.round(sub * 0.05 / 500) * 500;
         const discountAmount = discountType === 'percentage' && discountValue > 0
-            ? Math.min(sub * (discountValue / 100), sub)
+            ? Math.round(Math.min(sub * (discountValue / 100), sub) / 500) * 500
             : discountType === 'nominal' && discountValue > 0
-                ? Math.min(discountValue, sub)
+                ? Math.round(Math.min(discountValue, sub) / 500) * 500
                 : 0;
         const totalBeforeCharge = sub + tx + sc - discountAmount;
         const mc = Math.round(totalBeforeCharge * 2.5 / 100 / 100) * 100;

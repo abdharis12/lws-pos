@@ -1,6 +1,6 @@
 import { Head, useForm, router, usePage } from '@inertiajs/react';
 import { Search, ShoppingCart, Move, ArrowRightLeft, HandPlatter, Trash2 } from 'lucide-react';
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -21,9 +21,9 @@ import SplitBillDialog from './dialogs/SplitBillDialog';
 import SuccessDialog from './dialogs/SuccessDialog';
 import { posFetchJson } from './lib/api';
 import { orderTypeLabel } from './lib/format';
-import { calcSubtotal, calcDiscount, calcTax, roundPrice } from './lib/pricing';
+import { calcSubtotal, calcDiscount, calcTax } from './lib/pricing';
 import { printReceipt } from './lib/receipt';
-import type { CartItem, MenuItem, PendingOrder, PosPageProps, OrderData, PrintReceiptData, TableData } from './types';
+import type { CartItem, MenuItem, PendingOrder, PosPageProps, PrintReceiptData, TableData } from './types';
 
 const INK = 'oklch(0.48 0.032 195.5)';
 const INK_LIGHT = 'oklch(0.48 0.032 195.5 / 0.08)';
@@ -60,13 +60,12 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
     const [showPrintButton, setShowPrintButton] = useState(false);
     const [printReceiptData, setPrintReceiptData] = useState<PrintReceiptData | null>(null);
     const [cashDialogOpen, setCashDialogOpen] = useState(false);
-    const [cashAmountGiven, setCashAmountGiven] = useState(0);
+    const [, setCashAmountGiven] = useState(0);
     const [midtransDialogOpen, setMidtransDialogOpen] = useState(false);
     const [successDialogOpen, setSuccessDialogOpen] = useState(false);
     const [successType, setSuccessType] = useState<'cash' | 'qris' | 'save'>('cash');
     const [isPendingCashPayment, setIsPendingCashPayment] = useState(false);
     const [successChange, setSuccessChange] = useState(0);
-    const [receiptOrder, setReceiptOrder] = useState<OrderData | null>(lastOrder ?? null);
     const printFrameRef = useRef<HTMLIFrameElement>(null);
     const [releaseDialogTable, setReleaseDialogTable] = useState<{ id: number; code: string } | null>(null);
     const [moveMergeDialog, setMoveMergeDialog] = useState<{ mode: 'move' | 'merge'; sourceTable: { id: number; code: string } } | null>(null);
@@ -74,12 +73,6 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
     const [customerName, setCustomerName] = useState('');
     const [editingProcessing, setEditingProcessing] = useState(false);
     const [deleteConfirmOrder, setDeleteConfirmOrder] = useState<PendingOrder | null>(null);
-
-    useEffect(() => {
-        if (lastOrder) {
-            setReceiptOrder(lastOrder);
-        }
-    }, [lastOrder]);
 
     const subtotal = useMemo(() => calcSubtotal(cartItems), [cartItems]);
     const discountAmount = useMemo(() => calcDiscount(subtotal, discountType, discountValue), [subtotal, discountType, discountValue]);
@@ -348,7 +341,7 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
         })));
     }
 
-    function handlePaymentMethodSelect(method: string) {
+    function handlePaymentMethodSelect() {
         setPaymentDialogOpen(false);
         setIsPendingCashPayment(true);
         setCashDialogOpen(true);
@@ -386,35 +379,6 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
         });
     }
 
-    function handleConfirmPay(method: string) {
-        if (!selectedPendingOrderId || cartItems.length === 0) {
-            return;
-        }
-
-        setConfirmPayProcessing(true);
-        setPrintReceiptData(buildReceiptData());
-
-        router.put(`/pos/orders/${selectedPendingOrderId}/confirm-pay`, {
-            items: cartItems.map(item => ({
-                menu_id: item.menu.id, qty: item.qty, notes: item.notes || null,
-                option_ids: item.selectedOptions.flatMap(o => Array.from({ length: o.quantity }, () => o.itemId)),
-            })),
-            payment_method: method,
-            discount_type: discountValue > 0 ? discountType : null,
-            discount_value: discountValue > 0 ? discountValue : null,
-            discount_approved_by: discountApprovedBy,
-        }, {
-            preserveScroll: true,
-            onSuccess: () => {
-                setConfirmPayProcessing(false); setPaymentDialogOpen(false);
-                resetAfterOrder();
-                setSuccessType(method === 'qris' ? 'qris' : 'cash');
-                setSuccessChange(0); setSuccessDialogOpen(true);
-            },
-            onError: () => setConfirmPayProcessing(false),
-        });
-    }
-
     function handlePrintReceipt() {
         const data = printReceiptData;
 
@@ -423,11 +387,11 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
         }
 
         const { items, discountType: dType, discountValue: dVal } = data;
-        const order = receiptOrder;
+        const order = lastOrder;
 
         const sub = calcSubtotal(items);
-        const tx = roundPrice(sub * 0.10);
-        const sc = roundPrice(sub * 0.05);
+        const tx = Math.round(sub * 0.10);
+        const sc = Math.round(sub * 0.05);
         const mc = data.midtransCharge ?? 0;
         const disc = calcDiscount(sub, dType, dVal);
         const totalCalc = sub + tx + sc + mc - disc;
@@ -476,7 +440,9 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
     }
 
     function handleSaveEdits() {
-        if (!selectedPendingOrderId || cartItems.length === 0) { return; }
+        if (!selectedPendingOrderId || cartItems.length === 0) {
+ return; 
+}
 
         setEditingProcessing(true);
 
@@ -644,7 +610,11 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
                 }} total={total} onConfirm={isPendingCashPayment ? handlePendingCashConfirm : handleCashConfirm} processing={processing} />
                 <MidtransPaymentDialog open={midtransDialogOpen} onOpenChange={setMidtransDialogOpen} subtotal={subtotal} total={total} onSuccess={handleMidtransSuccess} getCsrfToken={() => document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? ''} selectedTableId={selectedTableIds[0] ?? null} cartItems={cartItems.map(item => ({ menu_id: item.menu.id, qty: item.qty, notes: item.notes || null, option_ids: item.selectedOptions.flatMap(o => Array.from({ length: o.quantity }, () => o.itemId)) }))} discountType={discountType} discountValue={discountValue} discountApprovedBy={discountApprovedBy} orderType={orderType} />
 
-                <Dialog open={releaseDialogTable !== null} onOpenChange={(v) => { if (!v) setReleaseDialogTable(null); }}>
+                <Dialog open={releaseDialogTable !== null} onOpenChange={(v) => {
+ if (!v) {
+setReleaseDialogTable(null);
+} 
+}}>
                     <DialogContent className="sm:max-w-xs border-0 shadow-lg shadow-slate-900/10" style={{ backgroundColor: '#fff' }}>
                         <div className="flex flex-col items-center py-4 text-center">
                             <div className="mb-4 flex size-16 items-center justify-center rounded-2xl" style={{ backgroundColor: INK_LIGHT }}>
@@ -655,7 +625,10 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
                             <div className="mt-5 flex w-full flex-col gap-2">
                                 <button onClick={() => {
                                     const t = releaseDialogTable; setReleaseDialogTable(null);
-                                    if (t) setMoveMergeDialog({ mode: 'move', sourceTable: t });
+
+                                    if (t) {
+setMoveMergeDialog({ mode: 'move', sourceTable: t });
+}
                                 }}
                                     className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold text-white transition-all hover:opacity-90"
                                     style={{ backgroundColor: INK }}>
@@ -664,14 +637,23 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
                                 {(tables.filter(t => t.status === 'occupied' && t.id !== releaseDialogTable?.id).length > 0) && (
                                     <button onClick={() => {
                                         const t = releaseDialogTable; setReleaseDialogTable(null);
-                                        if (t) setMoveMergeDialog({ mode: 'merge', sourceTable: t });
+
+                                        if (t) {
+setMoveMergeDialog({ mode: 'merge', sourceTable: t });
+}
                                     }}
                                         className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold text-white transition-all hover:opacity-90"
                                         style={{ backgroundColor: INK }}>
                                         <ArrowRightLeft className="size-4" /> Gabung Meja
                                     </button>
                                 )}
-                                <button onClick={() => { if (!releaseDialogTable) return; router.post(`/pos/tables/${releaseDialogTable.id}/release`); }}
+                                <button onClick={() => {
+ if (!releaseDialogTable) {
+return;
+}
+
+ router.post(`/pos/tables/${releaseDialogTable.id}/release`); 
+}}
                                     className="w-full rounded-xl py-2.5 text-sm font-semibold text-white transition-all hover:opacity-90"
                                     style={{ backgroundColor: INK }}>
                                     Kosongkan Meja
@@ -688,7 +670,11 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
 
                 <MoveMergeDialog open={moveMergeDialog !== null} mode={moveMergeDialog?.mode ?? null} sourceTable={moveMergeDialog?.sourceTable ?? { id: 0, code: '' }} tables={tables} onClose={() => setMoveMergeDialog(null)} />
 
-                <Dialog open={deleteConfirmOrder !== null} onOpenChange={(v) => { if (!v) setDeleteConfirmOrder(null); }}>
+                <Dialog open={deleteConfirmOrder !== null} onOpenChange={(v) => {
+ if (!v) {
+setDeleteConfirmOrder(null);
+} 
+}}>
                     <DialogContent className="sm:max-w-xs border-0 shadow-lg shadow-slate-900/10" style={{ backgroundColor: '#fff' }}>
                         <div className="flex flex-col items-center py-4 text-center">
                             <div className="mb-4 flex size-16 items-center justify-center rounded-2xl" style={{ backgroundColor: '#fef2f2' }}>
@@ -701,7 +687,10 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
                             <div className="mt-5 flex w-full flex-col gap-2">
                                 <button onClick={() => {
                                     const order = deleteConfirmOrder; setDeleteConfirmOrder(null);
-                                    if (order) router.delete(`/pos/orders/${order.id}`, { preserveScroll: true });
+
+                                    if (order) {
+router.delete(`/pos/orders/${order.id}`, { preserveScroll: true });
+}
                                 }}
                                     className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold text-white transition-all hover:opacity-90"
                                     style={{ backgroundColor: '#e11d48' }}>

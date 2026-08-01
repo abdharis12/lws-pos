@@ -2,7 +2,7 @@ import { router } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { BORDER, CREAM, INK, MUTED, PRIMARY, TABLE_COLORS } from '../constants';
+import { CREAM, INK, MUTED, TABLE_COLORS } from '../constants';
 import type { TableData } from '../types';
 
 interface Props {
