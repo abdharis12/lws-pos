@@ -109,8 +109,8 @@ export default function MenusIndex({ menus, categories, filters }: Props) {
 
     function confirmDelete() {
         if (!deleteConfirm) {
-return;
-}
+            return;
+        }
 
         router.delete(`/admin/menus/${deleteConfirm.id}`);
         setDeleteConfirm(null);
@@ -223,7 +223,7 @@ return;
                             </div>
 
                             {/* Card Info Header */}
-                            <CardHeader className="pb-2">
+                            <CardHeader className="">
                                 <div className="flex items-start justify-between gap-2">
                                     <div>
                                         <Badge className="rounded-full border border-primary bg-secondary/30 text-xs font-normal text-primary">
@@ -238,7 +238,7 @@ return;
 
                             {/* Card Content & Actions */}
                             <CardContent>
-                                <p className="mb-4 line-clamp-2 text-xs text-slate-500 italic">
+                                <p className="mb-5 line-clamp-2 text-xs text-slate-500 italic">
                                     {menu.description ||
                                         'Tidak ada deskripsi singkat untuk menu ini.'}
                                 </p>

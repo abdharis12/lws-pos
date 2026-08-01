@@ -11,6 +11,7 @@ export const MenuSection: React.FC<MenuSectionProps> = ({ onSelectDishForReserva
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [activeModalItem, setActiveModalItem] = useState<MenuItem | null>(null);
+    const [sortBy, setSortBy] = useState<'popular' | 'price-asc' | 'price-desc' | 'rating'>('popular');
 
     const categories = [
         { id: 'all', label: 'Semua Menu' },
@@ -23,44 +24,38 @@ export const MenuSection: React.FC<MenuSectionProps> = ({ onSelectDishForReserva
 
     const filteredItems = useMemo(() => {
         return MENU_ITEMS.filter((item) => {
-            // Category check
             if (selectedCategory !== 'all' && item.category !== selectedCategory) {
                 return false;
             }
 
-            // Search check
             if (searchQuery.trim()) {
                 const query = searchQuery.toLowerCase();
                 const matchesName = item.name.toLowerCase().includes(query);
                 const matchesDesc = item.description.toLowerCase().includes(query);
-                const matchesIng = item.ingredients.some(ing => ing.toLowerCase().includes(query));
+                const matchesIng = item.ingredients.some((ing) => ing.toLowerCase().includes(query));
 
                 if (!matchesName && !matchesDesc && !matchesIng) {
-return false;
-}
-            }
-
-            // Dietary check
-            if (dietaryFilter !== 'all') {
-                if (!item.dietary.includes(dietaryFilter as any)) {
-return false;
-}
+                    return false;
+                }
             }
 
             return true;
         }).sort((a, b) => {
             if (sortBy === 'price-asc') {
-return a.price - b.price;
-}
+                return a.price - b.price;
+            }
 
             if (sortBy === 'price-desc') {
-return b.price - a.price;
-}
+                return b.price - a.price;
+            }
 
-            // Default popular
+            if (sortBy === 'rating') {
+                return b.rating - a.rating;
+            }
+
             return (b.rating * b.reviewCount) - (a.rating * a.reviewCount);
         });
-    }, [selectedCategory, searchQuery, dietaryFilter, sortBy]);
+    }, [selectedCategory, searchQuery, sortBy]);
 
     const formatIDR = (price: number) => {
         return new Intl.NumberFormat('id-ID', {
@@ -104,6 +99,21 @@ return b.price - a.price;
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 className="w-full bg-[#1C2625] text-white pl-10 pr-4 py-2.5 rounded-lg border border-[#CfC0A4]/30 text-sm focus:outline-none focus:border-[#CfC0A4] transition-all placeholder:text-gray-500"
                             />
+                        </div>
+
+                        {/* Sort */}
+                        <div className="flex items-center gap-2 w-full md:w-auto">
+                            <span className="text-[10px] uppercase tracking-widest text-gray-400">Urutkan</span>
+                            <select
+                                value={sortBy}
+                                onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                                className="bg-[#1C2625] text-white px-3 py-2 rounded-lg border border-[#CfC0A4]/30 text-xs focus:outline-none focus:border-[#CfC0A4] transition-all"
+                            >
+                                <option value="popular">Populer</option>
+                                <option value="rating">Rating Tertinggi</option>
+                                <option value="price-asc">Harga Termurah</option>
+                                <option value="price-desc">Harga Tertinggi</option>
+                            </select>
                         </div>
                     </div>
 

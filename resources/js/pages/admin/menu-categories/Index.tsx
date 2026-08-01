@@ -1,5 +1,5 @@
 import { Head, useForm, router } from '@inertiajs/react';
-import { Search, Sparkles } from 'lucide-react';
+import { Hash, Layers, Pencil, Plus, Search, Sparkles, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
