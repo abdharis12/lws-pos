@@ -26,7 +26,7 @@ class WaiterController extends Controller
         $user = auth()->user();
         $outletId = $user?->employee?->outlet_id;
 
-        $readyOrders = Order::with(['tableSession.table', 'items.menu', 'servedBy'])
+        $readyOrders = Order::with(['tableSession.table', 'items.menu', 'items.options.optionItem', 'servedBy'])
             ->where('status', OrderStatus::Ready)
             ->when($outletId, fn ($query) => $query->whereHas(
                 'tableSession.table',

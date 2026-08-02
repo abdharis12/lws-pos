@@ -1,8 +1,17 @@
+export interface KitchenOrderItemOption {
+    id?: number;
+    name: string;
+    quantity: number;
+    option_item?: { name: string };
+    optionItem?: { name: string };
+}
+
 export interface KitchenOrderItem {
     id: number;
     menu: { name: string; station: string | null };
     qty: number;
     notes: string | null;
+    options: KitchenOrderItemOption[];
 }
 
 export interface KitchenOrder {

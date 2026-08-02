@@ -21,8 +21,9 @@ import SplitBillDialog from './dialogs/SplitBillDialog';
 import SuccessDialog from './dialogs/SuccessDialog';
 import { posFetchJson } from './lib/api';
 import { orderTypeLabel } from './lib/format';
-import { calcSubtotal, calcDiscount, calcTax } from './lib/pricing';
+import { calcSubtotal } from './lib/pricing';
 import { printReceipt } from './lib/receipt';
+import { ceilTo500, roundingAmount as computeRoundingAmount } from '@/lib/currency';
 import type { CartItem, MenuItem, PendingOrder, PosPageProps, PrintReceiptData, TableData } from './types';
 
 const INK = 'oklch(0.48 0.032 195.5)';
@@ -75,9 +76,19 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
     const [deleteConfirmOrder, setDeleteConfirmOrder] = useState<PendingOrder | null>(null);
 
     const subtotal = useMemo(() => calcSubtotal(cartItems), [cartItems]);
-    const discountAmount = useMemo(() => calcDiscount(subtotal, discountType, discountValue), [subtotal, discountType, discountValue]);
-    const tax = calcTax(subtotal);
-    const total = subtotal + tax - discountAmount;
+    const tax = useMemo(() => Math.round(subtotal * 0.10), [subtotal]);
+    const discountAmount = useMemo(() => {
+        if (!discountType || !discountValue) {
+            return 0;
+        }
+
+        return discountType === 'percentage'
+            ? Math.min(subtotal * (discountValue / 100), subtotal)
+            : Math.min(discountValue, subtotal);
+    }, [subtotal, discountType, discountValue]);
+    const rawTotal = Math.max(0, subtotal + tax - discountAmount);
+    const roundingAmount = useMemo(() => computeRoundingAmount(rawTotal), [rawTotal]);
+    const total = useMemo(() => ceilTo500(rawTotal), [rawTotal]);
 
     const isDineIn = orderType === 'dine_in';
 
@@ -206,9 +217,18 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
         const cashAmount = amountGiven ?? undefined;
         const change = amountGiven ? amountGiven - total : undefined;
 
+        const localServiceCharge = Math.round(subtotal * 0.05);
+        const localMidtransCharge = 0;
+
         return {
             items: [...cartItems],
             discountType, discountValue,
+            subtotal,
+            tax,
+            serviceCharge: localServiceCharge,
+            midtransCharge: localMidtransCharge,
+            roundingAmount,
+            total,
             tableCode: selectedCodes || null,
             kasir: cashierName,
             customerName: pendingOrder?.customer_name ?? customerName,
@@ -294,18 +314,51 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
         });
     }
 
-    function handleMidtransSuccess(result: { orderNumber: string; paymentType: string; midtransCharge: number }) {
+    function handleMidtransSuccess(result: {
+        orderNumber: string;
+        paymentType: string;
+        subtotal?: number;
+        tax?: number;
+        serviceCharge?: number;
+        midtransCharge: number;
+        total?: number;
+        roundingAmount?: number;
+    }) {
         setPrintReceiptData(prev => ({
             ...(prev ?? buildReceiptData()),
             orderNumber: result.orderNumber,
             paymentMethod: result.paymentType,
+            subtotal: result.subtotal ?? prev?.subtotal ?? subtotal,
+            tax: result.tax ?? prev?.tax ?? tax,
+            serviceCharge: result.serviceCharge ?? prev?.serviceCharge ?? 0,
             midtransCharge: result.midtransCharge,
+            total: result.total ?? prev?.total ?? total,
+            roundingAmount: 0,
         }));
         resetAfterOrder();
         setMidtransDialogOpen(false);
         setSuccessType('qris');
         setSuccessChange(0);
         setSuccessDialogOpen(true);
+    }
+
+    function handleMidtransInitiated(data: {
+        order_id: number;
+        subtotal: number | string;
+        tax: number | string;
+        service_charge: number | string;
+        midtrans_charge: number | string;
+        rounding_amount?: number | string;
+        total: number | string;
+    }) {
+        setPrintReceiptData(prev => ({
+            ...(prev ?? buildReceiptData()),
+            subtotal: Number(data.subtotal) || prev?.subtotal || subtotal,
+            tax: Number(data.tax) || prev?.tax || tax,
+            serviceCharge: Number(data.service_charge) || prev?.serviceCharge || 0,
+            midtransCharge: Number(data.midtrans_charge) || 0,
+            total: Number(data.total) || prev?.total || total,
+        }));
     }
 
     function resetAfterOrder() {
@@ -323,7 +376,15 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
 
     function handleSuccessClose() {
         setSuccessDialogOpen(false);
-        setTimeout(() => router.visit('/pos', { preserveScroll: true }), 100);
+        setShowPrintButton(false);
+        setCashAmountGiven(0);
+        setPrintReceiptData(null);
+
+        requestAnimationFrame(() => {
+            router.reload({
+                only: ['tables', 'activeSessions', 'pendingOrders', 'lastOrder'],
+            });
+        });
     }
 
     function handleSelectPendingOrder(order: PendingOrder) {
@@ -389,12 +450,18 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
         const { items, discountType: dType, discountValue: dVal } = data;
         const order = lastOrder;
 
-        const sub = calcSubtotal(items);
-        const tx = Math.round(sub * 0.10);
-        const sc = Math.round(sub * 0.05);
-        const mc = data.midtransCharge ?? 0;
-        const disc = calcDiscount(sub, dType, dVal);
-        const totalCalc = sub + tx + sc + mc - disc;
+        const num = (v: unknown, fallback: number): number => (typeof v === 'number' && Number.isFinite(v) ? v : fallback);
+
+        const sub = num(calcSubtotal(items), 0);
+        const tx = num(Math.round(sub * 0.10), 0);
+        const sc = num(data.serviceCharge, Math.round(sub * 0.05));
+        const mc = num(data.midtransCharge, 0);
+        const disc = dType && dVal
+            ? (dType === 'percentage' ? Math.min(sub * (dVal / 100), sub) : Math.min(dVal, sub))
+            : 0;
+        const rawTotal = Math.max(0, sub + tx + sc + mc - disc);
+        const roundingAmountValue = num(data.roundingAmount, order ? Number(order.rounding_amount ?? 0) : computeRoundingAmount(rawTotal));
+        const totalCalc = ceilTo500(rawTotal);
 
         const orderNumber = data.orderNumber ?? (order ? `TRX-LW-${order.id}` : null) ?? '—';
         const kasir = data.kasir ?? order?.created_by?.name ?? '';
@@ -402,6 +469,15 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
         const customerNameVal = data.customerName ?? order?.customer_name ?? null;
         const paymentMethod = data.paymentMethod ?? order?.payment?.method ?? null;
         const ot = orderTypeLabel(order?.order_type);
+
+        const resolvedSubtotal = order ? num(order.subtotal, sub) : num(data.subtotal, sub);
+        const resolvedTax = order ? num(order.tax, tx) : num(data.tax, tx);
+        const resolvedServiceCharge = order ? num(order.service_charge, sc) : num(data.serviceCharge, sc);
+        const resolvedMidtransCharge = order ? num(order.midtrans_charge, mc) : num(data.midtransCharge, mc);
+        const resolvedDiscount = order ? num(order.discount, disc) : disc;
+        const resolvedTotal = order
+            ? num(order.total, totalCalc)
+            : num(data.total, totalCalc);
 
         printReceipt(printFrameRef.current, {
             orderNumber, createdAt: order?.created_at ?? new Date().toISOString(),
@@ -419,13 +495,14 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
                     options: i.selectedOptions.map(o => ({ name: o.name, price: o.adjustment, quantity: o.quantity || 1 })),
                     notes: i.notes || null,
                 })),
-            subtotal: order ? Number(order.subtotal) : sub,
-            tax: order ? Number(order.tax) : tx,
-            serviceCharge: order ? Number(order.service_charge) : sc,
-            midtransCharge: order ? Number(order.midtrans_charge ?? 0) : mc,
-            discount: order ? Number(order.discount) : disc,
+            subtotal: resolvedSubtotal,
+            tax: resolvedTax,
+            serviceCharge: resolvedServiceCharge,
+            midtransCharge: resolvedMidtransCharge,
+            discount: resolvedDiscount,
+            roundingAmount: roundingAmountValue,
             discountLabel: order?.discount_type === 'percentage' ? `${order.discount_value}%` : dType === 'percentage' ? `${dVal}%` : null,
-            total: order ? Number(order.total) : totalCalc,
+            total: resolvedTotal,
             paymentMethod, cashAmount: data.cashAmount, change: data.change,
         });
     }
@@ -608,7 +685,7 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
                         setIsPendingCashPayment(false);
                     }
                 }} total={total} onConfirm={isPendingCashPayment ? handlePendingCashConfirm : handleCashConfirm} processing={processing} />
-                <MidtransPaymentDialog open={midtransDialogOpen} onOpenChange={setMidtransDialogOpen} subtotal={subtotal} total={total} onSuccess={handleMidtransSuccess} getCsrfToken={() => document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? ''} selectedTableId={selectedTableIds[0] ?? null} cartItems={cartItems.map(item => ({ menu_id: item.menu.id, qty: item.qty, notes: item.notes || null, option_ids: item.selectedOptions.flatMap(o => Array.from({ length: o.quantity }, () => o.itemId)) }))} discountType={discountType} discountValue={discountValue} discountApprovedBy={discountApprovedBy} orderType={orderType} />
+                <MidtransPaymentDialog open={midtransDialogOpen} onOpenChange={setMidtransDialogOpen} subtotal={subtotal} total={total} onSuccess={handleMidtransSuccess} onInitiated={handleMidtransInitiated} getCsrfToken={() => document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? ''} selectedTableId={selectedTableIds[0] ?? null} cartItems={cartItems.map(item => ({ menu_id: item.menu.id, qty: item.qty, notes: item.notes || null, option_ids: item.selectedOptions.flatMap(o => Array.from({ length: o.quantity }, () => o.itemId)) }))} discountType={discountType} discountValue={discountValue} discountApprovedBy={discountApprovedBy} orderType={orderType} />
 
                 <Dialog open={releaseDialogTable !== null} onOpenChange={(v) => {
  if (!v) {

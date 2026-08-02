@@ -1,4 +1,8 @@
-import type { KitchenOrder, StatusConfig } from '../types';
+import type { KitchenOrder, KitchenOrderItemOption, StatusConfig } from '../types';
+
+export function optionDisplayName(opt: KitchenOrderItemOption): string {
+    return opt.name || opt.optionItem?.name || opt.option_item?.name || '';
+}
 
 export function calcElapsed(createdAt: string, now = Date.now()): { text: string; mins: number } {
     const diff = now - new Date(createdAt).getTime();

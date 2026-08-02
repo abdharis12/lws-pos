@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
+import { ceilTo500, roundingAmount as computeRoundingAmount } from '@/lib/currency'
 import type { CartItem, CartOption, MenuItem } from '@/types/self-order'
 
 interface SelOptions {
@@ -115,15 +116,14 @@ export function useSelfOrderCart() {
 
     const cartSubtotal = useMemo(() => calcCartTotal(), [calcCartTotal])
     const cartTax = useMemo(() => Math.round(cartSubtotal * 0.10), [cartSubtotal])
-    const cartTotal = useMemo(() => cartSubtotal + cartTax, [cartSubtotal, cartTax])
+    const cartRoundingAmount = useMemo(() => computeRoundingAmount(cartSubtotal + cartTax), [cartSubtotal, cartTax])
+    const cartTotal = useMemo(() => ceilTo500(cartSubtotal + cartTax), [cartSubtotal, cartTax])
 
     const onlineServiceCharge = useMemo(() => Math.round(cartSubtotal * 0.05), [cartSubtotal])
-    const midtransCharge = useMemo(() => {
-        const beforeCharge = cartSubtotal + cartTax + onlineServiceCharge
-
-        return Math.round(beforeCharge * 2.5 / 100 / 100) * 100
-    }, [cartSubtotal, cartTax, onlineServiceCharge])
-    const onlineTotal = useMemo(() => cartSubtotal + cartTax + onlineServiceCharge + midtransCharge, [cartSubtotal, cartTax, onlineServiceCharge, midtransCharge])
+    const rawBeforeCharge = useMemo(() => cartSubtotal + cartTax + onlineServiceCharge, [cartSubtotal, cartTax, onlineServiceCharge])
+    const midtransCharge = useMemo(() => Math.round(rawBeforeCharge * 2.5 / 100 / 100) * 100, [rawBeforeCharge])
+    const onlineTotal = useMemo(() => rawBeforeCharge + midtransCharge, [rawBeforeCharge, midtransCharge])
+    const onlineRoundingAmount = 0
 
     const addToCart = useCallback(() => {
         if (!selectedMenu) {
@@ -183,9 +183,11 @@ export function useSelfOrderCart() {
         cartCount,
         cartSubtotal,
         cartTax,
+        cartRoundingAmount,
         cartTotal,
         onlineServiceCharge,
         midtransCharge,
+        onlineRoundingAmount,
         onlineTotal,
         openMenu,
         closeMenu,

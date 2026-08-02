@@ -147,3 +147,30 @@ test('owner dashboard shows sales data', function () {
         ->where('todayOrdersCount', 3)
     );
 });
+
+test('owner dashboard aggregates monthly rounding amount as other income', function () {
+    Order::factory()->count(2)->create([
+        'table_session_id' => $this->session->id,
+        'status' => 'paid',
+        'total' => 25000,
+        'rounding_amount' => 250,
+        'created_at' => now(),
+    ]);
+
+    Order::factory()->create([
+        'table_session_id' => $this->session->id,
+        'status' => 'paid',
+        'total' => 24500,
+        'rounding_amount' => 100,
+        'created_at' => now()->subMonth(),
+    ]);
+
+    $response = $this->actingAs($this->owner)
+        ->get(route('owner.dashboard'));
+
+    $response->assertOk();
+    $response->assertInertia(fn ($page) => $page
+        ->where('monthlyRounding', 500)
+        ->where('lastMonthRounding', 100)
+    );
+});

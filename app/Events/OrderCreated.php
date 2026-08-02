@@ -16,7 +16,7 @@ class OrderCreated implements ShouldBroadcast
 
     public function __construct(Order $order)
     {
-        $this->order = $order->load(['items.menu', 'tableSession.table']);
+        $this->order = $order->load(['items.menu', 'items.options.optionItem', 'tableSession.table']);
     }
 
     public function broadcastOn(): array

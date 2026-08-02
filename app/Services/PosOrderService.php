@@ -11,6 +11,7 @@ use App\Models\Meja;
 use App\Models\Order;
 use App\Models\TableSession;
 use App\Models\User;
+use App\Support\Money;
 
 class PosOrderService
 {
@@ -78,12 +79,12 @@ class PosOrderService
 
     public function calculateTax(float $subtotal): float
     {
-        return round($subtotal * $this->getTaxRate() / 500) * 500;
+        return round($subtotal * $this->getTaxRate());
     }
 
     public function calculateServiceCharge(float $subtotal): float
     {
-        return round($subtotal * (float) config('pos.service_charge_rate', 0.05) / 500) * 500;
+        return round($subtotal * (float) config('pos.service_charge_rate', 0.05));
     }
 
     public function calculateMidtransCharge(float $amount): float
@@ -104,14 +105,17 @@ class PosOrderService
         $subtotal = array_sum(array_column($orderItems, 'total_price'));
         $discountAmount = $this->calculateDiscount($subtotal, $validated);
         $tax = $this->calculateTax($subtotal);
-        $total = max(0, $subtotal + $tax - $discountAmount);
+        $rawTotal = max(0, $subtotal + $tax - $discountAmount);
+        $roundingAmount = Money::roundingAmount($rawTotal);
+        $total = Money::ceilTo500($rawTotal);
 
         $splitCount = (int) ($validated['split_count'] ?? 1);
 
-        $splitSubtotal = round($subtotal / $splitCount / 500) * 500;
-        $splitTax = round($tax / $splitCount / 500) * 500;
-        $splitTotal = round($total / $splitCount / 500) * 500;
-        $splitDiscount = round($discountAmount / $splitCount / 500) * 500;
+        $splitSubtotal = round($subtotal / $splitCount);
+        $splitTax = round($tax / $splitCount);
+        $splitTotal = (float) ceil($total / $splitCount / 500) * 500;
+        $splitDiscount = round($discountAmount / $splitCount);
+        $splitRounding = $roundingAmount;
 
         $createdOrders = [];
 
@@ -121,6 +125,7 @@ class PosOrderService
             $orderSubtotal = $isLast ? $subtotal - $splitSubtotal * ($splitCount - 1) : $splitSubtotal;
             $orderTax = $isLast ? $tax - $splitTax * ($splitCount - 1) : $splitTax;
             $orderDiscount = $isLast ? $discountAmount - $splitDiscount * ($splitCount - 1) : $splitDiscount;
+            $orderRounding = $isLast ? $roundingAmount - $splitRounding * ($splitCount - 1) : $splitRounding;
             $orderTotal = $isLast ? $total - $splitTotal * ($splitCount - 1) : $splitTotal;
 
             $shared = [
@@ -141,6 +146,7 @@ class PosOrderService
                 'subtotal' => $orderSubtotal,
                 'tax' => $orderTax,
                 'discount' => $orderDiscount,
+                'rounding_amount' => $orderRounding,
                 'total' => $orderTotal,
                 'notes' => $splitCount > 1 ? "Split {$i}/{$splitCount}" : null,
             ]) ?? Order::create([
@@ -148,6 +154,7 @@ class PosOrderService
                 'subtotal' => $orderSubtotal,
                 'tax' => $orderTax,
                 'discount' => $orderDiscount,
+                'rounding_amount' => $orderRounding,
                 'total' => $orderTotal,
                 'notes' => $splitCount > 1 ? "Split {$i}/{$splitCount}" : null,
             ]);
@@ -212,17 +219,21 @@ class PosOrderService
 
         $discountAmount = $this->calculateDiscount($newSubtotal, $validated);
         $tax = $this->calculateTax($newSubtotal);
+        $rawTotal = max(0, $newSubtotal + $tax - $discountAmount);
+        $roundingAmount = Money::roundingAmount($rawTotal);
+        $total = Money::ceilTo500($rawTotal);
 
         $order->update([
             'status' => OrderStatus::Paid,
             'subtotal' => $newSubtotal,
             'tax' => $tax,
             'service_charge' => 0,
+            'rounding_amount' => $roundingAmount,
             'discount' => $discountAmount,
             'discount_type' => $validated['discount_type'] ?? null,
             'discount_value' => $validated['discount_value'] ?? null,
             'discount_approved_by' => $validated['discount_approved_by'] ?? null,
-            'total' => max(0, round(($newSubtotal + $tax - $discountAmount) / 500) * 500),
+            'total' => $total,
         ]);
 
         $order->payment()->create([
@@ -243,11 +254,16 @@ class PosOrderService
     {
         $result = $this->processPendingOrderItems($order, $items);
         $newSubtotal = $result['new_subtotal'];
+        $tax = $this->calculateTax($newSubtotal);
+        $rawTotal = max(0, $newSubtotal + $tax + ($order->service_charge ?? 0) - ($order->discount ?? 0));
+        $roundingAmount = Money::roundingAmount($rawTotal);
+        $total = Money::ceilTo500($rawTotal);
 
         $order->update([
             'subtotal' => $newSubtotal,
-            'tax' => $this->calculateTax($newSubtotal),
-            'total' => max(0, round(($newSubtotal + $this->calculateTax($newSubtotal) + ($order->service_charge ?? 0) - ($order->discount ?? 0)) / 500) * 500),
+            'tax' => $tax,
+            'rounding_amount' => $roundingAmount,
+            'total' => $total,
         ]);
 
         OrderStatusUpdated::dispatch($order);
@@ -284,8 +300,9 @@ class PosOrderService
         $tax = $this->calculateTax($subtotal);
         $serviceCharge = $this->calculateServiceCharge($subtotal);
 
-        $totalBeforeCharge = max(0, round(($subtotal + $tax + $serviceCharge - $discountAmount) / 500) * 500);
-        $midtransCharge = $this->calculateMidtransCharge($totalBeforeCharge);
+        $rawTotalBeforeCharge = max(0, $subtotal + $tax + $serviceCharge - $discountAmount);
+        $midtransCharge = $this->calculateMidtransCharge($rawTotalBeforeCharge);
+        $total = $rawTotalBeforeCharge + $midtransCharge;
 
         $orderData = [
             'created_by' => $user->id,
@@ -297,15 +314,20 @@ class PosOrderService
             'tax' => $tax,
             'service_charge' => $serviceCharge,
             'midtrans_charge' => $midtransCharge,
+            'rounding_amount' => 0,
             'discount' => $discountAmount,
             'discount_type' => $validated['discount_type'] ?? null,
             'discount_value' => $validated['discount_value'] ?? null,
             'discount_approved_by' => $validated['discount_approved_by'] ?? null,
-            'total' => $totalBeforeCharge + $midtransCharge,
+            'total' => $total,
         ];
 
         $order = $session?->orders()->create($orderData) ?? Order::create($orderData);
         $this->itemBuilder->attach($order, $orderItems);
+
+        if ($session?->table) {
+            $session->table->update(['status' => TableStatus::Occupied, 'locked_by' => null]);
+        }
 
         return $order;
     }

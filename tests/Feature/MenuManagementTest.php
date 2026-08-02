@@ -140,6 +140,36 @@ test('owner can update menu', function () {
     expect($menu->fresh()->name)->toBe('Bubur Ayam Spesial Update');
 });
 
+test('owner can update menu station to a valid station', function () {
+    $owner = User::factory()->create()->assignRole('Owner');
+    $menu = Menu::factory()->create();
+
+    $this->actingAs($owner)->put(route('admin.menus.update', $menu), [
+        'category_id' => $menu->category_id,
+        'name' => $menu->name,
+        'price' => $menu->price,
+        'is_available' => true,
+        'station' => 'Grill',
+    ])->assertRedirect(route('admin.menus.index'));
+
+    expect($menu->fresh()->station)->toBe('Grill');
+});
+
+test('owner can clear menu station by sending empty string', function () {
+    $owner = User::factory()->create()->assignRole('Owner');
+    $menu = Menu::factory()->create(['station' => 'Main']);
+
+    $this->actingAs($owner)->put(route('admin.menus.update', $menu), [
+        'category_id' => $menu->category_id,
+        'name' => $menu->name,
+        'price' => $menu->price,
+        'is_available' => true,
+        'station' => '',
+    ])->assertRedirect(route('admin.menus.index'));
+
+    expect($menu->fresh()->station)->toBeNull();
+});
+
 test('owner can delete menu', function () {
     $owner = User::factory()->create()->assignRole('Owner');
     $menu = Menu::factory()->create();

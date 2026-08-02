@@ -6,7 +6,7 @@ export interface LabelItem {
 }
 
 export interface LabelData {
-    station: string;
+    station: string | null;
     tableCode: string | null;
     orderId: number;
     items: LabelItem[];
@@ -28,17 +28,9 @@ return;
     });
     const orderTypeLabel = data.orderType === 'takeaway' ? 'BUNGKUS' : `MEJA ${data.tableCode ?? '—'}`;
 
-    const groupedByStation: Record<string, LabelItem[]> = {};
-
-    for (const item of data.items) {
-        const key = data.station || 'Lainnya';
-
-        if (!groupedByStation[key]) {
-groupedByStation[key] = [];
-}
-
-        groupedByStation[key].push(item);
-    }
+    const stationHeader = data.station && data.station.trim() !== ''
+        ? `<div class="station-header"><h2>${escapeHtml(data.station)}</h2></div>`
+        : '';
 
     const html = `<!DOCTYPE html>
 <html>
@@ -121,27 +113,15 @@ groupedByStation[key] = [];
         padding: 2px 0;
         border-bottom: 1px dashed #888;
     }
-    ${Object.keys(groupedByStation).length > 1 ? `
-    .station-badge {
-        display: inline-block;
-        background: #000;
-        color: #fff;
-        padding: 0 4px;
-        font-size: 7px;
-        font-weight: bold;
-        margin-bottom: 2px;
-    }` : ''}
     .divider-dash { border-top: 1px dashed #000; margin: 3px 0; }
 </style>
 </head>
 <body>
-    <div class="station-header">
-        <h2>${data.station || 'DAPUR'}</h2>
-    </div>
+    ${stationHeader}
 
-    <div class="table-number">${orderTypeLabel}</div>
+    <div class="table-number">${escapeHtml(orderTypeLabel)}</div>
 
-    ${data.customerName ? `<div class="customer-name">${data.customerName}</div>` : ''}
+    ${data.customerName ? `<div class="customer-name">${escapeHtml(data.customerName)}</div>` : ''}
 
     <div class="order-info">
         <span>#${data.orderId}</span>
@@ -153,13 +133,13 @@ groupedByStation[key] = [];
     ${data.items.map(item => `
     <div class="item">
         <div>
-            <span class="item-name">${item.name}</span>
+            <span class="item-name">${escapeHtml(item.name)}</span>
             <span class="item-qty">x${item.qty}</span>
         </div>
         ${item.options.length > 0 ? item.options.map(o => `
-        <div class="item-option">${o.name}${o.quantity > 1 ? ` x${o.quantity}` : ''}</div>
+        <div class="item-option">${escapeHtml(o.name)}${o.quantity > 1 ? ` x${o.quantity}` : ''}</div>
         `).join('') : ''}
-        ${item.notes ? `<div class="item-note">Catatan: ${item.notes}</div>` : ''}
+        ${item.notes ? `<div class="item-note">Catatan: ${escapeHtml(item.notes)}</div>` : ''}
     </div>
     `).join('')}
 
@@ -181,4 +161,13 @@ groupedByStation[key] = [];
             iframe.contentWindow?.print();
         }, 300);
     };
+}
+
+function escapeHtml(value: string): string {
+    return value
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
 }

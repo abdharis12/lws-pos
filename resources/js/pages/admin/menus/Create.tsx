@@ -14,6 +14,13 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 
+const STATION_OPTIONS = [
+    { value: 'Main', label: 'Main (makanan utama)' },
+    { value: 'Grill', label: 'Grill (panggang/gorengan)' },
+    { value: 'Drink', label: 'Drink (minuman)' },
+    { value: 'Dessert', label: 'Dessert (penutup)' },
+];
+
 interface OptionItem {
     id: number;
     name: string;
@@ -39,6 +46,7 @@ export default function MenusCreate({ categories, optionGroups }: Props) {
         price: '',
         photo: null as File | null,
         is_available: true,
+        station: '',
         option_group_ids: [] as number[],
     });
 
@@ -151,6 +159,46 @@ export default function MenusCreate({ categories, optionGroups }: Props) {
                                     </SelectContent>
                                 </Select>
                                 <InputError message={errors.category_id} />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label
+                                    htmlFor="station"
+                                    className="text-xs font-semibold tracking-wider text-[#4F6B6A] uppercase"
+                                >
+                                    Station Dapur
+                                </Label>
+                                <Select
+                                    value={data.station || 'none'}
+                                    onValueChange={(v) =>
+                                        setData(
+                                            'station',
+                                            v === 'none' ? '' : v,
+                                        )
+                                    }
+                                >
+                                    <SelectTrigger className="border-[#CFC0A4]/50 bg-white focus:ring-[#4F6B6A]">
+                                        <SelectValue placeholder="Pilih station dapur" />
+                                    </SelectTrigger>
+                                    <SelectContent className="border-[#CFC0A4]/40 bg-background">
+                                        <SelectItem value="none">
+                                            — Belum ada station —
+                                        </SelectItem>
+                                        {STATION_OPTIONS.map((opt) => (
+                                            <SelectItem
+                                                key={opt.value}
+                                                value={opt.value}
+                                            >
+                                                {opt.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <p className="text-xs text-slate-500">
+                                    Station menentukan station dapur mana yang memasak menu ini
+                                    (KDS).
+                                </p>
+                                <InputError message={errors.station} />
                             </div>
 
                             <div className="grid gap-2">

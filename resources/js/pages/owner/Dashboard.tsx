@@ -8,6 +8,7 @@ import {
     CreditCard,
     ArrowUp,
     ArrowDown,
+    Coins,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -49,6 +50,9 @@ interface Props {
     salesGrowth: number;
     grossProfit: number;
     laborCost: number;
+    monthlyRounding: number;
+    lastMonthRounding: number;
+    roundingGrowth: number;
     employeeCount: number;
     attendanceToday: number;
     activeOrders: ActiveOrder[];
@@ -66,6 +70,9 @@ export default function OwnerDashboard({
     salesGrowth,
     grossProfit,
     laborCost,
+    monthlyRounding,
+    lastMonthRounding,
+    roundingGrowth,
     employeeCount,
     attendanceToday,
     activeOrders,
@@ -94,7 +101,7 @@ export default function OwnerDashboard({
                 </div>
             </div>
 
-            <div className="mb-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+            <div className="mb-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
                 <Card className="group relative overflow-hidden border-[#CFC0A4]/40 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#4F6B6A]/10">
                     <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#4F6B6A] to-[#CFC0A4]" />
                     <CardHeader className="flex flex-row items-start justify-between pt-5">
@@ -170,6 +177,43 @@ export default function OwnerDashboard({
                         </p>
                         <p className="mt-1.5 text-xs text-slate-500">
                             25% dari penjualan
+                        </p>
+                    </CardContent>
+                </Card>
+                <Card className="group relative overflow-hidden border-[#CFC0A4]/40 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#4F6B6A]/10">
+                    <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#CFC0A4] to-[#4F6B6A]" />
+                    <CardHeader className="flex flex-row items-start justify-between pt-5">
+                        <CardTitle className="text-[15px] font-semibold tracking-[0.12em] text-[#4F6B6A]/70 uppercase">
+                            Pendapatan Pembulatan
+                        </CardTitle>
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4F6B6A]/10">
+                            <Coins
+                                className="h-4.5 w-4.5 text-[#4F6B6A]"
+                                strokeWidth={2}
+                            />
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="font-serif text-2xl font-bold tracking-tight text-[#4F6B6A]">
+                            Rp {monthlyRounding.toLocaleString('id-ID')}
+                        </p>
+                        <p className="mt-1.5 text-xs text-slate-500">
+                            Akumulasi bulan ini
+                        </p>
+                        {lastMonthRounding > 0 && (
+                            <p
+                                className={`mt-1 flex items-center gap-1 text-xs font-semibold ${roundingGrowth >= 0 ? 'text-emerald-600' : 'text-red-500'}`}
+                            >
+                                {roundingGrowth >= 0 ? (
+                                    <ArrowUp className="size-3" />
+                                ) : (
+                                    <ArrowDown className="size-3" />
+                                )}
+                                {Math.abs(roundingGrowth)}% vs bulan lalu
+                            </p>
+                        )}
+                        <p className="mt-1 text-[10px] italic text-slate-400">
+                            Pendapatan lain-lain
                         </p>
                     </CardContent>
                 </Card>

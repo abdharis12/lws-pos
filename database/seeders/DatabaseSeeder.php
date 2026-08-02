@@ -229,5 +229,7 @@ class DatabaseSeeder extends Seeder
                 'status' => 'available',
             ]);
         }
+
+        $this->call(SetStationForExistingMenusSeeder::class);
     }
 }

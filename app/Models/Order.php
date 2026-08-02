@@ -15,7 +15,7 @@ class Order extends Model
 
     protected $fillable = [
         'table_session_id', 'pos_session_id', 'created_by', 'order_type', 'status',
-        'subtotal', 'tax', 'service_charge', 'midtrans_charge', 'discount', 'discount_type',
+        'subtotal', 'tax', 'service_charge', 'midtrans_charge', 'rounding_amount', 'discount', 'discount_type',
         'discount_value', 'discount_approved_by', 'served_by', 'served_at', 'total', 'notes',
         'customer_name', 'grouped_tables',
     ];
@@ -27,6 +27,7 @@ class Order extends Model
             'tax' => 'decimal:2',
             'service_charge' => 'decimal:2',
             'midtrans_charge' => 'decimal:2',
+            'rounding_amount' => 'decimal:2',
             'discount' => 'decimal:2',
             'discount_value' => 'decimal:2',
             'total' => 'decimal:2',

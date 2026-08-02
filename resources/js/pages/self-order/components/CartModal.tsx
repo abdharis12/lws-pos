@@ -9,9 +9,11 @@ interface Props {
     cartCount: number
     cartSubtotal: number
     cartTax: number
+    cartRoundingAmount: number
     cartTotal: number
     onlineServiceCharge: number
     midtransCharge: number
+    onlineRoundingAmount: number
     onlineTotal: number
     paymentMethod: 'cash' | 'online' | null
     submitting: boolean
@@ -28,9 +30,11 @@ export function CartModal({
     cartCount,
     cartSubtotal,
     cartTax,
+    cartRoundingAmount,
     cartTotal,
     onlineServiceCharge,
     midtransCharge,
+    onlineRoundingAmount,
     onlineTotal,
     paymentMethod,
     submitting,
@@ -121,6 +125,12 @@ export function CartModal({
                                 <span className="text-gray-500">Pajak Resto (10%)</span>
                                 <span className="text-gray-800">{fmt(cartTax)}</span>
                             </div>
+                            {cartRoundingAmount > 0 && (
+                                <div className="flex justify-between">
+                                    <span className="text-gray-500">Pembulatan</span>
+                                    <span className="text-gray-800">{fmt(cartRoundingAmount)}</span>
+                                </div>
+                            )}
                             <div className="flex justify-between border-t border-[#F6F2E9] pt-1.5 font-bold">
                                 <span className="text-gray-900">Total</span>
                                 <span className="text-[#4F6B6A]">{fmt(cartTotal)}</span>

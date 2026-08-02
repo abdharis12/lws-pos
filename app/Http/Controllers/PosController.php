@@ -232,6 +232,7 @@ class PosController extends Controller
                 'tax' => $order->tax,
                 'service_charge' => $order->service_charge,
                 'midtrans_charge' => $order->midtrans_charge,
+                'rounding_amount' => $order->rounding_amount,
                 'total' => $order->total,
                 'payment_type' => $validated['payment_type'],
                 'transaction_id' => $midtransResponse['transaction_id'] ?? null,

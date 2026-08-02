@@ -1,13 +1,12 @@
-const CACHE_NAME = 'bubur-kang-lw-v1';
+const CACHE_NAME = 'bubur-kang-lw-v3';
 
-const urlsToCache = [
-    '/',
+const PRECACHE_URLS = [
     '/offline',
 ];
 
 self.addEventListener('install', (event) => {
     event.waitUntil(
-        caches.open(CACHE_NAME).then((cache) => cache.addAll(urlsToCache))
+        caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS))
     );
     self.skipWaiting();
 });
@@ -25,37 +24,99 @@ self.addEventListener('activate', (event) => {
     self.clients.claim();
 });
 
+function isCacheableRequest(request) {
+    if (request.method !== 'GET') {
+        return false;
+    }
+
+    let url;
+    try {
+        url = new URL(request.url);
+    } catch {
+        return false;
+    }
+
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+        return false;
+    }
+
+    if (request.headers.has('range')) {
+        return false;
+    }
+
+    return true;
+}
+
+function isInertiaRequest(request) {
+    return request.headers.get('x-inertia') === 'true'
+        || (request.headers.get('accept') || '').includes('text/html')
+        || request.headers.get('x-requested-with') === 'XMLHttpRequest';
+}
+
 self.addEventListener('fetch', (event) => {
-    if (event.request.mode === 'navigate') {
+    if (event.request.method !== 'GET') {
+        return;
+    }
+
+    if (event.request.mode === 'navigate' || isInertiaRequest(event.request)) {
         event.respondWith(
-            fetch(event.request).catch(() => caches.match('/offline'))
+            fetch(event.request)
+                .then((response) => {
+                    if (response && response.status === 200 && response.type === 'basic') {
+                        const copy = response.clone();
+                        caches.open(CACHE_NAME).then((cache) => {
+                            cache.put(event.request, copy).catch(() => {});
+                        });
+                    }
+
+                    return response;
+                })
+                .catch(() => {
+                    if (event.request.mode === 'navigate') {
+                        return caches.match('/offline');
+                    }
+
+                    return new Response('', { status: 503, statusText: 'Offline' });
+                })
         );
+
+        return;
+    }
+
+    if (!isCacheableRequest(event.request)) {
         return;
     }
 
     event.respondWith(
-        caches.match(event.request).then((response) => {
-            if (response) {
-                return response;
+        caches.match(event.request).then((cached) => {
+            if (cached) {
+                return cached;
             }
 
-            return fetch(event.request).then((response) => {
-                if (!response || response.status !== 200 || response.type !== 'basic') {
+            return fetch(event.request)
+                .then((response) => {
+                    if (
+                        !response ||
+                        response.status !== 200 ||
+                        response.type !== 'basic' ||
+                        !isCacheableRequest(event.request)
+                    ) {
+                        return response;
+                    }
+
+                    const responseToCache = response.clone();
+                    caches.open(CACHE_NAME).then((cache) => {
+                        cache.put(event.request, responseToCache).catch(() => {});
+                    });
+
                     return response;
-                }
-
-                const responseToCache = response.clone();
-                caches.open(CACHE_NAME).then((cache) => {
-                    cache.put(event.request, responseToCache);
+                })
+                .catch(() => {
+                    if (event.request.destination === 'image') {
+                        return caches.match('/img/placeholder.png');
+                    }
+                    return null;
                 });
-
-                return response;
-            }).catch(() => {
-                if (event.request.destination === 'image') {
-                    return caches.match('/img/placeholder.png');
-                }
-                return null;
-            });
         })
     );
 });

@@ -7,7 +7,7 @@ import ReadyOrderCard from './components/ReadyOrderCard';
 import { printLabel } from './lib/printLabel';
 import type { LabelData } from './lib/printLabel';
 import { useKitchenOrders } from './lib/useKitchenOrders';
-import { filterNewOrderIds, playBeep } from './lib/utils';
+import { filterNewOrderIds, optionDisplayName, playBeep } from './lib/utils';
 import type { StationGroup, KitchenOrder } from './types';
 
 interface Props {
@@ -52,7 +52,7 @@ export default function KitchenIndex({
         );
         const flatUnassigned = unassignedOrders.map((o) => ({
             ...o,
-            _stationName: 'Lainnya' as string,
+            _stationName: '' as string,
         }));
 
         return [...flatOrders, ...flatUnassigned];
@@ -60,10 +60,11 @@ export default function KitchenIndex({
 
     const printOrderLabel = useCallback(
         (order: KitchenOrder, stationName?: string) => {
-            const station =
+            const rawStation =
                 stationName && stationName !== "LW's by Bubur Kang LW"
                     ? stationName
-                    : order.items[0]?.menu.station || "LW's by Bubur Kang LW";
+                    : order.items[0]?.menu.station;
+            const station = rawStation && rawStation.trim() !== '' ? rawStation : null;
 
             const labelData: LabelData = {
                 station,
@@ -73,7 +74,10 @@ export default function KitchenIndex({
                     name: item.menu.name,
                     qty: item.qty,
                     notes: item.notes,
-                    options: [],
+                    options: (item.options ?? []).map((opt) => ({
+                        name: optionDisplayName(opt),
+                        quantity: opt.quantity,
+                    })),
                 })),
                 customerName: order.customer_name,
                 orderType: order.order_type,

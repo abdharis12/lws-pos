@@ -5,6 +5,7 @@ import {
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {} from '@/lib/currency';
 import { BORDER, CREAM, INK, MUTED, PRIMARY } from '../constants';
 
 interface MidtransResponse {
@@ -14,6 +15,7 @@ interface MidtransResponse {
     tax: number;
     service_charge: number;
     midtrans_charge: number;
+    rounding_amount?: number;
     total: number;
     payment_type: string;
     transaction_id: string | null;
@@ -30,8 +32,12 @@ interface MidtransResponse {
 export interface MidtransPaymentResult {
     orderId: number;
     orderNumber: string;
-    total: number;
+    subtotal: number;
+    tax: number;
+    serviceCharge: number;
     midtransCharge: number;
+    total: number;
+    roundingAmount?: number;
     paymentType: string;
 }
 
@@ -41,6 +47,7 @@ interface Props {
     subtotal: number;
     total: number;
     onSuccess: (result: MidtransPaymentResult) => void;
+    onInitiated?: (data: MidtransResponse) => void;
     getCsrfToken: () => string;
     selectedTableId: number | null;
     cartItems: {
@@ -84,7 +91,7 @@ const CATEGORY_NAMES: Record<string, string> = {
 };
 
 export default function MidtransPaymentDialog({
-    open, onOpenChange, subtotal, total, onSuccess, getCsrfToken,
+    open, onOpenChange, subtotal, total, onSuccess, onInitiated, getCsrfToken,
     selectedTableId, cartItems, discountType, discountValue, discountApprovedBy, orderType,
 }: Props) {
     const [step, setStep] = useState<'select' | 'pay'>('select');
@@ -104,18 +111,18 @@ return null;
 }
 
         const sub = subtotal;
-        const tx = Math.round(sub * 0.10 / 500) * 500;
-        const sc = Math.round(sub * 0.05 / 500) * 500;
+        const tx = Math.round(sub * 0.10);
+        const sc = Math.round(sub * 0.05);
         const discountAmount = discountType === 'percentage' && discountValue > 0
-            ? Math.round(Math.min(sub * (discountValue / 100), sub) / 500) * 500
+            ? Math.min(sub * (discountValue / 100), sub)
             : discountType === 'nominal' && discountValue > 0
-                ? Math.round(Math.min(discountValue, sub) / 500) * 500
+                ? Math.min(discountValue, sub)
                 : 0;
-        const totalBeforeCharge = sub + tx + sc - discountAmount;
-        const mc = Math.round(totalBeforeCharge * 2.5 / 100 / 100) * 100;
-        const finalTotal = totalBeforeCharge + mc;
+        const rawBeforeCharge = sub + tx + sc - discountAmount;
+        const mc = Math.round(rawBeforeCharge * 2.5 / 100 / 100) * 100;
+        const finalTotal = rawBeforeCharge + mc;
 
-        return { subtotal: sub, tax: tx, serviceCharge: sc, midtransCharge: mc, total: finalTotal };
+        return { subtotal: sub, tax: tx, serviceCharge: sc, midtransCharge: mc, roundingAmount: 0, total: finalTotal };
     }, [subtotal, discountType, discountValue, response]);
 
     const groupedMethods = useMemo(() => {
@@ -203,6 +210,7 @@ return;
                 setResponse(data);
                 responseRef.current = data;
                 orderIdRef.current = data.order_id;
+                onInitiated?.(data);
             })
             .catch(() => {
                 setProcessing(false);
@@ -234,8 +242,12 @@ clearInterval(pollRef.current);
                         onSuccess({
                             orderId: orderIdRef.current!,
                             orderNumber: resp?.order_number ?? `TRX-LW-${orderIdRef.current}`,
+                            subtotal: resp?.subtotal ?? subtotal,
+                            tax: resp?.tax ?? 0,
+                            serviceCharge: resp?.service_charge ?? 0,
                             total: resp?.total ?? total,
                             midtransCharge: resp?.midtrans_charge ?? 0,
+                            roundingAmount: resp?.rounding_amount ?? localBreakdown?.roundingAmount ?? 0,
                             paymentType: selectedMethod?.id ?? 'qris',
                         });
                     }, 1500);

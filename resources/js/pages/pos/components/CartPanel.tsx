@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { BORDER, CREAM, INK, MUTED, PRIMARY, SAND } from '../constants';
+import { ceilTo500, roundingAmount as computeRoundingAmount } from '@/lib/currency';
 import type { CartItem } from '../types';
 
 interface Props {
@@ -65,7 +66,9 @@ export default function CartPanel({
         return Math.min(discountValue, subtotal);
     }, [subtotal, discountType, discountValue]);
 
-    const total = subtotal + tax - discountAmount;
+    const rawTotal = Math.max(0, subtotal + tax - discountAmount);
+    const roundingAmount = computeRoundingAmount(rawTotal);
+    const total = ceilTo500(rawTotal);
     const isConfirmMode = !!pendingOrderId;
     const needsApproval = discountType === 'percentage' ? discountValue > 10 : discountValue > 50000;
 
@@ -230,6 +233,12 @@ export default function CartPanel({
                         <div className="flex justify-between" style={{ color: '#059669' }}>
                             <span>Diskon</span>
                             <span>-Rp {discountAmount.toLocaleString('id-ID')}</span>
+                        </div>
+                    )}
+                    {roundingAmount > 0 && (
+                        <div className="flex justify-between" style={{ color: MUTED }}>
+                            <span>Pembulatan</span>
+                            <span>Rp {roundingAmount.toLocaleString('id-ID')}</span>
                         </div>
                     )}
                 </div>

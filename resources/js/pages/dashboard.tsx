@@ -6,6 +6,7 @@ import {
     ChefHat,
     Users,
     Clock,
+    Layers,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -53,13 +54,13 @@ export default function Dashboard({
     todayAttendances = [],
 }: Props) {
     return (
-        <div className="min-h-screen bg-[#F6F2E9] p-6 font-sans text-slate-800">
+        <div className="min-h-screen bg-[#FAF8F4] p-6 font-sans text-slate-800">
             <Head title="Dashboard" />
 
             <div className="mb-8 flex flex-col justify-between gap-4 border-b border-[#CFC0A4]/40 pb-6 sm:flex-row sm:items-end">
                 <div>
                     <div className="flex items-center gap-2 text-xs font-semibold tracking-[0.2em] text-[#CFC0A4] uppercase">
-                        <DollarSign className="size-3.5 text-[#4F6B6A]" />
+                        <Layers className="size-3.5 text-[#4F6B6A]" />
                         <span>Dashboard</span>
                     </div>
                     <h1 className="mt-1 font-serif text-3xl font-bold tracking-tight text-[#4F6B6A]">

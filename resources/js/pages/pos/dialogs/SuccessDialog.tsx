@@ -36,10 +36,10 @@ export default function SuccessDialog({ open, onClose, onPrint, type, changeAmou
 
     return (
         <Dialog open={open} onOpenChange={(v) => {
- if (!v) {
-onClose();
-} 
-}}>
+            if (!v) {
+                onClose();
+            }
+        }}>
             <DialogContent className="sm:max-w-sm" style={{ backgroundColor: CREAM }}>
                 <div className="flex flex-col items-center py-6 text-center">
                     <div className="relative mb-5">
@@ -75,7 +75,7 @@ onClose();
                         <Button onClick={onPrint} className="w-full" size="lg" style={{ backgroundColor: PRIMARY }}>
                             <Printer className="mr-2 size-4" /> Cetak Struk
                         </Button>
-                        <Button onClick={onClose} variant="outline" className="w-full" size="lg" style={{ borderColor: BORDER, color: INK }}>
+                        <Button onClick={onClose} variant="outline">
                             Selesai
                         </Button>
                     </div>

@@ -65,6 +65,7 @@ class SelfOrderController extends Controller
             $totals['serviceCharge'],
             $totals['midtransCharge'],
             $totals['total'],
+            $totals['roundingAmount'] ?? 0,
         );
 
         $this->orderService->attachOrderItems($order, $orderItems);
@@ -99,6 +100,7 @@ class SelfOrderController extends Controller
             $totals['serviceCharge'],
             $totals['midtransCharge'],
             $totals['total'],
+            $totals['roundingAmount'] ?? 0,
         );
 
         $this->orderService->attachOrderItems($order, $orderItems);
@@ -122,6 +124,7 @@ class SelfOrderController extends Controller
                 'tax' => $totals['tax'],
                 'service_charge' => $totals['serviceCharge'],
                 'midtrans_charge' => $totals['midtransCharge'],
+                'rounding_amount' => $totals['roundingAmount'] ?? 0,
                 'total' => $totals['total'],
                 'payment_type' => $paymentType,
                 'transaction_id' => $midtransResponse['transaction_id'] ?? null,
@@ -133,6 +136,7 @@ class SelfOrderController extends Controller
             'order_id' => $order->id,
             'order_number' => $orderNumber,
             'status' => 'pending',
+            'rounding_amount' => $totals['roundingAmount'] ?? 0,
             'total' => $totals['total'],
         ]);
     }
@@ -215,6 +219,7 @@ class SelfOrderController extends Controller
             ]),
             'subtotal' => (float) $order->subtotal,
             'tax' => (float) $order->tax,
+            'rounding_amount' => (float) ($order->rounding_amount ?? 0),
             'total' => (float) $order->total,
         ]);
     }

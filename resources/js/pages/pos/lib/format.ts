@@ -1,5 +1,8 @@
 export function formatPrice(amount: number): string {
-    return `Rp ${Math.round(amount).toLocaleString('id-ID')}`;
+    const safeAmount = Number.isFinite(amount) ? amount : 0;
+    const safeRounded = Math.round(safeAmount);
+
+    return `Rp ${safeRounded.toLocaleString('id-ID')}`;
 }
 
 export function formatDate(iso: string): string {

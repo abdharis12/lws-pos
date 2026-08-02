@@ -20,6 +20,7 @@ export interface ReceiptData {
     serviceCharge: number;
     midtransCharge: number;
     discount: number;
+    roundingAmount?: number;
     discountLabel: string | null;
     total: number;
     paymentMethod: string | null;
@@ -129,7 +130,7 @@ return;
             <span>Pajak Resto (10%)</span>
             <span>${formatPrice(data.tax)}</span>
         </div>
-        ${data.midtransCharge > 0 ? `
+        ${(typeof data.midtransCharge === 'number' && data.midtransCharge > 0) ? `
         <div class="row">
             <span>Biaya Transaksi Online</span>
             <span>${formatPrice(data.midtransCharge)}</span>
@@ -138,6 +139,11 @@ return;
         <div class="row">
             <span>Diskon${data.discountLabel ? ` (${data.discountLabel})` : ''}</span>
             <span>-${formatPrice(data.discount)}</span>
+        </div>` : ''}
+        ${(data.roundingAmount ?? 0) > 0 ? `
+        <div class="row">
+            <span>Pembulatan</span>
+            <span>${formatPrice(data.roundingAmount ?? 0)}</span>
         </div>` : ''}
         <div class="row final">
             <span>TOTAL</span>

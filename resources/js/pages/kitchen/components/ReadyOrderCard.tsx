@@ -1,7 +1,7 @@
 import { Check, MapPin, Timer } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
-import { elapsedBg, elapsedColor, calcElapsed } from '../lib/utils';
+import { elapsedBg, elapsedColor, calcElapsed, optionDisplayName } from '../lib/utils';
 import type { KitchenOrder } from '../types';
 
 interface Props {
@@ -58,15 +58,31 @@ export default function ReadyOrderCard({ order }: Props) {
                 </div>
 
                 <div className="mt-3 min-w-0 space-y-1">
-                    {order.items.map(item => (
-                        <div key={item.id} className="flex items-center gap-2 text-sm">
-                            <span className="shrink-0 rounded-md bg-white/10 px-1.5 py-0.5 text-xs font-bold tabular-nums text-emerald-300">
-                                {item.qty}x
-                            </span>
-                            <span className="min-w-0 truncate text-white">{item.menu.name}</span>
-                            {item.notes && <span className="shrink-0 text-[10px] italic text-amber-400/80">📝</span>}
-                        </div>
-                    ))}
+                    {order.items.map(item => {
+                        const hasOptions = (item.options ?? []).length > 0;
+
+                        return (
+                            <div key={item.id} className="min-w-0">
+                                <div className="flex items-center gap-2 text-sm">
+                                    <span className="shrink-0 rounded-md bg-white/10 px-1.5 py-0.5 text-xs font-bold tabular-nums text-emerald-300">
+                                        {item.qty}x
+                                    </span>
+                                    <span className="min-w-0 truncate text-white">{item.menu.name}</span>
+                                    {item.notes && <span className="shrink-0 text-[10px] italic text-amber-400/80">📝</span>}
+                                </div>
+                                {hasOptions && (
+                                    <ul className="mt-0.5 mb-1 ml-7 space-y-0.5 text-[11px] text-emerald-300/80">
+                                        {item.options.map((opt, oi) => (
+                                            <li key={oi} className="truncate">
+                                                + {optionDisplayName(opt)}
+                                                {opt.quantity > 1 ? ` x${opt.quantity}` : ''}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </div>
+                        );
+                    })}
                 </div>
 
                 <div className="mt-3 flex items-center justify-between border-t pt-2.5"

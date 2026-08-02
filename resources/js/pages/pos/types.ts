@@ -86,12 +86,17 @@ export interface PrintReceiptData {
     items: CartItem[];
     discountType: string | null;
     discountValue: number;
+    subtotal?: number;
+    tax?: number;
+    serviceCharge?: number;
+    total?: number;
     orderNumber?: string | null;
     kasir?: string | null;
     tableCode?: string | null;
     customerName?: string | null;
     paymentMethod?: string | null;
     midtransCharge?: number;
+    roundingAmount?: number;
     cashAmount?: number;
     change?: number;
 }
@@ -127,6 +132,7 @@ export interface OrderData {
     tax: number;
     service_charge: number;
     midtrans_charge: number;
+    rounding_amount?: number;
     discount: number;
     discount_type: string | null;
     discount_value: number | null;

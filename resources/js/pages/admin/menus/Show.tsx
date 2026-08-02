@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { Pencil, ArrowLeft, Utensils, Layers } from 'lucide-react';
+import { Pencil, ArrowLeft, Utensils, Layers, ChefHat } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,6 +26,7 @@ interface MenuData {
     price: string | number;
     photo_path: string | null;
     is_available: boolean;
+    station: string | null;
     category: { id: number; name: string };
     option_groups: OptionGroup[];
 }
@@ -127,6 +128,23 @@ export default function MenusShow({ menu }: Props) {
                                     <p className="mt-1 font-medium text-slate-800">
                                         {menu.category.name}
                                     </p>
+                                </div>
+                                <div>
+                                    <span className="block text-[10px] tracking-wider text-slate-400 uppercase">
+                                        Station Dapur
+                                    </span>
+                                    <div className="mt-1">
+                                        {menu.station ? (
+                                            <Badge className="border border-[#CFC0A4]/30 bg-[#4F6B6A]/10 text-[#4F6B6A]">
+                                                <ChefHat className="mr-1 size-3" />
+                                                {menu.station}
+                                            </Badge>
+                                        ) : (
+                                            <span className="text-sm italic text-slate-400">
+                                                Belum ada station (default ke Lainnya)
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                                 <div>
                                     <span className="block text-[10px] tracking-wider text-slate-400 uppercase">

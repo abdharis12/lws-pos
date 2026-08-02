@@ -180,19 +180,10 @@ reset(menu);
                                         const qtySel = options[group.id]?.[opt.id] ?? 0;
                                         const selected = qtySel > 0;
                                         const adj = Number(opt.price_adjustment);
+                                        const isMultiple = group.selection_type === 'multiple';
 
-                                        return (
-                                            <button
-                                                key={opt.id}
-                                                type="button"
-                                                onClick={() => toggleOption(group.id, opt.id, group.selection_type)}
-                                                className="flex flex-col items-stretch gap-1 rounded-xl px-3 py-2.5 text-sm font-medium transition-all"
-                                                style={{
-                                                    backgroundColor: selected ? PRIMARY : CREAM,
-                                                    color: selected ? '#fff' : INK,
-                                                    border: `1.5px solid ${selected ? PRIMARY : BORDER}`,
-                                                }}
-                                            >
+                                        const inner = (
+                                            <>
                                                 <div className="flex items-center gap-2">
                                                     <div className="flex size-5 items-center justify-center rounded-full border" style={{
                                                         borderColor: selected ? '#fff' : BORDER,
@@ -209,9 +200,10 @@ reset(menu);
                                                         )}
                                                     </div>
                                                 </div>
-                                                {selected && group.selection_type === 'multiple' && (
+                                                {selected && isMultiple && (
                                                     <div className="flex items-center justify-center gap-3 rounded-lg bg-white/20 p-1">
                                                         <button
+                                                            type="button"
                                                             className="flex size-6 items-center justify-center rounded-md bg-white text-sm font-bold shadow-sm"
                                                             style={{ color: PRIMARY }}
                                                             onClick={e => {
@@ -225,6 +217,7 @@ reset(menu);
                                                             {qtySel}
                                                         </span>
                                                         <button
+                                                            type="button"
                                                             className="flex size-6 items-center justify-center rounded-md bg-white text-sm font-bold shadow-sm"
                                                             style={{ color: PRIMARY }}
                                                             onClick={e => {
@@ -236,11 +229,52 @@ reset(menu);
                                                         </button>
                                                     </div>
                                                 )}
-                                                {selected && group.selection_type === 'single' && adj > 0 && (
+                                                {selected && !isMultiple && adj > 0 && (
                                                     <div className="text-center text-[10px] opacity-70">
                                                         +Rp{(adj * qtySel).toLocaleString('id-ID')}
                                                     </div>
                                                 )}
+                                            </>
+                                        );
+
+                                        const baseClass = 'flex flex-col items-stretch gap-1 rounded-xl px-3 py-2.5 text-sm font-medium transition-all';
+                                        const baseStyle = {
+                                            backgroundColor: selected ? PRIMARY : CREAM,
+                                            color: selected ? '#fff' : INK,
+                                            border: `1.5px solid ${selected ? PRIMARY : BORDER}`,
+                                        } as const;
+
+                                        if (isMultiple) {
+                                            return (
+                                                <div
+                                                    key={opt.id}
+                                                    role="button"
+                                                    tabIndex={0}
+                                                    aria-pressed={selected}
+                                                    onClick={() => toggleOption(group.id, opt.id, group.selection_type)}
+                                                    onKeyDown={e => {
+                                                        if (e.key === 'Enter' || e.key === ' ') {
+                                                            e.preventDefault();
+                                                            toggleOption(group.id, opt.id, group.selection_type);
+                                                        }
+                                                    }}
+                                                    className={baseClass}
+                                                    style={baseStyle}
+                                                >
+                                                    {inner}
+                                                </div>
+                                            );
+                                        }
+
+                                        return (
+                                            <button
+                                                key={opt.id}
+                                                type="button"
+                                                onClick={() => toggleOption(group.id, opt.id, group.selection_type)}
+                                                className={baseClass}
+                                                style={baseStyle}
+                                            >
+                                                {inner}
                                             </button>
                                         );
                                     })}

@@ -6,6 +6,7 @@ use App\Enums\OrderStatus;
 use App\Models\Meja;
 use App\Models\Order;
 use App\Models\TableSession;
+use App\Support\Money;
 
 class SelfOrderService
 {
@@ -39,20 +40,23 @@ class SelfOrderService
         $serviceChargeRate = (float) config('pos.service_charge_rate', 0.05);
         $chargePercent = (float) config('pos.midtrans.charge_percentage', 2.5);
 
-        $tax = round($subtotal * $taxRate / 500) * 500;
+        $tax = round($subtotal * $taxRate);
 
         if ($paymentMethod === 'online') {
-            $serviceCharge = round($subtotal * $serviceChargeRate / 500) * 500;
-            $totalBeforeCharge = $subtotal + $tax + $serviceCharge;
-            $midtransCharge = round($totalBeforeCharge * $chargePercent / 100 / 100) * 100;
-            $total = round(($subtotal + $tax + $serviceCharge + $midtransCharge) / 500) * 500;
+            $serviceCharge = round($subtotal * $serviceChargeRate);
+            $rawBeforeCharge = $subtotal + $tax + $serviceCharge;
+            $midtransCharge = round($rawBeforeCharge * $chargePercent / 100 / 100) * 100;
+            $total = $rawBeforeCharge + $midtransCharge;
+            $roundingAmount = 0;
         } else {
             $serviceCharge = 0;
             $midtransCharge = 0;
-            $total = round(($subtotal + $tax) / 500) * 500;
+            $rawTotal = $subtotal + $tax;
+            $roundingAmount = Money::roundingAmount($rawTotal);
+            $total = Money::ceilTo500($rawTotal);
         }
 
-        return compact('tax', 'serviceCharge', 'midtransCharge', 'total');
+        return compact('tax', 'serviceCharge', 'midtransCharge', 'total', 'roundingAmount');
     }
 
     public function createOrder(
@@ -65,6 +69,7 @@ class SelfOrderService
         float $serviceCharge,
         float $midtransCharge,
         float $total,
+        float $roundingAmount = 0,
     ): Order {
         return $session->orders()->create([
             'order_type' => $orderType,
@@ -74,6 +79,7 @@ class SelfOrderService
             'tax' => $tax,
             'service_charge' => $serviceCharge,
             'midtrans_charge' => $midtransCharge,
+            'rounding_amount' => $roundingAmount,
             'discount' => 0,
             'total' => $total,
         ]);

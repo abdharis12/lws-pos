@@ -5,6 +5,8 @@ use App\Models\Employee;
 use App\Models\Meja;
 use App\Models\Menu;
 use App\Models\MenuCategory;
+use App\Models\OptionGroup;
+use App\Models\OptionItem;
 use App\Models\Order;
 use App\Models\Outlet;
 use App\Models\TableSession;
@@ -263,4 +265,101 @@ test('order status update validates status', function () {
             'status' => 'invalid-status',
         ])
         ->assertSessionHasErrors('status');
+});
+
+// ─── Order Item Options / Toppings ──────────────────────────
+
+test('KDS payload includes topping options for each item', function () {
+    $order = Order::factory()->create([
+        'table_session_id' => $this->session->id,
+        'status' => 'paid',
+        'order_type' => 'cashier',
+    ]);
+    $orderItem = $order->items()->create([
+        'menu_id' => $this->mainStationMenu->id,
+        'qty' => 1,
+        'base_price' => 25000,
+        'total_price' => 25000,
+    ]);
+
+    $optionGroup = OptionGroup::factory()->create([
+        'outlet_id' => $this->outlet->id,
+        'selection_type' => 'multiple',
+        'is_required' => false,
+    ]);
+    $topping = OptionItem::factory()->create([
+        'option_group_id' => $optionGroup->id,
+        'name' => 'Telur Ceplok',
+        'price_adjustment' => 3000,
+        'is_available' => true,
+    ]);
+    $orderItem->options()->create([
+        'option_item_id' => $topping->id,
+        'price_adjustment' => 3000,
+        'quantity' => 1,
+    ]);
+
+    $order->refresh()->load(['items.menu', 'items.options.optionItem']);
+
+    expect($order->items)->toHaveCount(1);
+    expect($order->items->first()->options)->toHaveCount(1);
+    expect($order->items->first()->options->first()->optionItem?->name)->toBe('Telur Ceplok');
+});
+
+test('KDS routes assigned station order to stations group, not unassigned', function () {
+    $grillMenu = Menu::factory()->create([
+        'category_id' => $this->category->id,
+        'name' => 'Ayam Bakar',
+        'price' => 30000,
+        'station' => 'Grill',
+    ]);
+    $order = Order::factory()->create([
+        'table_session_id' => $this->session->id,
+        'status' => 'paid',
+    ]);
+    $order->items()->create([
+        'menu_id' => $grillMenu->id,
+        'qty' => 1,
+        'base_price' => 30000,
+        'total_price' => 30000,
+    ]);
+
+    $response = $this->actingAs($this->kitchenStaff)
+        ->get(route('kitchen.index'));
+
+    $response->assertInertia(fn ($page) => $page
+        ->component('kitchen/Index')
+        ->has('stations', 1)
+        ->where('stations.0.name', 'Grill')
+        ->has('stations.0.orders', 1)
+        ->has('unassignedOrders', 0)
+    );
+});
+
+test('KDS routes unassigned menu (no station) to unassignedOrders group', function () {
+    $noStationMenu = Menu::factory()->create([
+        'category_id' => $this->category->id,
+        'name' => 'Es Teh',
+        'price' => 5000,
+        'station' => null,
+    ]);
+    $order = Order::factory()->create([
+        'table_session_id' => $this->session->id,
+        'status' => 'paid',
+    ]);
+    $order->items()->create([
+        'menu_id' => $noStationMenu->id,
+        'qty' => 1,
+        'base_price' => 5000,
+        'total_price' => 5000,
+    ]);
+
+    $this->actingAs($this->kitchenStaff)
+        ->get(route('kitchen.index'))
+        ->assertInertia(fn ($page) => $page
+            ->component('kitchen/Index')
+            ->has('stations', 0)
+            ->has('unassignedOrders', 1)
+            ->where('unassignedOrders.0.items.0.menu.station', null)
+        );
 });

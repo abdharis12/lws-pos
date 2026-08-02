@@ -12,14 +12,23 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
-import { playBeep } from '@/pages/kitchen/lib/utils';
+import { playBeep, optionDisplayName } from '@/pages/kitchen/lib/utils';
 import { BORDER, CREAM, INK, MUTED, PRIMARY, SAND } from '@/pages/pos/constants';
+
+interface ReadyOrderItemOption {
+    id?: number;
+    name: string;
+    quantity: number;
+    option_item?: { name: string };
+    optionItem?: { name: string };
+}
 
 interface ReadyOrderItem {
     id: number;
     qty: number;
     notes: string | null;
     menu: { name: string; station: string | null };
+    options: ReadyOrderItemOption[];
 }
 
 interface ReadyOrder {
@@ -258,41 +267,64 @@ export default function WaiterReadyOrders({ readyOrders, leaderboard }: Props) {
                                     <div className="flex-1 space-y-1 p-4">
                                         {order.items.map(item => {
                                             const isChecked = checkedItems[order.id]?.has(item.id) ?? false;
+                                            const hasOptions = (item.options ?? []).length > 0;
 
                                             return (
-                                                <div
-                                                    key={item.id}
-                                                    role="button"
-                                                    tabIndex={0}
-                                                    onClick={() => toggleItem(order.id, item.id)}
-                                                    onKeyDown={(e) => {
-                                                        if (e.key === 'Enter' || e.key === ' ') {
-                                                            e.preventDefault();
-                                                            toggleItem(order.id, item.id);
-                                                        }
-                                                    }}
-                                                    className={cn(
-                                                        'flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm transition-all',
-                                                        isChecked ? 'opacity-50' : 'hover:bg-emerald-50',
-                                                    )}
-                                                >
-                                                    <span
+                                                <div key={item.id} className="min-w-0">
+                                                    <div
+                                                        role="button"
+                                                        tabIndex={0}
+                                                        onClick={() => toggleItem(order.id, item.id)}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                                e.preventDefault();
+                                                                toggleItem(order.id, item.id);
+                                                            }
+                                                        }}
                                                         className={cn(
-                                                            'flex size-5 shrink-0 items-center justify-center rounded-md border-2 transition-all',
-                                                            isChecked
-                                                                ? 'border-emerald-500 bg-emerald-500 text-white'
-                                                                : 'border-slate-300 text-transparent',
+                                                            'flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm transition-all',
+                                                            isChecked ? 'opacity-50' : 'hover:bg-emerald-50',
                                                         )}
                                                     >
-                                                        <Check className="size-3.5" />
-                                                    </span>
-                                                    <span className="shrink-0 rounded-md bg-slate-100 px-1.5 py-0.5 text-xs font-bold tabular-nums" style={{ color: PRIMARY }}>
-                                                        {item.qty}x
-                                                    </span>
-                                                    <span className={cn('min-w-0 truncate', isChecked && 'line-through')} style={{ color: INK }}>
-                                                        {item.menu.name}
-                                                    </span>
-                                                    {item.notes && <span className="shrink-0 text-[10px] italic text-amber-500">📝</span>}
+                                                        <span
+                                                            className={cn(
+                                                                'flex size-5 shrink-0 items-center justify-center rounded-md border-2 transition-all',
+                                                                isChecked
+                                                                    ? 'border-emerald-500 bg-emerald-500 text-white'
+                                                                    : 'border-slate-300 text-transparent',
+                                                            )}
+                                                        >
+                                                            <Check className="size-3.5" />
+                                                        </span>
+                                                        <span
+                                                            className="shrink-0 rounded-md bg-slate-100 px-1.5 py-0.5 text-xs font-bold tabular-nums"
+                                                            style={{ color: PRIMARY }}
+                                                        >
+                                                            {item.qty}x
+                                                        </span>
+                                                        <span
+                                                            className={cn('min-w-0 truncate', isChecked && 'line-through')}
+                                                            style={{ color: INK }}
+                                                        >
+                                                            {item.menu.name}
+                                                        </span>
+                                                        {item.notes && (
+                                                            <span className="shrink-0 text-[10px] italic text-amber-500">📝</span>
+                                                        )}
+                                                    </div>
+                                                    {hasOptions && (
+                                                        <ul
+                                                            className="ml-8 mt-0.5 mb-1 space-y-0.5 text-[11px]"
+                                                            style={{ color: MUTED }}
+                                                        >
+                                                            {(item.options ?? []).map((opt, oi) => (
+                                                                <li key={oi} className="truncate">
+                                                                    + {optionDisplayName(opt)}
+                                                                    {opt.quantity > 1 ? ` x${opt.quantity}` : ''}
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    )}
                                                 </div>
                                             );
                                         })}

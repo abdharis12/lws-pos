@@ -3,7 +3,14 @@ import { useEcho } from '@laravel/echo-react';
 import type { RefObject } from 'react';
 import { printLabel } from './printLabel';
 import type { LabelData, LabelItem } from './printLabel';
-import { playBeep } from './utils';
+import { optionDisplayName, playBeep } from './utils';
+
+interface OrderPaidItem {
+    menu: { name: string; station: string | null };
+    qty: number;
+    notes: string | null;
+    options: { name: string; quantity: number }[];
+}
 
 interface OrderPaidPayload {
     order: {
@@ -11,11 +18,7 @@ interface OrderPaidPayload {
         order_type: string;
         customer_name: string | null;
         created_at: string;
-        items: {
-            menu: { name: string; station: string | null };
-            qty: number;
-            notes: string | null;
-        }[];
+        items: OrderPaidItem[];
         table_session: { table: { code: string } } | null;
     };
 }
@@ -49,7 +52,7 @@ export function useKitchenOrders(
                 const stationsMap = new Map<string, LabelItem[]>();
 
                 for (const item of order.items) {
-                    const station = item.menu.station || 'Lainnya';
+                    const station = item.menu.station || '';
 
                     if (!stationsMap.has(station)) {
 stationsMap.set(station, []);
@@ -59,7 +62,10 @@ stationsMap.set(station, []);
                         name: item.menu.name,
                         qty: item.qty,
                         notes: item.notes,
-                        options: [],
+                        options: (item.options ?? []).map((opt) => ({
+                            name: optionDisplayName(opt),
+                            quantity: opt.quantity,
+                        })),
                     });
                 }
 

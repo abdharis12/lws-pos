@@ -12,7 +12,7 @@ class KitchenDisplayController extends Controller
 {
     public function index(): Response
     {
-        $orders = Order::with(['items.menu', 'tableSession.table'])
+        $orders = Order::with(['items.menu', 'items.options.optionItem', 'tableSession.table'])
             ->whereIn('status', [OrderStatus::Paid, OrderStatus::Processing, OrderStatus::Ready])
             ->orderBy('created_at', 'asc')
             ->get();
@@ -33,9 +33,12 @@ class KitchenDisplayController extends Controller
             $filtered = $activeOrders->filter(function (Order $order) use ($station): bool {
                 return $order->items->contains(fn ($item) => $item->menu?->station === $station);
             })->map(function (Order $order) use ($station) {
-                $order->setRelation('items', $order->items->filter(
+                $keptItems = $order->items->filter(
                     fn ($item) => $item->menu?->station === $station
-                )->values());
+                )->values();
+                $keptItems->each(fn ($i) => $i->setRelation('options', $i->options));
+
+                $order->setRelation('items', $keptItems);
 
                 return $order;
             })->values();
@@ -51,9 +54,12 @@ class KitchenDisplayController extends Controller
         $unassigned = $activeOrders->filter(function (Order $order): bool {
             return $order->items->contains(fn ($item) => blank($item->menu?->station));
         })->map(function (Order $order) {
-            $order->setRelation('items', $order->items->filter(
+            $keptItems = $order->items->filter(
                 fn ($item) => blank($item->menu?->station)
-            )->values());
+            )->values();
+            $keptItems->each(fn ($i) => $i->setRelation('options', $i->options));
+
+            $order->setRelation('items', $keptItems);
 
             return $order;
         })->values();

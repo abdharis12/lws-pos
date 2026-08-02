@@ -46,6 +46,18 @@ class OwnerDashboardController extends Controller
 
         $grossProfit = $todaySales * 0.6;
 
+        $monthlyRounding = (float) Order::whereIn('status', $paidStatuses)
+            ->whereYear('created_at', $today->year)
+            ->whereMonth('created_at', $today->month)
+            ->sum('rounding_amount');
+
+        $lastMonthStart = $today->copy()->subMonthNoOverflow()->startOfMonth();
+        $lastMonthReference = $lastMonthStart->copy();
+        $lastMonthRounding = (float) Order::whereIn('status', $paidStatuses)
+            ->whereYear('created_at', $lastMonthReference->year)
+            ->whereMonth('created_at', $lastMonthReference->month)
+            ->sum('rounding_amount');
+
         $employeeCount = Employee::where('outlet_id', $outlet?->id)->count();
         $attendanceToday = Attendance::whereDate('clock_in_at', $today)->count();
 
@@ -103,6 +115,9 @@ class OwnerDashboardController extends Controller
             'salesGrowth' => $yesterdaySales > 0 ? round(($todaySales - $yesterdaySales) / $yesterdaySales * 100, 1) : 0,
             'grossProfit' => $grossProfit,
             'laborCost' => $todaySales * 0.25,
+            'monthlyRounding' => $monthlyRounding,
+            'lastMonthRounding' => $lastMonthRounding,
+            'roundingGrowth' => $lastMonthRounding > 0 ? round(($monthlyRounding - $lastMonthRounding) / $lastMonthRounding * 100, 1) : 0,
             'employeeCount' => $employeeCount,
             'attendanceToday' => $attendanceToday,
             'activeOrders' => $activeOrders,

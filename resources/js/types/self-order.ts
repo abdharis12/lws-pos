@@ -51,6 +51,7 @@ export interface MidtransResponse {
     tax: number
     service_charge: number
     midtrans_charge: number
+    rounding_amount?: number
     total: number
     payment_type: string
     transaction_id: string | null

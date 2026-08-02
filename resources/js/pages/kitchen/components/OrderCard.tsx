@@ -2,7 +2,7 @@ import { router } from '@inertiajs/react';
 import { Check, CookingPot, MapPin, Play, Printer } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { getStatusConfig, stationIcon } from '../lib/utils';
+import { getStatusConfig, optionDisplayName, stationIcon } from '../lib/utils';
 import type { KitchenOrder } from '../types';
 
 interface Props {
@@ -54,7 +54,7 @@ export default function OrderCard({
     const hasNotes = order.items.some((i) => i.notes);
     const floor = order.table_session?.table?.floor;
     const tableCode = order.table_session?.table?.code;
-    const showStation = stationName && stationName !== 'Lainnya';
+    const showStation = stationName && stationName.trim() !== '';
 
     return (
         <div
@@ -155,46 +155,61 @@ export default function OrderCard({
                 <div className="min-w-0 space-y-1">
                     {order.items.map((item) => {
                         const checked = checkedItems.has(item.id);
+                        const hasOptions = (item.options ?? []).length > 0;
 
                         return (
-                            <div
-                                key={item.id}
-                                className={cn(
-                                    'flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm transition-all',
-                                    checked ? 'opacity-50' : 'hover:bg-white/5',
-                                )}
-                                onClick={() => toggleItem(item.id)}
-                            >
-                                <span
+                            <div key={item.id} className="min-w-0">
+                                <div
                                     className={cn(
-                                        'flex size-4 shrink-0 items-center justify-center rounded border transition-all',
-                                        checked
-                                            ? 'border-emerald-500 bg-emerald-500 text-white'
-                                            : 'border-white/20 text-transparent',
+                                        'flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm transition-all',
+                                        checked ? 'opacity-50' : 'hover:bg-white/5',
                                     )}
+                                    onClick={() => toggleItem(item.id)}
                                 >
-                                    {checked && <Check className="size-3" />}
-                                </span>
-                                <span
-                                    className={cn(
-                                        'flex shrink-0 items-center justify-center rounded-md bg-white/10 px-1.5 py-0.5 text-xs font-bold tabular-nums',
-                                    )}
-                                    style={{ color: '#CFC0A4' }}
-                                >
-                                    {item.qty}x
-                                </span>
-                                <span
-                                    className={cn(
-                                        'min-w-0 truncate text-white',
-                                        checked && 'line-through',
-                                    )}
-                                >
-                                    {item.menu.name}
-                                </span>
-                                {item.notes && (
-                                    <span className="shrink-0 text-[10px] text-amber-400/80 italic">
-                                        📝
+                                    <span
+                                        className={cn(
+                                            'flex size-4 shrink-0 items-center justify-center rounded border transition-all',
+                                            checked
+                                                ? 'border-emerald-500 bg-emerald-500 text-white'
+                                                : 'border-white/20 text-transparent',
+                                        )}
+                                    >
+                                        {checked && <Check className="size-3" />}
                                     </span>
+                                    <span
+                                        className={cn(
+                                            'flex shrink-0 items-center justify-center rounded-md bg-white/10 px-1.5 py-0.5 text-xs font-bold tabular-nums',
+                                        )}
+                                        style={{ color: '#CFC0A4' }}
+                                    >
+                                        {item.qty}x
+                                    </span>
+                                    <span
+                                        className={cn(
+                                            'min-w-0 truncate text-white',
+                                            checked && 'line-through',
+                                        )}
+                                    >
+                                        {item.menu.name}
+                                    </span>
+                                    {item.notes && (
+                                        <span className="shrink-0 text-[10px] text-amber-400/80 italic">
+                                            📝
+                                        </span>
+                                    )}
+                                </div>
+                                {hasOptions && (
+                                    <ul className="mt-0.5 mb-1 ml-9 space-y-0.5 text-[11px]">
+                                        {item.options.map((opt, oi) => (
+                                            <li
+                                                key={oi}
+                                                className="truncate text-[#CFC0A4]/80"
+                                            >
+                                                + {optionDisplayName(opt)}
+                                                {opt.quantity > 1 ? ` x${opt.quantity}` : ''}
+                                            </li>
+                                        ))}
+                                    </ul>
                                 )}
                             </div>
                         );
