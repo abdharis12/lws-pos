@@ -113,8 +113,8 @@ function TableCard({
         const qrCanvas = canvasRef.current;
 
         if (!qrCanvas) {
-return null;
-}
+            return null;
+        }
 
         const size = 600;
         const qrSize = 200;
@@ -124,8 +124,8 @@ return null;
         const ctx = card.getContext('2d');
 
         if (!ctx) {
-return null;
-}
+            return null;
+        }
 
         const bg = '#F6F2E9';
         const primary = '#4F6B6A';
@@ -251,8 +251,8 @@ return null;
             const card = await renderCard();
 
             if (!card) {
-return;
-}
+                return;
+            }
 
             const link = document.createElement('a');
             link.download = `meja-${table.code}-qr.png`;
@@ -268,14 +268,14 @@ return;
             const card = await renderCard();
 
             if (!card) {
-return;
-}
+                return;
+            }
 
             const win = window.open('', '_blank');
 
             if (!win) {
-return;
-}
+                return;
+            }
 
             win.document.write(`
                 <html>
@@ -485,8 +485,8 @@ export default function TablesIndex({ tables, floors, filters }: Props) {
 
     function confirmDelete() {
         if (!deleteConfirm) {
-return;
-}
+            return;
+        }
 
         destroy(`/admin/tables/${deleteConfirm.id}`);
         setDeleteConfirm(null);
@@ -502,15 +502,15 @@ return;
 
     function confirmRegenerateToken() {
         if (tokenToRegenerate === null) {
-return;
-}
+            return;
+        }
 
         router.post(`/admin/tables/${tokenToRegenerate}/regenerate-token`);
         setTokenToRegenerate(null);
     }
 
     return (
-        <div className="min-h-screen bg-[#F6F2E9] p-6 font-sans text-slate-800">
+        <div className="min-h-screen bg-[#FAF8F4] p-6 font-sans text-slate-800">
             <Head title="Meja - European Classic" />
 
             <div className="mx-auto max-w-7xl">
@@ -643,11 +643,10 @@ return;
                 <div className="mb-8 inline-flex flex-wrap gap-1.5 rounded-xl border border-[#CFC0A4]/30 bg-white/50 p-1.5">
                     <button
                         onClick={() => setFilterFloor('')}
-                        className={`rounded-lg px-3.5 py-1.5 text-xs font-medium transition-all duration-200 ${
-                            !filterFloor
+                        className={`rounded-lg px-3.5 py-1.5 text-xs font-medium transition-all duration-200 ${!filterFloor
                                 ? 'bg-[#4F6B6A] text-white shadow-sm'
                                 : 'text-slate-500 hover:bg-white/60 hover:text-slate-700'
-                        }`}
+                            }`}
                     >
                         Semua
                     </button>
@@ -658,11 +657,10 @@ return;
                             <button
                                 key={f}
                                 onClick={() => setFilterFloor(f)}
-                                className={`rounded-lg px-3.5 py-1.5 text-xs font-medium transition-all duration-200 ${
-                                    filterFloor === f
+                                className={`rounded-lg px-3.5 py-1.5 text-xs font-medium transition-all duration-200 ${filterFloor === f
                                         ? 'bg-[#4F6B6A] text-white shadow-sm'
                                         : 'text-slate-500 hover:bg-white/60 hover:text-slate-700'
-                                }`}
+                                    }`}
                             >
                                 <span className="mr-1 opacity-60">
                                     {icons[i] ?? ''}

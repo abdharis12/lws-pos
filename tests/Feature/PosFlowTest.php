@@ -7,7 +7,10 @@ use App\Models\OptionGroup;
 use App\Models\OptionItem;
 use App\Models\Order;
 use App\Models\Outlet;
+use App\Models\TableSession;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Spatie\Permission\Models\Role;
 
 beforeEach(function () {
@@ -476,4 +479,69 @@ test('cashier cannot approve discount', function () {
             'password' => 'anything',
         ])
         ->assertStatus(403);
+});
+
+test('online payment flow does NOT occupy table until settlement', function () {
+    Http::fake([
+        'https://sandbox.midtrans.com/*' => Http::response([
+            'transaction_id' => 'fake-tx-id',
+            'transaction_status' => 'pending',
+            'status_code' => '201',
+            'order_id' => 'TEST',
+        ], 200),
+    ]);
+
+    $this->actingAs($this->cashier)
+        ->postJson(route('pos.orders.initiate-payment'), [
+            'table_id' => $this->table->id,
+            'items' => [
+                ['menu_id' => $this->menu->id, 'qty' => 1, 'notes' => null, 'option_ids' => []],
+            ],
+            'payment_type' => 'qris',
+            'order_type' => 'dine_in',
+        ])
+        ->assertOk();
+
+    expect($this->table->fresh()->status->value)->not->toBe('occupied');
+});
+
+test('qris-status settlement marks table as occupied', function () {
+    Http::fake([
+        'https://api.sandbox.midtrans.com/*' => Http::response([
+            'transaction_id' => 'fake-tx-id',
+            'transaction_status' => 'settlement',
+            'status_code' => '200',
+            'order_id' => 'TEST',
+        ], 200),
+    ]);
+
+    $meja = Meja::factory()->create([
+        'outlet_id' => $this->outlet->id,
+        'status' => 'available',
+    ]);
+    $session = TableSession::factory()->create([
+        'table_id' => $meja->id,
+        'status' => 'active',
+    ]);
+    $order = Order::factory()->create([
+        'table_session_id' => $session->id,
+        'status' => 'pending_payment',
+        'order_type' => 'dine_in_qr',
+    ]);
+
+    DB::table('payments')->insert([
+        'order_id' => $order->id,
+        'method' => 'qris',
+        'midtrans_transaction_id' => 'fake-tx-id',
+        'gross_amount' => $order->total,
+        'status' => 'pending',
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    $response = $this->actingAs($this->cashier)
+        ->getJson(route('pos.orders.qris-status', $order));
+
+    expect($response->getStatusCode())->toBe(200);
+    expect($meja->fresh()->status->value)->toBe('occupied');
 });

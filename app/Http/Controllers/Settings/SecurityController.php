@@ -21,33 +21,46 @@ class SecurityController extends Controller
         $props = [
             'canManageTwoFactor' => Features::canManageTwoFactorAuthentication(),
             'canManagePasskeys' => Features::canManagePasskeys(),
-            'passkeys' => Features::canManagePasskeys()
-                ? $request->user()
-                    ->passkeys()
-                    ->select(['id', 'name', 'credential', 'created_at', 'last_used_at'])
-                    ->latest()
-                    ->get()
-                    ->map(fn ($passkey) => [
-                        'id' => $passkey->id,
-                        'name' => $passkey->name,
-                        'authenticator' => $passkey->authenticator,
-                        'created_at_diff' => $passkey->created_at->diffForHumans(),
-                        'last_used_at_diff' => $passkey->last_used_at?->diffForHumans(),
-                    ])
-                    ->values()
-                    ->all()
-                : [],
+            'passkeys' => $this->passkeys($request),
             'passwordRules' => Password::defaults()->toPasswordRulesString(),
         ];
 
-        if (Features::canManageTwoFactorAuthentication()) {
-            $request->ensureStateIsValid();
-
-            $props['twoFactorEnabled'] = $request->user()->hasEnabledTwoFactorAuthentication();
-            $props['requiresConfirmation'] = Features::optionEnabled(Features::twoFactorAuthentication(), 'confirm');
-        }
+        $this->applyTwoFactorProps($request, $props);
 
         return Inertia::render('settings/security', $props);
+    }
+
+    protected function passkeys(TwoFactorAuthenticationRequest $request): array
+    {
+        if (! Features::canManagePasskeys()) {
+            return [];
+        }
+
+        return $request->user()
+            ->passkeys()
+            ->select(['id', 'name', 'credential', 'created_at', 'last_used_at'])
+            ->latest()
+            ->get()
+            ->map(fn ($passkey) => [
+                'id' => $passkey->id,
+                'name' => $passkey->name,
+                'authenticator' => $passkey->authenticator,
+                'created_at_diff' => $passkey->created_at->diffForHumans(),
+                'last_used_at_diff' => $passkey->last_used_at?->diffForHumans(),
+            ])
+            ->values()
+            ->all();
+    }
+
+    protected function applyTwoFactorProps(TwoFactorAuthenticationRequest $request, array &$props): void
+    {
+        if (! Features::canManageTwoFactorAuthentication()) {
+            return;
+        }
+
+        $request->ensureStateIsValid();
+        $props['twoFactorEnabled'] = $request->user()->hasEnabledTwoFactorAuthentication();
+        $props['requiresConfirmation'] = Features::optionEnabled(Features::twoFactorAuthentication(), 'confirm');
     }
 
     /**

@@ -5,18 +5,17 @@ import {
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import {} from '@/lib/currency';
 import { BORDER, CREAM, INK, MUTED, PRIMARY } from '../constants';
 
 interface MidtransResponse {
     order_id: number;
     order_number: string;
-    subtotal: number;
-    tax: number;
-    service_charge: number;
-    midtrans_charge: number;
-    rounding_amount?: number;
-    total: number;
+    subtotal: number | string;
+    tax: number | string;
+    service_charge: number | string;
+    midtrans_charge: number | string;
+    rounding_amount?: number | string;
+    total: number | string;
     payment_type: string;
     transaction_id: string | null;
     qr_code?: string;
@@ -96,7 +95,8 @@ export default function MidtransPaymentDialog({
 }: Props) {
     const [step, setStep] = useState<'select' | 'pay'>('select');
     const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
-    const [processing, setProcessing] = useState(false);
+    const [initLoading, setInitLoading] = useState(false);
+    const [polling, setPolling] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [response, setResponse] = useState<MidtransResponse | null>(null);
     const responseRef = useRef<MidtransResponse | null>(null);
@@ -106,10 +106,6 @@ export default function MidtransPaymentDialog({
     const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     const localBreakdown = useMemo(() => {
-        if (response) {
-return null;
-}
-
         const sub = subtotal;
         const tx = Math.round(sub * 0.10);
         const sc = Math.round(sub * 0.05);
@@ -123,16 +119,15 @@ return null;
         const finalTotal = rawBeforeCharge + mc;
 
         return { subtotal: sub, tax: tx, serviceCharge: sc, midtransCharge: mc, roundingAmount: 0, total: finalTotal };
-    }, [subtotal, discountType, discountValue, response]);
+    }, [subtotal, discountType, discountValue]);
 
     const groupedMethods = useMemo(() => {
         const groups: Record<string, PaymentMethod[]> = {};
 
         for (const method of PAYMENT_METHODS) {
             if (!groups[method.category]) {
-groups[method.category] = [];
-}
-
+                groups[method.category] = [];
+            }
             groups[method.category].push(method);
         }
 
@@ -146,21 +141,19 @@ groups[method.category] = [];
     }, [open]);
 
     useEffect(() => {
-        if (open && step === 'pay' && paymentStatus === 'pending') {
-            pollRef.current = setInterval(handlePoll, 3000);
-        }
-
         return () => {
             if (pollRef.current) {
-clearInterval(pollRef.current);
-}
+                clearInterval(pollRef.current);
+                pollRef.current = null;
+            }
         };
-    }, [open, step, paymentStatus]);
+    }, []);
 
     function resetState() {
         setStep('select');
         setSelectedMethod(null);
-        setProcessing(false);
+        setInitLoading(false);
+        setPolling(false);
         setError(null);
         setResponse(null);
         responseRef.current = null;
@@ -169,18 +162,19 @@ clearInterval(pollRef.current);
         orderIdRef.current = null;
 
         if (pollRef.current) {
-clearInterval(pollRef.current);
-}
+            clearInterval(pollRef.current);
+            pollRef.current = null;
+        }
     }
 
     function handleSelectMethod(method: PaymentMethod) {
-        if (processing) {
-return;
-}
+        if (initLoading || polling) {
+            return;
+        }
 
         setSelectedMethod(method);
         setStep('pay');
-        setProcessing(true);
+        setInitLoading(true);
         setError(null);
         setPaymentStatus('pending');
 
@@ -199,11 +193,10 @@ return;
         })
             .then(res => res.json().then(data => ({ ok: res.ok, data })))
             .then(({ ok, data }) => {
-                setProcessing(false);
+                setInitLoading(false);
 
                 if (!ok) {
                     setError(data.message || `Gagal memproses ${method.name}`);
-
                     return;
                 }
 
@@ -213,17 +206,32 @@ return;
                 onInitiated?.(data);
             })
             .catch(() => {
-                setProcessing(false);
+                setInitLoading(false);
                 setError('Terjadi kesalahan jaringan');
             });
+    }
+
+    function startPolling() {
+        if (pollRef.current) {
+            return;
+        }
+
+        setPolling(true);
+        setError(null);
+
+        pollRef.current = setInterval(() => {
+            handlePoll();
+        }, 3000);
+
+        handlePoll();
     }
 
     function handlePoll() {
         const id = orderIdRef.current;
 
         if (!id) {
-return;
-}
+            return;
+        }
 
         fetch(`/pos/orders/${id}/qris-status`, {
             headers: { 'Accept': 'application/json' },
@@ -234,45 +242,61 @@ return;
                     setPaymentStatus('settlement');
 
                     if (pollRef.current) {
-clearInterval(pollRef.current);
-}
+                        clearInterval(pollRef.current);
+                        pollRef.current = null;
+                    }
 
                     const resp = responseRef.current;
+
                     setTimeout(() => {
                         onSuccess({
                             orderId: orderIdRef.current!,
                             orderNumber: resp?.order_number ?? `TRX-LW-${orderIdRef.current}`,
-                            subtotal: resp?.subtotal ?? subtotal,
-                            tax: resp?.tax ?? 0,
-                            serviceCharge: resp?.service_charge ?? 0,
-                            total: resp?.total ?? total,
-                            midtransCharge: resp?.midtrans_charge ?? 0,
-                            roundingAmount: resp?.rounding_amount ?? localBreakdown?.roundingAmount ?? 0,
+                            subtotal: Number(resp?.subtotal ?? subtotal),
+                            tax: Number(resp?.tax ?? 0),
+                            serviceCharge: Number(resp?.service_charge ?? 0),
+                            total: Number(resp?.total ?? total),
+                            midtransCharge: Number(resp?.midtrans_charge ?? 0),
+                            roundingAmount: Number(resp?.rounding_amount ?? 0),
                             paymentType: selectedMethod?.id ?? 'qris',
                         });
-                    }, 1500);
+                    }, 1200);
                 } else if (data.status === 'failed') {
                     setPaymentStatus('failed');
 
                     if (pollRef.current) {
-clearInterval(pollRef.current);
-}
+                        clearInterval(pollRef.current);
+                        pollRef.current = null;
+                    }
                 }
             })
-            .catch(() => { });
+            .catch(() => {});
     }
 
+    function handleConfirmPayment() {
+        // kept for backward-compat no-op (polling is automatic)
+    }
+
+    useEffect(() => {
+        if (open && step === 'pay' && response && !pollRef.current) {
+            startPolling();
+        }
+    }, [open, step, response]);
+
     function handleBack() {
+        if (pollRef.current) {
+            clearInterval(pollRef.current);
+            pollRef.current = null;
+        }
         setStep('select');
         setSelectedMethod(null);
         setError(null);
         setResponse(null);
+        responseRef.current = null;
         setPaymentStatus('pending');
         setCopied(false);
-
-        if (pollRef.current) {
-clearInterval(pollRef.current);
-}
+        setInitLoading(false);
+        setPolling(false);
     }
 
     function handleClose() {
@@ -286,32 +310,31 @@ clearInterval(pollRef.current);
 
     function handleCopy(text: string) {
         if (!navigator.clipboard?.writeText) {
-return;
-}
-
+            return;
+        }
         navigator.clipboard.writeText(text).then(() => {
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
         });
     }
 
-    function formatPrice(amount: number): string {
-        return `Rp ${Math.round(amount).toLocaleString('id-ID')}`;
+    function formatPrice(amount: number | string | undefined): string {
+        const num = typeof amount === 'string' ? Number(amount) : amount;
+        const safe = Number.isFinite(num) ? Number(num) : 0;
+
+        return `Rp ${Math.round(safe).toLocaleString('id-ID')}`;
     }
 
     function getIcon(method: PaymentMethod) {
         if (method.category === 'qris') {
-return QrCode;
-}
-
+            return QrCode;
+        }
         if (method.category === 'ewallet') {
-return Smartphone;
-}
-
+            return Smartphone;
+        }
         if (method.category === 'cstore') {
-return Store;
-}
-
+            return Store;
+        }
         return Building2;
     }
 
@@ -320,7 +343,12 @@ return Store;
             <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto" style={{ backgroundColor: CREAM }}>
                 <DialogHeader>
                     <DialogTitle style={{ color: INK }}>
-                        {step === 'select' ? 'Pilih Metode Pembayaran' : `Bayar dengan ${selectedMethod?.name ?? ''}`}
+                        {step === 'select' && 'Pilih Metode Pembayaran'}
+                        {step === 'pay' && (
+                            selectedMethod
+                                ? `Bayar dengan ${selectedMethod.name}`
+                                : 'Bayar'
+                        )}
                     </DialogTitle>
                 </DialogHeader>
 
@@ -339,7 +367,8 @@ return Store;
                                             <button
                                                 key={method.id}
                                                 onClick={() => handleSelectMethod(method)}
-                                                className="flex items-center gap-3 rounded-xl p-3 text-left transition-all hover:opacity-80"
+                                                disabled={initLoading}
+                                                className="flex items-center gap-3 rounded-xl p-3 text-left transition-all hover:opacity-80 disabled:opacity-50"
                                                 style={{ border: `1px solid ${BORDER}`, backgroundColor: '#fff' }}
                                             >
                                                 <div className="flex size-10 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: `${PRIMARY}10` }}>
@@ -361,83 +390,61 @@ return Store;
                 {step === 'pay' && (
                     <div className="flex flex-col items-center space-y-4 py-2">
                         <div className="w-full max-w-sm space-y-4">
-                        <div className="rounded-xl p-3" style={{ border: `1px solid ${BORDER}`, backgroundColor: '#fff' }}>
-                            <p className="mb-2 text-xs font-semibold" style={{ color: MUTED }}>Rincian Pembayaran</p>
-                            <div className="space-y-1 text-sm">
-                                <div className="flex justify-between">
-                                    <span style={{ color: MUTED }}>Subtotal</span>
-                                    <span style={{ color: INK }}>{formatPrice(response?.subtotal ?? localBreakdown?.subtotal ?? subtotal)}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span style={{ color: MUTED }}>Pajak Resto (10%)</span>
-                                    <span style={{ color: INK }}>{formatPrice(response?.tax ?? localBreakdown?.tax ?? 0)}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span style={{ color: MUTED }}>Service Charge (5%)</span>
-                                    <span style={{ color: INK }}>{formatPrice(response?.service_charge ?? localBreakdown?.serviceCharge ?? 0)}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span style={{ color: MUTED }}>Biaya Transaksi</span>
-                                    <span style={{ color: INK }}>{formatPrice(response?.midtrans_charge ?? localBreakdown?.midtransCharge ?? 0)}</span>
-                                </div>
-                                <div className="flex justify-between border-t pt-1.5 font-bold" style={{ borderColor: BORDER, color: PRIMARY }}>
-                                    <span>Total</span>
-                                    <span>{formatPrice(response?.total ?? localBreakdown?.total ?? total)}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {selectedMethod && error && (
-                            <div className="flex flex-col items-center gap-3 py-4">
-                                <AlertCircle className="size-12 text-amber-500" />
-                                <p className="text-sm text-center break-words" style={{ color: MUTED }}>{error}</p>
-                                <div className="flex flex-wrap gap-2">
-                                    <Button onClick={handleBack} variant="outline">
-                                        Pilih Metode Lain
-                                    </Button>
-                                    <Button onClick={handleClose} variant="outline">
-                                        Tutup
-                                    </Button>
+                            <div className="rounded-xl p-3" style={{ border: `1px solid ${BORDER}`, backgroundColor: '#fff' }}>
+                                <p className="mb-2 text-xs font-semibold" style={{ color: MUTED }}>Rincian Pembayaran</p>
+                                <div className="space-y-1 text-sm">
+                                    <div className="flex justify-between">
+                                        <span style={{ color: MUTED }}>Subtotal</span>
+                                        <span style={{ color: INK }}>{formatPrice(response?.subtotal ?? subtotal)}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span style={{ color: MUTED }}>Pajak Resto (10%)</span>
+                                        <span style={{ color: INK }}>{formatPrice(response?.tax ?? 0)}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span style={{ color: MUTED }}>Service Charge (5%)</span>
+                                        <span style={{ color: INK }}>{formatPrice(response?.service_charge ?? 0)}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span style={{ color: MUTED }}>Biaya Transaksi</span>
+                                        <span style={{ color: INK }}>{formatPrice(response?.midtrans_charge ?? 0)}</span>
+                                    </div>
+                                    <div className="flex justify-between border-t pt-1.5 font-bold" style={{ borderColor: BORDER, color: PRIMARY }}>
+                                        <span>Total</span>
+                                        <span>{formatPrice(response?.total ?? total)}</span>
+                                    </div>
                                 </div>
                             </div>
-                        )}
 
-                        {selectedMethod && !error && (
-                            <>
-                                {response?.order_number && paymentStatus === 'pending' && (
+                            {initLoading && !response && (
+                                <div className="flex flex-col items-center gap-3 py-8">
+                                    <LoaderCircle className="size-10 animate-spin" style={{ color: PRIMARY }} />
+                                    <p className="text-sm" style={{ color: MUTED }}>Membuat pembayaran...</p>
+                                </div>
+                            )}
+
+                            {error && (
+                                <div className="flex flex-col items-center gap-3 py-4">
+                                    <AlertCircle className="size-12 text-amber-500" />
+                                    <p className="text-sm text-center break-words" style={{ color: MUTED }}>{error}</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        <Button onClick={handleBack} variant="outline">
+                                            Pilih Metode Lain
+                                        </Button>
+                                        <Button onClick={handleClose} variant="outline">
+                                            Tutup
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {response && !initLoading && !error && (
+                                <>
                                     <div className="text-center">
                                         <p className="text-xs" style={{ color: MUTED }}>Order ID</p>
                                         <p className="font-mono text-sm font-bold" style={{ color: INK }}>{response.order_number}</p>
                                     </div>
-                                )}
 
-                                {paymentStatus === 'settlement' && (
-                                    <div className="flex flex-col items-center gap-3 py-4">
-                                        <div className="flex size-16 items-center justify-center rounded-full" style={{ backgroundColor: `${PRIMARY}12` }}>
-                                            <Check className="size-8" style={{ color: PRIMARY }} />
-                                        </div>
-                                        <p className="font-semibold" style={{ color: INK }}>Pembayaran Berhasil</p>
-                                    </div>
-                                )}
-
-                                {paymentStatus === 'failed' && (
-                                    <div className="flex flex-col items-center gap-3 py-4">
-                                        <AlertCircle className="size-12 text-red-500" />
-                                        <p className="font-semibold text-red-500">Pembayaran Gagal</p>
-                                        <Button onClick={handleBack} variant="outline" style={{ borderColor: BORDER, color: INK }}>
-                                            Coba Lagi
-                                        </Button>
-                                    </div>
-                                )}
-
-                                {paymentStatus === 'pending' && processing && (
-                                    <div className="flex flex-col items-center gap-3 py-8">
-                                        <LoaderCircle className="size-10 animate-spin" style={{ color: PRIMARY }} />
-                                        <p className="text-sm" style={{ color: MUTED }}>Memproses pembayaran...</p>
-                                    </div>
-                                )}
-
-                                {paymentStatus === 'pending' && !processing && response && (
                                     <div className="flex w-full flex-col items-center gap-3">
                                         {response.qr_code && (
                                             <>
@@ -445,10 +452,11 @@ return Store;
                                                     <img src={response.qr_code} alt="QR Code" className="size-48 object-contain" />
                                                 </div>
                                                 <p className="text-xs text-center" style={{ color: MUTED }}>
-                                                    Scan QR code di atas menggunakan<br />{selectedMethod.name === 'QRIS' ? 'GoPay, OVO, atau LinkAja' : `aplikasi ${selectedMethod.name}`}
+                                                    Scan QR code di atas menggunakan<br />{selectedMethod?.name === 'QRIS' ? 'GoPay, OVO, atau LinkAja' : `aplikasi ${selectedMethod?.name}`}
                                                 </p>
                                             </>
                                         )}
+
                                         {response.va_number && (
                                             <div className="w-full rounded-xl bg-white p-4 shadow-sm" style={{ border: `1px solid ${BORDER}` }}>
                                                 <p className="text-xs font-medium uppercase tracking-wider" style={{ color: MUTED }}>
@@ -472,6 +480,7 @@ return Store;
                                                 </p>
                                             </div>
                                         )}
+
                                         {response.bill_key && (
                                             <div className="w-full rounded-xl bg-white p-4 shadow-sm" style={{ border: `1px solid ${BORDER}` }}>
                                                 <p className="text-xs font-medium uppercase tracking-wider" style={{ color: MUTED }}>
@@ -506,6 +515,7 @@ return Store;
                                                 </p>
                                             </div>
                                         )}
+
                                         {response.payment_code && (
                                             <div className="w-full rounded-xl bg-white p-4 shadow-sm" style={{ border: `1px solid ${BORDER}` }}>
                                                 <p className="text-xs font-medium uppercase tracking-wider" style={{ color: MUTED }}>
@@ -529,6 +539,7 @@ return Store;
                                                 </p>
                                             </div>
                                         )}
+
                                         {response.deeplink_url && (
                                             <a
                                                 href={response.deeplink_url}
@@ -538,29 +549,29 @@ return Store;
                                                 style={{ backgroundColor: PRIMARY, color: '#fff' }}
                                             >
                                                 <ExternalLink className="size-4" />
-                                                Buka Aplikasi {selectedMethod.name}
+                                                Buka Aplikasi {selectedMethod?.name}
                                             </a>
                                         )}
-                                        <div className="flex items-center gap-2 text-xs" style={{ color: MUTED }}>
-                                            <LoaderCircle className="size-3 animate-spin" />
-                                            <span>Menunggu pembayaran...</span>
-                                        </div>
                                     </div>
-                                )}
 
-                                {paymentStatus === 'pending' && !error && (
-                                    <div className="flex w-full gap-2">
-                                        <Button onClick={handleBack} variant="outline" className="flex-1">
-                                            <ChevronLeft className="mr-1 size-4" /> Ganti Metode
-                                        </Button>
-                                        <Button onClick={handleClose} variant="outline" className="flex-1">
-                                            Batal
-                                        </Button>
+                                    <div className="flex items-center justify-center gap-2 rounded-lg p-2 text-xs" style={{ color: MUTED }}>
+                                        {paymentStatus === 'pending' && polling && (
+                                            <>
+                                                <LoaderCircle className="size-3 animate-spin" />
+                                                <span>Memverifikasi pembayaran otomatis...</span>
+                                            </>
+                                        )}
+                                        {paymentStatus === 'failed' && (
+                                            <span className="text-red-500">Pembayaran gagal — coba lagi.</span>
+                                        )}
                                     </div>
-                                )}
-                            </>
-                        )}
-                    </div>
+
+                                    <Button onClick={handleBack} variant="outline" className="w-full">
+                                        <ChevronLeft className="mr-1 size-4" /> Ganti Metode
+                                    </Button>
+                                </>
+                            )}
+                        </div>
                     </div>
                 )}
             </DialogContent>

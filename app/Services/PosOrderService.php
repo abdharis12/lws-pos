@@ -8,7 +8,10 @@ use App\Events\OrderCreated;
 use App\Events\OrderPaid;
 use App\Events\OrderStatusUpdated;
 use App\Models\Meja;
+use App\Models\Menu;
+use App\Models\OptionItem;
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\TableSession;
 use App\Models\User;
 use App\Support\Money;
@@ -102,109 +105,145 @@ class PosOrderService
         ?TableSession $session,
         ?int $posSessionId = null,
     ): array {
+        $plan = $this->splitPlan($orderItems, $validated);
+        $createdOrders = [];
+
+        for ($i = 0; $i < $plan['count']; $i++) {
+            $amounts = $this->splitAmountsFor($i, $plan['count'], $plan['totals'], $plan['split']);
+            $order = $this->createSplitOrderRecord(
+                $user, $validated, $orderItems, $groupedTableIds, $session, $posSessionId, $i, $plan['count'], $amounts,
+            );
+
+            $createdOrders[] = $order;
+            $this->announceSplitOrder($order);
+        }
+
+        return $createdOrders;
+    }
+
+    protected function splitPlan(array $orderItems, array $validated): array
+    {
         $subtotal = array_sum(array_column($orderItems, 'total_price'));
         $discountAmount = $this->calculateDiscount($subtotal, $validated);
         $tax = $this->calculateTax($subtotal);
         $rawTotal = max(0, $subtotal + $tax - $discountAmount);
         $roundingAmount = Money::roundingAmount($rawTotal);
         $total = Money::ceilTo500($rawTotal);
-
         $splitCount = (int) ($validated['split_count'] ?? 1);
 
-        $splitSubtotal = round($subtotal / $splitCount);
-        $splitTax = round($tax / $splitCount);
-        $splitTotal = (float) ceil($total / $splitCount / 500) * 500;
-        $splitDiscount = round($discountAmount / $splitCount);
-        $splitRounding = $roundingAmount;
+        return [
+            'count' => $splitCount,
+            'totals' => compact('subtotal', 'tax', 'discountAmount', 'roundingAmount', 'total'),
+            'split' => [
+                'subtotal' => round($subtotal / $splitCount),
+                'tax' => round($tax / $splitCount),
+                'total' => (float) ceil($total / $splitCount / 500) * 500,
+                'discount' => round($discountAmount / $splitCount),
+                'rounding' => $roundingAmount,
+            ],
+        ];
+    }
 
-        $createdOrders = [];
+    protected function announceSplitOrder(Order $order): void
+    {
+        broadcast(new OrderCreated($order))->toOthers();
+        broadcast(new OrderPaid($order))->toOthers();
+    }
 
-        for ($i = 0; $i < $splitCount; $i++) {
-            $isLast = $i === $splitCount - 1;
+    protected function splitAmountsFor(int $i, int $splitCount, array $totals, array $split): array
+    {
+        $isLast = $i === $splitCount - 1;
 
-            $orderSubtotal = $isLast ? $subtotal - $splitSubtotal * ($splitCount - 1) : $splitSubtotal;
-            $orderTax = $isLast ? $tax - $splitTax * ($splitCount - 1) : $splitTax;
-            $orderDiscount = $isLast ? $discountAmount - $splitDiscount * ($splitCount - 1) : $splitDiscount;
-            $orderRounding = $isLast ? $roundingAmount - $splitRounding * ($splitCount - 1) : $splitRounding;
-            $orderTotal = $isLast ? $total - $splitTotal * ($splitCount - 1) : $splitTotal;
+        return [
+            'subtotal' => $isLast ? $totals['subtotal'] - $split['subtotal'] * ($splitCount - 1) : $split['subtotal'],
+            'tax' => $isLast ? $totals['tax'] - $split['tax'] * ($splitCount - 1) : $split['tax'],
+            'discount' => $isLast ? $totals['discountAmount'] - $split['discount'] * ($splitCount - 1) : $split['discount'],
+            'rounding' => $isLast ? $totals['roundingAmount'] - $split['rounding'] * ($splitCount - 1) : $split['rounding'],
+            'total' => $isLast ? $totals['total'] - $split['total'] * ($splitCount - 1) : $split['total'],
+        ];
+    }
 
-            $shared = [
-                'created_by' => $user->id,
-                'pos_session_id' => $posSessionId,
-                'order_type' => $validated['order_type'] ?? 'dine_in',
-                'customer_name' => $validated['customer_name'] ?? null,
-                'status' => OrderStatus::Paid,
-                'service_charge' => 0,
-                'discount_type' => $validated['discount_type'] ?? null,
-                'discount_value' => $validated['discount_value'] ?? null,
-                'discount_approved_by' => $validated['discount_approved_by'] ?? null,
-                'grouped_tables' => ! empty($groupedTableIds) ? $groupedTableIds : null,
-            ];
+    protected function createSplitOrderRecord(
+        User $user,
+        array $validated,
+        array $orderItems,
+        array $groupedTableIds,
+        ?TableSession $session,
+        ?int $posSessionId,
+        int $i,
+        int $splitCount,
+        array $amounts,
+    ): Order {
+        $data = $this->splitOrderData($this->splitShared($user, $validated, $groupedTableIds, $posSessionId), $amounts, $i, $splitCount);
 
-            $order = $session?->orders()->create([
-                ...$shared,
-                'subtotal' => $orderSubtotal,
-                'tax' => $orderTax,
-                'discount' => $orderDiscount,
-                'rounding_amount' => $orderRounding,
-                'total' => $orderTotal,
-                'notes' => $splitCount > 1 ? "Split {$i}/{$splitCount}" : null,
-            ]) ?? Order::create([
-                ...$shared,
-                'subtotal' => $orderSubtotal,
-                'tax' => $orderTax,
-                'discount' => $orderDiscount,
-                'rounding_amount' => $orderRounding,
-                'total' => $orderTotal,
-                'notes' => $splitCount > 1 ? "Split {$i}/{$splitCount}" : null,
+        $order = $session?->orders()->create($data) ?? Order::create($data);
+        $this->itemBuilder->attach($order, $orderItems);
+        $this->attachIfAsked($order, $validated);
+
+        return $order;
+    }
+
+    protected function splitShared(User $user, array $validated, array $groupedTableIds, ?int $posSessionId): array
+    {
+        return [
+            'created_by' => $user->id,
+            'pos_session_id' => $posSessionId,
+            'order_type' => $validated['order_type'] ?? 'dine_in',
+            'customer_name' => $validated['customer_name'] ?? null,
+            'status' => OrderStatus::Paid,
+            'service_charge' => 0,
+            'discount_type' => $validated['discount_type'] ?? null,
+            'discount_value' => $validated['discount_value'] ?? null,
+            'discount_approved_by' => $validated['discount_approved_by'] ?? null,
+            'grouped_tables' => ! empty($groupedTableIds) ? $groupedTableIds : null,
+        ];
+    }
+
+    protected function splitOrderData(array $shared, array $amounts, int $i, int $splitCount): array
+    {
+        return [
+            ...$shared,
+            'subtotal' => $amounts['subtotal'],
+            'tax' => $amounts['tax'],
+            'discount' => $amounts['discount'],
+            'rounding_amount' => $amounts['rounding'],
+            'total' => $amounts['total'],
+            'notes' => $splitCount > 1 ? "Split {$i}/{$splitCount}" : null,
+        ];
+    }
+
+    protected function attachIfAsked(Order $order, array $validated): void
+    {
+        if (! empty($validated['payment_method'])) {
+            $order->payment()->create([
+                'method' => $validated['payment_method'],
+                'gross_amount' => $order->total,
+                'status' => 'settlement',
             ]);
-
-            $this->itemBuilder->attach($order, $orderItems);
-
-            if (! empty($validated['payment_method'])) {
-                $order->payment()->create([
-                    'method' => $validated['payment_method'],
-                    'gross_amount' => $order->total,
-                    'status' => 'settlement',
-                ]);
-            }
-
-            $createdOrders[] = $order;
-            broadcast(new OrderCreated($order))->toOthers();
-            broadcast(new OrderPaid($order))->toOthers();
         }
-
-        return $createdOrders;
     }
 
     public function processPendingOrderItems(Order $order, array $items): array
     {
-        $existingItemIds = $order->items()->pluck('id')->toArray();
+        $existingItems = $order->items()->get()->keyBy('id');
         $keptItemIds = [];
         $newSubtotal = 0;
+        [$menus, $optionsByItem] = $this->itemLookup($items);
+        $itemBuilder = $this->itemBuilder;
 
         foreach ($items as $itemData) {
-            $built = $this->itemBuilder->buildSingle($itemData);
+            $built = $itemBuilder->buildSingle($itemData, $menus, $optionsByItem);
             $newSubtotal += $built['total_price'];
 
-            if (! empty($itemData['id']) && in_array($itemData['id'], $existingItemIds)) {
+            if (! empty($itemData['id']) && $existingItems->has($itemData['id'])) {
                 $keptItemIds[] = $itemData['id'];
-                $orderItem = $order->items()->find($itemData['id']);
-                $orderItem->update([
-                    'qty' => $built['qty'],
-                    'total_price' => $built['total_price'],
-                    'notes' => $built['notes'],
-                ]);
-                $orderItem->options()->delete();
-                if (! empty($built['option_adjustments'])) {
-                    $orderItem->options()->createMany($built['option_adjustments']);
-                }
+                $this->updateOrderItem($existingItems[$itemData['id']], $built);
             } else {
-                $this->itemBuilder->attach($order, [$built]);
+                $this->addNewOrderItem($order, $built);
             }
         }
 
-        $itemsToDelete = array_diff($existingItemIds, $keptItemIds);
+        $itemsToDelete = array_diff($existingItems->keys()->all(), $keptItemIds);
         if (! empty($itemsToDelete)) {
             $order->items()->whereIn('id', $itemsToDelete)->delete();
         }
@@ -212,28 +251,55 @@ class PosOrderService
         return ['new_subtotal' => $newSubtotal];
     }
 
+    protected function itemLookup(array $items): array
+    {
+        $menuIds = array_unique(array_column($items, 'menu_id'));
+        $menus = Menu::whereIn('id', $menuIds)->get()->keyBy('id');
+        $optionIds = array_unique(array_merge(...array_map(
+            fn (array $item) => $item['option_ids'] ?? [],
+            $items,
+        )));
+
+        $optionsByItem = $optionIds
+            ? OptionItem::whereIn('id', $optionIds)->get()->keyBy('id')
+            : collect();
+
+        return [$menus, $optionsByItem];
+    }
+
+    protected function updateOrderItem(OrderItem $orderItem, array $built): void
+    {
+        $orderItem->update([
+            'qty' => $built['qty'],
+            'total_price' => $built['total_price'],
+            'notes' => $built['notes'],
+        ]);
+
+        $orderItem->options()->delete();
+
+        if (! empty($built['option_adjustments'])) {
+            $orderItem->options()->createMany($built['option_adjustments']);
+        }
+    }
+
+    protected function addNewOrderItem(Order $order, array $built): void
+    {
+        $this->itemBuilder->attach($order, [$built]);
+    }
+
     public function confirmAndFinalizeOrder(Order $order, array $validated, int $userId): void
     {
         $result = $this->processPendingOrderItems($order, $validated['items']);
         $newSubtotal = $result['new_subtotal'];
-
-        $discountAmount = $this->calculateDiscount($newSubtotal, $validated);
-        $tax = $this->calculateTax($newSubtotal);
-        $rawTotal = max(0, $newSubtotal + $tax - $discountAmount);
-        $roundingAmount = Money::roundingAmount($rawTotal);
-        $total = Money::ceilTo500($rawTotal);
+        $totals = $this->orderTotals($newSubtotal, $validated);
 
         $order->update([
             'status' => OrderStatus::Paid,
             'subtotal' => $newSubtotal,
-            'tax' => $tax,
-            'service_charge' => 0,
-            'rounding_amount' => $roundingAmount,
-            'discount' => $discountAmount,
+            ...$totals,
             'discount_type' => $validated['discount_type'] ?? null,
             'discount_value' => $validated['discount_value'] ?? null,
             'discount_approved_by' => $validated['discount_approved_by'] ?? null,
-            'total' => $total,
         ]);
 
         $order->payment()->create([
@@ -250,20 +316,33 @@ class PosOrderService
         broadcast(new OrderStatusUpdated($order))->toOthers();
     }
 
+    protected function orderTotals(float $subtotal, array $validated): array
+    {
+        $discountAmount = $this->calculateDiscount($subtotal, $validated);
+        $tax = $this->calculateTax($subtotal);
+        $rawTotal = max(0, $subtotal + $tax - $discountAmount);
+
+        return [
+            'tax' => $tax,
+            'service_charge' => 0,
+            'rounding_amount' => Money::roundingAmount($rawTotal),
+            'discount' => $discountAmount,
+            'total' => Money::ceilTo500($rawTotal),
+        ];
+    }
+
     public function updateOrderItems(Order $order, array $items): void
     {
         $result = $this->processPendingOrderItems($order, $items);
         $newSubtotal = $result['new_subtotal'];
         $tax = $this->calculateTax($newSubtotal);
         $rawTotal = max(0, $newSubtotal + $tax + ($order->service_charge ?? 0) - ($order->discount ?? 0));
-        $roundingAmount = Money::roundingAmount($rawTotal);
-        $total = Money::ceilTo500($rawTotal);
 
         $order->update([
             'subtotal' => $newSubtotal,
             'tax' => $tax,
-            'rounding_amount' => $roundingAmount,
-            'total' => $total,
+            'rounding_amount' => Money::roundingAmount($rawTotal),
+            'total' => Money::ceilTo500($rawTotal),
         ]);
 
         OrderStatusUpdated::dispatch($order);
@@ -272,19 +351,34 @@ class PosOrderService
     public function cancelPendingOrder(Order $order): void
     {
         $order->update(['status' => OrderStatus::Cancelled]);
-
         OrderStatusUpdated::dispatch($order);
 
         $session = $order->tableSession;
-        if ($session) {
-            $hasOtherPending = $session->orders()
-                ->where('id', '!=', $order->id)
-                ->whereIn('status', [OrderStatus::Pending, OrderStatus::PendingPayment])
-                ->exists();
+        if ($session && $this->hasNoOtherPending($session, $order->id)) {
+            $this->closeIdleSession($session);
+        }
+    }
 
-            if (! $hasOtherPending) {
-                $session->update(['status' => 'closed', 'closed_at' => now()]);
-            }
+    protected function hasNoOtherPending(TableSession $session, int $orderId): bool
+    {
+        return ! $session->orders()
+            ->where('id', '!=', $orderId)
+            ->whereIn('status', [OrderStatus::Pending, OrderStatus::PendingPayment])
+            ->exists();
+    }
+
+    protected function closeIdleSession(TableSession $session): void
+    {
+        $session->update(['status' => 'closed', 'closed_at' => now()]);
+
+        $hasActiveOrder = $session->orders()->whereIn('status', [
+            OrderStatus::Paid->value,
+            OrderStatus::Processing->value,
+            OrderStatus::Ready->value,
+        ])->exists();
+
+        if ($session->table && ! $hasActiveOrder) {
+            $session->table->update(['status' => TableStatus::Available, 'locked_by' => null]);
         }
     }
 
@@ -296,39 +390,50 @@ class PosOrderService
         ?int $posSessionId = null,
     ): Order {
         $subtotal = array_sum(array_column($orderItems, 'total_price'));
+        $totals = $this->paymentTotals($subtotal, $validated);
+        $orderData = $this->paymentOrderData($user, $validated, $subtotal, $totals, $posSessionId);
+
+        $order = $session?->orders()->create($orderData) ?? Order::create($orderData);
+        $this->itemBuilder->attach($order, $orderItems);
+
+        return $order;
+    }
+
+    protected function paymentTotals(float $subtotal, array $validated): array
+    {
         $discountAmount = $this->calculateDiscount($subtotal, $validated);
         $tax = $this->calculateTax($subtotal);
         $serviceCharge = $this->calculateServiceCharge($subtotal);
-
         $rawTotalBeforeCharge = max(0, $subtotal + $tax + $serviceCharge - $discountAmount);
         $midtransCharge = $this->calculateMidtransCharge($rawTotalBeforeCharge);
-        $total = $rawTotalBeforeCharge + $midtransCharge;
 
-        $orderData = [
+        return [
+            'tax' => $tax,
+            'service_charge' => $serviceCharge,
+            'midtrans_charge' => $midtransCharge,
+            'discount' => $discountAmount,
+            'total' => $rawTotalBeforeCharge + $midtransCharge,
+        ];
+    }
+
+    protected function paymentOrderData(User $user, array $validated, float $subtotal, array $totals, ?int $posSessionId): array
+    {
+        return [
             'created_by' => $user->id,
             'pos_session_id' => $posSessionId,
             'order_type' => $validated['order_type'] ?? 'dine_in',
             'customer_name' => $validated['customer_name'] ?? null,
             'status' => OrderStatus::PendingPayment,
             'subtotal' => $subtotal,
-            'tax' => $tax,
-            'service_charge' => $serviceCharge,
-            'midtrans_charge' => $midtransCharge,
+            'tax' => $totals['tax'],
+            'service_charge' => $totals['service_charge'],
+            'midtrans_charge' => $totals['midtrans_charge'],
             'rounding_amount' => 0,
-            'discount' => $discountAmount,
+            'discount' => $totals['discount'],
             'discount_type' => $validated['discount_type'] ?? null,
             'discount_value' => $validated['discount_value'] ?? null,
             'discount_approved_by' => $validated['discount_approved_by'] ?? null,
-            'total' => $total,
+            'total' => $totals['total'],
         ];
-
-        $order = $session?->orders()->create($orderData) ?? Order::create($orderData);
-        $this->itemBuilder->attach($order, $orderItems);
-
-        if ($session?->table) {
-            $session->table->update(['status' => TableStatus::Occupied, 'locked_by' => null]);
-        }
-
-        return $order;
     }
 }

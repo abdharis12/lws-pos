@@ -52,7 +52,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('tables', [TableController::class, 'store'])->name('admin.tables.store');
         Route::put('tables/{table}', [TableController::class, 'update'])->name('admin.tables.update');
         Route::delete('tables/{table}', [TableController::class, 'destroy'])->name('admin.tables.destroy');
-        Route::post('tables/{table}/regenerate-token', [TableController::class, 'regenerateToken'])->name('admin.tables.regenerate-token');
+        Route::post('tables/{table}/regenerate-token', [TableController::class, 'regenerateToken'])->middleware('throttle:5,1')->name('admin.tables.regenerate-token');
 
         Route::get('employees', [EmployeeController::class, 'index'])->name('admin.employees.index');
         Route::post('employees', [EmployeeController::class, 'store'])->name('admin.employees.store');
@@ -143,7 +143,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('pos/tables/{table}/merge/{target}', [PosController::class, 'mergeTable'])->name('pos.tables.merge');
     Route::post('pos/tables/{table}/lock', [PosController::class, 'lockTable'])->name('pos.tables.lock');
     Route::post('pos/tables/{table}/unlock', [PosController::class, 'unlockTable'])->name('pos.tables.unlock');
-    Route::post('pos/verify-approval', [PosController::class, 'verifyApproval'])->name('pos.verify-approval');
+    Route::post('pos/verify-approval', [PosController::class, 'verifyApproval'])->middleware('throttle:5,1')->name('pos.verify-approval');
 
     Route::get('pos/sessions', [PosSessionController::class, 'index'])->name('pos.sessions.index');
     Route::post('pos/sessions', [PosSessionController::class, 'store'])->name('pos.sessions.store');
@@ -169,7 +169,7 @@ Route::get('t/{tableToken}/orders/{order}/poll-status', [SelfOrderController::cl
 Route::post('t/{tableToken}/orders', [SelfOrderController::class, 'store'])
     ->middleware('throttle:5,1')
     ->name('self-order.orders.store');
-Route::post('t/{tableToken}/pay', [SelfOrderController::class, 'pay'])->name('self-order.pay');
+Route::post('t/{tableToken}/pay', [SelfOrderController::class, 'pay'])->middleware('throttle:5,1')->name('self-order.pay');
 Route::get('t/{tableToken}/orders/{order}/payment-status', [SelfOrderController::class, 'paymentStatus'])->name('self-order.payment-status');
 
 Route::post('webhooks/midtrans/notification', [MidtransWebhookController::class, 'notification'])

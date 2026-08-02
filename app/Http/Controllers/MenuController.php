@@ -7,9 +7,11 @@ use App\Models\Menu;
 use App\Models\MenuCategory;
 use App\Models\OptionGroup;
 use App\Models\Outlet;
+use App\Models\User;
 use App\Services\ActivityLogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -23,15 +25,9 @@ class MenuController extends Controller
     public function index(Request $request): Response
     {
         $outlet = Outlet::first();
-        $cacheKey = "menu_categories_outlet_{$outlet?->id}";
-
-        $categories = Cache::remember($cacheKey, 3600, fn () => MenuCategory::where('outlet_id', $outlet?->id)
-            ->orderBy('sort_order')
-            ->get()
-        );
-
+        $categories = $this->categories($this->outletId());
         $menus = Menu::with(['category', 'optionGroups.optionItems'])
-            ->whereHas('category', fn ($q) => $q->where('outlet_id', $outlet?->id))
+            ->whereHas('category', fn ($q) => $q->where('outlet_id', $this->outletId()))
             ->orderBy('name')
             ->when($request->search, fn ($q, $search) => $q->where('name', 'like', "%{$search}%"))
             ->when($request->category_id, fn ($q, $categoryId) => $q->where('category_id', $categoryId))
@@ -47,60 +43,21 @@ class MenuController extends Controller
 
     public function create(): Response
     {
-        $outlet = Outlet::first();
-        $categories = MenuCategory::where('outlet_id', $outlet?->id)->orderBy('sort_order')->get();
-        $optionGroups = OptionGroup::where('outlet_id', $outlet?->id)->with('optionItems')->get();
-
         return Inertia::render('admin/menus/Create', [
-            'categories' => $categories,
-            'optionGroups' => $optionGroups,
+            'categories' => $this->categories($this->outletId()),
+            'optionGroups' => $this->optionGroups($this->outletId()),
         ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
         $this->authorize('create', Menu::class);
+        $validated = $this->validateMenu($request);
+        $photoPath = $this->storePhoto($request);
 
-        $validated = $request->validate([
-            'category_id' => 'required|exists:menu_categories,id',
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'price' => 'required|numeric|min:0',
-            'photo' => 'nullable|image|max:2048',
-            'is_available' => 'boolean',
-            'station' => 'nullable|string|max:100',
-            'option_group_ids' => 'nullable|array',
-            'option_group_ids.*' => 'exists:option_groups,id',
-        ]);
-
-        $photoPath = null;
-        if ($request->hasFile('photo')) {
-            $photoPath = $request->file('photo')->store('menus', 'public');
-        }
-
-        $menu = Menu::create([
-            'category_id' => $validated['category_id'],
-            'name' => $validated['name'],
-            'description' => $validated['description'] ?? null,
-            'price' => $validated['price'],
-            'photo_path' => $photoPath,
-            'is_available' => $validated['is_available'] ?? true,
-            'station' => $validated['station'] ?? null,
-        ]);
-
-        if (! empty($validated['option_group_ids'])) {
-            $menu->optionGroups()->sync($validated['option_group_ids']);
-        }
-
-        $this->clearMenuCache($menu);
-        MenuAvailabilityChanged::dispatch($menu, $menu->is_available);
-
-        $this->activityLog->log(
-            $request->user(), 'menu.created',
-            Menu::class, $menu->id,
-            "Menu {$menu->name} ditambahkan seharga Rp{$menu->price}",
-            $validated,
-        );
+        $menu = Menu::create($this->menuPayload($validated, $photoPath));
+        $this->syncOptionGroups($menu, $validated);
+        $this->menuChanged($request->user(), $menu, 'menu.created', "Menu {$menu->name} ditambahkan seharga Rp{$menu->price}", $validated);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Menu berhasil ditambahkan.']);
 
@@ -111,68 +68,35 @@ class MenuController extends Controller
     {
         $menu->load(['category', 'optionGroups.optionItems']);
 
-        return Inertia::render('admin/menus/Show', [
-            'menu' => $menu,
-        ]);
+        return Inertia::render('admin/menus/Show', ['menu' => $menu]);
     }
 
     public function edit(Menu $menu): Response
     {
-        $outlet = Outlet::first();
-        $categories = MenuCategory::where('outlet_id', $outlet?->id)->orderBy('sort_order')->get();
-        $optionGroups = OptionGroup::where('outlet_id', $outlet?->id)->with('optionItems')->get();
-
         $menu->load('optionGroups');
 
         return Inertia::render('admin/menus/Edit', [
             'menu' => $menu,
-            'categories' => $categories,
-            'optionGroups' => $optionGroups,
+            'categories' => $this->categories($this->outletId()),
+            'optionGroups' => $this->optionGroups($this->outletId()),
         ]);
     }
 
     public function update(Request $request, Menu $menu): RedirectResponse
     {
         $this->authorize('update', $menu);
-
-        $validated = $request->validate([
-            'category_id' => 'required|exists:menu_categories,id',
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'price' => 'required|numeric|min:0',
-            'photo' => 'nullable|image|max:2048',
-            'is_available' => 'boolean',
-            'station' => 'nullable|string|max:100',
-            'option_group_ids' => 'nullable|array',
-            'option_group_ids.*' => 'exists:option_groups,id',
-        ]);
+        $validated = $this->validateMenu($request);
 
         if ($request->hasFile('photo')) {
             $menu->photo_path = $request->file('photo')->store('menus', 'public');
         }
 
-        $menu->update([
-            'category_id' => $validated['category_id'],
-            'name' => $validated['name'],
-            'description' => $validated['description'] ?? null,
-            'price' => $validated['price'],
-            'is_available' => $validated['is_available'] ?? true,
-            'station' => $validated['station'] ?? null,
-        ]);
-
+        $menu->update($this->menuPayload($validated, $menu->photo_path));
         if (isset($validated['option_group_ids'])) {
             $menu->optionGroups()->sync($validated['option_group_ids']);
         }
 
-        $this->clearMenuCache($menu);
-        MenuAvailabilityChanged::dispatch($menu, $menu->is_available);
-
-        $this->activityLog->log(
-            $request->user(), 'menu.updated',
-            Menu::class, $menu->id,
-            "Menu {$menu->name} diperbarui",
-            $validated,
-        );
+        $this->menuChanged($request->user(), $menu, 'menu.updated', "Menu {$menu->name} diperbarui", $validated);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Menu berhasil diperbarui.']);
 
@@ -182,16 +106,7 @@ class MenuController extends Controller
     public function destroy(Request $request, Menu $menu): RedirectResponse
     {
         $this->authorize('delete', $menu);
-
-        $this->clearMenuCache($menu);
-        MenuAvailabilityChanged::dispatch($menu, false);
-
-        $this->activityLog->log(
-            $request->user(), 'menu.deleted',
-            Menu::class, $menu->id,
-            "Menu {$menu->name} dihapus",
-        );
-
+        $this->menuChanged($request->user(), $menu, 'menu.deleted', "Menu {$menu->name} dihapus");
         $menu->delete();
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Menu berhasil dihapus.']);
@@ -220,7 +135,72 @@ class MenuController extends Controller
         return redirect()->back();
     }
 
-    private function clearMenuCache(Menu $menu): void
+    // ── Helpers ─────────────────────────────────────────────────────────────
+
+    protected function outletId(): ?int
+    {
+        return Outlet::first()?->id;
+    }
+
+    protected function categories(?int $outletId): Collection
+    {
+        return MenuCategory::where('outlet_id', $outletId)->orderBy('sort_order')->get();
+    }
+
+    protected function optionGroups(?int $outletId): Collection
+    {
+        return OptionGroup::where('outlet_id', $outletId)->with('optionItems')->get();
+    }
+
+    protected function validateMenu(Request $request): array
+    {
+        return $request->validate([
+            'category_id' => 'required|exists:menu_categories,id',
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'price' => 'required|numeric|min:0',
+            'photo' => 'nullable|image|max:2048',
+            'is_available' => 'boolean',
+            'station' => 'nullable|string|max:100',
+            'option_group_ids' => 'nullable|array',
+            'option_group_ids.*' => 'exists:option_groups,id',
+        ]);
+    }
+
+    protected function storePhoto(Request $request): ?string
+    {
+        return $request->hasFile('photo') ? $request->file('photo')->store('menus', 'public') : null;
+    }
+
+    protected function menuPayload(array $validated, ?string $photoPath): array
+    {
+        return [
+            'category_id' => $validated['category_id'],
+            'name' => $validated['name'],
+            'description' => $validated['description'] ?? null,
+            'price' => $validated['price'],
+            'photo_path' => $photoPath,
+            'is_available' => $validated['is_available'] ?? true,
+            'station' => $validated['station'] ?? null,
+        ];
+    }
+
+    protected function syncOptionGroups(Menu $menu, array $validated): void
+    {
+        if (! empty($validated['option_group_ids'])) {
+            $menu->optionGroups()->sync($validated['option_group_ids']);
+        }
+    }
+
+    protected function menuChanged(User $user, Menu $menu, string $action, string $desc, ?array $context = null): void
+    {
+        $this->clearMenuCache($menu);
+        MenuAvailabilityChanged::dispatch($menu->fresh(), $menu->is_available);
+
+        $this->activityLog->log($user, $action, Menu::class, $menu->id, $desc, $context ?? []);
+    }
+
+    protected function clearMenuCache(Menu $menu): void
     {
         $outletId = $menu->category?->outlet_id;
         if ($outletId) {

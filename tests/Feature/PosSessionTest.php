@@ -1,8 +1,13 @@
 <?php
 
+use App\Models\Meja;
+use App\Models\Order;
 use App\Models\Outlet;
+use App\Models\Payment;
 use App\Models\PosSession;
+use App\Models\TableSession;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
 
 beforeEach(function () {
@@ -92,4 +97,48 @@ it('can show session details', function () {
 
     $response->assertSuccessful();
     expect($response['session']['id'])->toBe($session->id);
+});
+
+it('session index does not trigger N+1 on orders payment', function () {
+    $user = User::factory()->create()->assignRole('Owner');
+    $session = PosSession::create([
+        'outlet_id' => $this->outlet->id,
+        'session_date' => today(),
+        'opening_balance' => 0,
+        'status' => 'open',
+        'opened_by' => $user->id,
+        'opened_at' => now(),
+    ]);
+
+    $table = Meja::factory()->create(['outlet_id' => $this->outlet->id]);
+    $tableSession = TableSession::factory()->create([
+        'table_id' => $table->id,
+        'status' => 'active',
+    ]);
+
+    $orders = Order::factory()->count(5)->create([
+        'table_session_id' => $tableSession->id,
+        'pos_session_id' => $session->id,
+        'status' => 'paid',
+        'created_at' => now(),
+    ]);
+
+    foreach ($orders as $order) {
+        Payment::factory()->create([
+            'order_id' => $order->id,
+            'method' => 'cash',
+            'gross_amount' => $order->total,
+            'status' => 'settlement',
+        ]);
+    }
+
+    DB::enableQueryLog();
+
+    $response = $this->actingAs($user)->get('/pos/sessions');
+    $response->assertSuccessful();
+
+    $queries = count(DB::getQueryLog());
+    DB::disableQueryLog();
+
+    expect($queries)->toBeLessThan(20);
 });

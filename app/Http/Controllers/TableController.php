@@ -17,6 +17,34 @@ class TableController extends Controller
         return ['Lantai 1', 'Lantai 2', 'Lantai 3', 'Lantai 4', 'Teras'];
     }
 
+    protected function validateTable(Request $request): array
+    {
+        return $request->validate([
+            'code' => 'required|string|max:20|unique:tables,code,NULL,id,outlet_id,'.Outlet::first()?->id,
+            'capacity' => 'required|integer|min:1|max:20',
+            'floor' => 'nullable|string|max:50',
+        ]);
+    }
+
+    protected function createTable(array $validated): Meja
+    {
+        return Meja::create([
+            'outlet_id' => Outlet::first()->id,
+            'code' => $validated['code'],
+            'table_token' => Str::random(40),
+            'capacity' => $validated['capacity'],
+            'floor' => ! empty($validated['floor']) ? $validated['floor'] : null,
+            'status' => 'available',
+        ]);
+    }
+
+    protected function pageFor(Meja $table): int
+    {
+        $position = Meja::where('outlet_id', $table->outlet_id)->where('code', '<=', $table->code)->count();
+
+        return (int) ceil($position / 10);
+    }
+
     public function index(Request $request): Response
     {
         $outlet = Outlet::first();
@@ -36,39 +64,17 @@ class TableController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $this->authorize('create', Meja::class);
-
-        $validated = $request->validate([
-            'code' => 'required|string|max:20|unique:tables,code,NULL,id,outlet_id,'.Outlet::first()?->id,
-            'capacity' => 'required|integer|min:1|max:20',
-            'floor' => 'nullable|string|max:50',
-        ]);
-
-        $outlet = Outlet::first();
-
-        $table = Meja::create([
-            'outlet_id' => $outlet->id,
-            'code' => $validated['code'],
-            'table_token' => Str::random(40),
-            'capacity' => $validated['capacity'],
-            'floor' => ! empty($validated['floor']) ? $validated['floor'] : null,
-            'status' => 'available',
-        ]);
+        $validated = $this->validateTable($request);
+        $table = $this->createTable($validated);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Meja berhasil ditambahkan.']);
 
-        $position = Meja::where('outlet_id', $outlet->id)
-            ->where('code', '<=', $table->code)
-            ->count();
-
-        $page = (int) ceil($position / 10);
-
-        return redirect()->route('admin.tables.index', ['page' => $page]);
+        return redirect()->route('admin.tables.index', ['page' => $this->pageFor($table)]);
     }
 
     public function update(Request $request, Meja $table): RedirectResponse
     {
         $this->authorize('update', $table);
-
         $validated = $request->validate([
             'code' => 'required|string|max:20',
             'capacity' => 'required|integer|min:1|max:20',
@@ -76,20 +82,11 @@ class TableController extends Controller
             'floor' => 'nullable|string|max:50',
         ]);
 
-        $table->update([
-            ...$validated,
-            'floor' => ! empty($validated['floor']) ? $validated['floor'] : null,
-        ]);
+        $table->update([...$validated, 'floor' => ! empty($validated['floor']) ? $validated['floor'] : null]);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Meja berhasil diperbarui.']);
 
-        $position = Meja::where('outlet_id', $table->outlet_id)
-            ->where('code', '<=', $table->code)
-            ->count();
-
-        $page = (int) ceil($position / 10);
-
-        return redirect()->route('admin.tables.index', ['page' => $page]);
+        return redirect()->route('admin.tables.index', ['page' => $this->pageFor($table)]);
     }
 
     public function destroy(Meja $table): RedirectResponse

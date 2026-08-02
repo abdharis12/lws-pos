@@ -40,13 +40,30 @@ class MidtransService
 
     private function buildPayload(string $orderId, int $grossAmount, string $paymentType): array
     {
-        $payload = [
+        $base = [
             'transaction_details' => [
                 'order_id' => $orderId,
                 'gross_amount' => $grossAmount,
             ],
         ];
 
+        return match ($paymentType) {
+            'bca_va', 'mandiri_va', 'bni_va', 'bri_va' => $this->withBankTransfer($base, $paymentType),
+            'indomaret', 'alfamart' => $this->withCstore($base, $orderId, $paymentType),
+            'permata_va' => $this->withPaymentType($base, 'permata'),
+            'echannel' => $this->withPaymentType($base, 'echannel'),
+            'qris', 'gopay', 'shopeepay', 'akulaku' => $this->withPaymentType($base, $paymentType),
+            default => $this->withPaymentType($base, 'qris'),
+        };
+    }
+
+    private function withPaymentType(array $payload, string $paymentType): array
+    {
+        return array_merge($payload, ['payment_type' => $paymentType]);
+    }
+
+    private function withBankTransfer(array $payload, string $paymentType): array
+    {
         $bankMap = [
             'bca_va' => 'bca',
             'mandiri_va' => 'mandiri',
@@ -54,31 +71,21 @@ class MidtransService
             'bri_va' => 'bri',
         ];
 
-        return match ($paymentType) {
-            'qris', 'gopay', 'shopeepay', 'akulaku' => array_merge($payload, [
-                'payment_type' => $paymentType,
-            ]),
-            'bca_va', 'mandiri_va', 'bni_va', 'bri_va' => array_merge($payload, [
-                'payment_type' => 'bank_transfer',
-                'bank_transfer' => ['bank' => $bankMap[$paymentType]],
-            ]),
-            'permata_va' => array_merge($payload, [
-                'payment_type' => 'permata',
-            ]),
-            'echannel' => array_merge($payload, [
-                'payment_type' => 'echannel',
-            ]),
-            'indomaret', 'alfamart' => array_merge($payload, [
-                'payment_type' => 'cstore',
-                'cstore' => [
-                    'store' => $paymentType === 'indomaret' ? 'Indomaret' : 'Alfamart',
-                    'message' => "Pembayaran Pesanan {$orderId}",
-                ],
-            ]),
-            default => array_merge($payload, [
-                'payment_type' => 'qris',
-            ]),
-        };
+        return array_merge($payload, [
+            'payment_type' => 'bank_transfer',
+            'bank_transfer' => ['bank' => $bankMap[$paymentType]],
+        ]);
+    }
+
+    private function withCstore(array $payload, string $orderId, string $paymentType): array
+    {
+        return array_merge($payload, [
+            'payment_type' => 'cstore',
+            'cstore' => [
+                'store' => $paymentType === 'indomaret' ? 'Indomaret' : 'Alfamart',
+                'message' => "Pembayaran Pesanan {$orderId}",
+            ],
+        ]);
     }
 
     public function getTransactionStatus(string $orderId): array

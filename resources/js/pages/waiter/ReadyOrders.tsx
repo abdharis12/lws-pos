@@ -130,7 +130,7 @@ export default function WaiterReadyOrders({ readyOrders, leaderboard }: Props) {
     }
 
     return (
-        <div className="min-h-screen font-sans text-slate-800" style={{ backgroundColor: CREAM }}>
+        <div className="min-h-screen font-sans text-slate-800 bg-[#FAF8F4]">
             <Head title="Siap Saji" />
 
             <style>{`
@@ -145,7 +145,7 @@ export default function WaiterReadyOrders({ readyOrders, leaderboard }: Props) {
                 {/* Header */}
                 <header className="mb-6 flex flex-col justify-between gap-4 border-b pb-6 sm:flex-row sm:items-center" style={{ borderColor: BORDER }}>
                     <div className="flex items-center gap-3">
-                        <div className="flex size-12 items-center justify-center rounded-2xl" style={{ backgroundColor: PRIMARY, color: SAND }}>
+                        <div className="flex size-12 items-center justify-center rounded-2xl" style={{ backgroundColor: PRIMARY, color: CREAM }}>
                             <HandPlatter className="size-6" />
                         </div>
                         <div>
@@ -158,9 +158,9 @@ export default function WaiterReadyOrders({ readyOrders, leaderboard }: Props) {
                             </p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold" style={{ borderColor: BORDER, backgroundColor: '#fff' }}>
-                        <BellRing className="size-4" style={{ color: PRIMARY }} />
-                        <span style={{ color: INK }}>{readyOrders.length}</span> pesanan menunggu diantar
+                    <div className="flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold" style={{ borderColor: BORDER, backgroundColor: PRIMARY }}>
+                        <BellRing className="size-4" style={{ color: CREAM }} />
+                        <span style={{ color: CREAM }}>{readyOrders.length} Pesanan Siap Diantar</span> 
                     </div>
                 </header>
 

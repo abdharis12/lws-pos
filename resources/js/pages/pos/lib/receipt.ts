@@ -130,7 +130,7 @@ return;
             <span>Pajak Resto (10%)</span>
             <span>${formatPrice(data.tax)}</span>
         </div>
-        ${(typeof data.midtransCharge === 'number' && data.midtransCharge > 0) ? `
+        ${typeof data.midtransCharge === 'number' && data.midtransCharge > 0 ? `
         <div class="row">
             <span>Biaya Transaksi Online</span>
             <span>${formatPrice(data.midtransCharge)}</span>

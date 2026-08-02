@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ActivityLog;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -11,8 +12,21 @@ class ActivityLogController extends Controller
 {
     public function index(Request $request): Response
     {
-        $query = ActivityLog::with('user');
+        $query = $this->applyFilters(ActivityLog::with('user'), $request);
+        $perPage = min((int) $request->input('per_page', 20), 100);
+        $logs = $query->latest()->paginate($perPage)->withQueryString();
 
+        $actions = ActivityLog::select('action')->distinct()->orderBy('action')->pluck('action');
+
+        return Inertia::render('admin/activity-logs/Index', [
+            'logs' => $logs,
+            'actions' => $actions,
+            'filters' => $request->only(['action', 'user_id', 'start_date', 'end_date']),
+        ]);
+    }
+
+    protected function applyFilters(Builder $query, Request $request): Builder
+    {
         if ($request->filled('action')) {
             $query->where('action', $request->input('action'));
         }
@@ -29,19 +43,6 @@ class ActivityLogController extends Controller
             $query->whereDate('created_at', '<=', $request->input('end_date'));
         }
 
-        $perPage = min((int) $request->input('per_page', 20), 100);
-
-        $logs = $query->latest()->paginate($perPage)->withQueryString();
-
-        $actions = ActivityLog::select('action')
-            ->distinct()
-            ->orderBy('action')
-            ->pluck('action');
-
-        return Inertia::render('admin/activity-logs/Index', [
-            'logs' => $logs,
-            'actions' => $actions,
-            'filters' => $request->only(['action', 'user_id', 'start_date', 'end_date']),
-        ]);
+        return $query;
     }
 }

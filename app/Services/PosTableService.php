@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\TableStatus;
 use App\Models\Meja;
+use App\Models\Order;
 
 class PosTableService
 {
@@ -64,15 +65,14 @@ class PosTableService
             ->whereIn('status', ['pending', 'pending_payment'])
             ->get();
 
+        $orderIds = $movedOrders->pluck('id');
+        if ($orderIds->isNotEmpty()) {
+            Order::whereIn('id', $orderIds)
+                ->update(['table_session_id' => $targetSession->id]);
+        }
+
         foreach ($movedOrders as $order) {
-            $grouped = $order->grouped_tables ?? [];
-            if (! in_array($source->id, $grouped)) {
-                $grouped[] = $source->id;
-            }
-            $order->update([
-                'table_session_id' => $targetSession->id,
-                'grouped_tables' => $grouped,
-            ]);
+            $this->mergeOrderGroupedTables($order, $source);
         }
 
         $sourceSession->update([
@@ -82,6 +82,15 @@ class PosTableService
 
         $target->update(['status' => TableStatus::Occupied, 'locked_by' => null]);
         $source->update(['status' => TableStatus::Occupied, 'locked_by' => null]);
+    }
+
+    protected function mergeOrderGroupedTables(Order $order, Meja $source): void
+    {
+        $grouped = $order->grouped_tables ?? [];
+        if (! in_array($source->id, $grouped)) {
+            $grouped[] = $source->id;
+            $order->update(['grouped_tables' => $grouped]);
+        }
     }
 
     public function lock(Meja $table, int $userId): void

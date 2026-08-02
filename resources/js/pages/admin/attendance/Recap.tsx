@@ -97,7 +97,7 @@ export default function AttendanceRecap({
         <>
             <Head title="Rekap Absensi" />
 
-            <div className="min-h-screen bg-[#F6F2E9] p-6 font-sans text-slate-800">
+            <div className="min-h-screen bg-[#FAF8F4] p-6 font-sans text-slate-800">
                 <div className="mb-8 flex flex-col justify-between gap-4 border-b border-[#CFC0A4]/40 pb-6 sm:flex-row sm:items-end">
                     <div>
                         <div className="flex items-center gap-2 text-xs font-semibold tracking-[0.2em] text-[#CFC0A4] uppercase">
@@ -393,17 +393,17 @@ export default function AttendanceRecap({
                                                 {dates.map((date) => {
                                                     const daily =
                                                         item.daily_attendance[
-                                                            date
+                                                        date
                                                         ];
                                                     const isWeekend = date
                                                         ? new Date(
-                                                              date +
-                                                                  'T12:00:00',
-                                                          ).getDay() === 0 ||
-                                                          new Date(
-                                                              date +
-                                                                  'T12:00:00',
-                                                          ).getDay() === 6
+                                                            date +
+                                                            'T12:00:00',
+                                                        ).getDay() === 0 ||
+                                                        new Date(
+                                                            date +
+                                                            'T12:00:00',
+                                                        ).getDay() === 6
                                                         : false;
 
                                                     return (
@@ -546,42 +546,42 @@ export default function AttendanceRecap({
                                                 <td className="px-6 py-4 text-slate-500">
                                                     {att.clock_in_at
                                                         ? new Date(
-                                                              att.clock_in_at,
-                                                          ).toLocaleDateString(
-                                                              'id-ID',
-                                                          )
+                                                            att.clock_in_at,
+                                                        ).toLocaleDateString(
+                                                            'id-ID',
+                                                        )
                                                         : '-'}
                                                 </td>
                                                 <td className="px-6 py-4 text-slate-500">
                                                     {att.clock_in_at
                                                         ? new Date(
-                                                              att.clock_in_at,
-                                                          ).toLocaleTimeString(
-                                                              'id-ID',
-                                                              {
-                                                                  hour: '2-digit',
-                                                                  minute: '2-digit',
-                                                              },
-                                                          )
+                                                            att.clock_in_at,
+                                                        ).toLocaleTimeString(
+                                                            'id-ID',
+                                                            {
+                                                                hour: '2-digit',
+                                                                minute: '2-digit',
+                                                            },
+                                                        )
                                                         : '-'}
                                                 </td>
                                                 <td className="px-6 py-4 text-slate-500">
                                                     {att.clock_out_at
                                                         ? new Date(
-                                                              att.clock_out_at,
-                                                          ).toLocaleTimeString(
-                                                              'id-ID',
-                                                              {
-                                                                  hour: '2-digit',
-                                                                  minute: '2-digit',
-                                                              },
-                                                          )
+                                                            att.clock_out_at,
+                                                        ).toLocaleTimeString(
+                                                            'id-ID',
+                                                            {
+                                                                hour: '2-digit',
+                                                                minute: '2-digit',
+                                                            },
+                                                        )
                                                         : '-'}
                                                 </td>
                                                 <td className="px-6 py-4 text-center">
                                                     <div className="flex items-center justify-center gap-1.5">
                                                         {att.status ===
-                                                        'late' ? (
+                                                            'late' ? (
                                                             <Badge className="rounded-full bg-[#CFC0A4]/20 font-semibold text-[#CFC0A4]">
                                                                 Terlambat
                                                             </Badge>

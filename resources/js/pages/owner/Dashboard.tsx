@@ -83,7 +83,7 @@ export default function OwnerDashboard({
     const maxTrend = Math.max(1, ...salesTrend.map((d) => d.total));
 
     return (
-        <div className="min-h-screen bg-[#F6F2E9] p-6 font-sans text-slate-800">
+        <div className="min-h-screen bg-[#FAF8F4] p-6 font-sans text-slate-800">
             <Head title="Dashboard Owner" />
 
             <div className="mb-8 flex flex-col justify-between gap-4 border-b border-[#CFC0A4]/40 pb-6 sm:flex-row sm:items-end">
@@ -96,7 +96,7 @@ export default function OwnerDashboard({
                         Dashboard Owner
                     </h1>
                     <p className="mt-1 text-sm text-slate-500 italic">
-                        Ringkasan operasional & keuangan
+                        Ringkasan operasional & keuangan khusus untuk pemilik restoran. Data diperbarui setiap 5 menit.
                     </p>
                 </div>
             </div>
@@ -105,12 +105,12 @@ export default function OwnerDashboard({
                 <Card className="group relative overflow-hidden border-[#CFC0A4]/40 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#4F6B6A]/10">
                     <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#4F6B6A] to-[#CFC0A4]" />
                     <CardHeader className="flex flex-row items-start justify-between pt-5">
-                        <CardTitle className="text-[15px] font-semibold tracking-[0.12em] text-[#4F6B6A]/70 uppercase">
+                        <CardTitle className="text-[15px] md:text-[10px] font-semibold tracking-[0.12em] text-[#4F6B6A]/90 uppercase">
                             Penjualan Hari Ini
                         </CardTitle>
-                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4F6B6A]/10">
+                        <div className="flex h-9 w-9 md:h-6 md:w-6 items-center justify-center rounded-full bg-[#4F6B6A]/10">
                             <DollarSign
-                                className="h-4.5 w-4.5 text-[#4F6B6A]"
+                                className="h-4.5 w-4.5 md:h-2.5 md:w-2.5 text-[#4F6B6A]"
                                 strokeWidth={2}
                             />
                         </div>
@@ -139,12 +139,12 @@ export default function OwnerDashboard({
                 <Card className="group relative overflow-hidden border-[#CFC0A4]/40 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#4F6B6A]/10">
                     <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#CFC0A4] to-[#4F6B6A]" />
                     <CardHeader className="flex flex-row items-start justify-between pt-5">
-                        <CardTitle className="text-[15px] font-semibold tracking-[0.12em] text-[#4F6B6A]/70 uppercase">
+                        <CardTitle className="text-[15px] md:text-[10px] font-semibold tracking-[0.12em] text-[#4F6B6A]/90 uppercase">
                             Estimasi Laba Kotor
                         </CardTitle>
-                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4F6B6A]/10">
+                        <div className="flex h-9 w-9 md:h-6 md:w-6 items-center justify-center rounded-full bg-[#4F6B6A]/10">
                             <TrendingUp
-                                className="h-4.5 w-4.5 text-[#4F6B6A]"
+                                className="h-4.5 w-4.5 md:h-2.5 md:w-2.5 text-[#4F6B6A]"
                                 strokeWidth={2}
                             />
                         </div>
@@ -161,12 +161,12 @@ export default function OwnerDashboard({
                 <Card className="group relative overflow-hidden border-[#CFC0A4]/40 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#4F6B6A]/10">
                     <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#4F6B6A] to-[#CFC0A4]" />
                     <CardHeader className="flex flex-row items-start justify-between pt-5">
-                        <CardTitle className="text-[15px] font-semibold tracking-[0.12em] text-[#4F6B6A]/70 uppercase">
+                        <CardTitle className="text-[15px] md:text-[10px] font-semibold tracking-[0.12em] text-[#4F6B6A]/90 uppercase">
                             Estimasi Labor Cost
                         </CardTitle>
-                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4F6B6A]/10">
+                        <div className="flex h-9 w-9 md:h-6 md:w-6 items-center justify-center rounded-full bg-[#4F6B6A]/10">
                             <Users
-                                className="h-4.5 w-4.5 text-[#4F6B6A]"
+                                className="h-4.5 w-4.5 md:h-2.5 md:w-2.5 text-[#4F6B6A]"
                                 strokeWidth={2}
                             />
                         </div>
@@ -183,12 +183,12 @@ export default function OwnerDashboard({
                 <Card className="group relative overflow-hidden border-[#CFC0A4]/40 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#4F6B6A]/10">
                     <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#CFC0A4] to-[#4F6B6A]" />
                     <CardHeader className="flex flex-row items-start justify-between pt-5">
-                        <CardTitle className="text-[15px] font-semibold tracking-[0.12em] text-[#4F6B6A]/70 uppercase">
+                        <CardTitle className="text-[15px] md:text-[10px] font-semibold tracking-[0.12em] text-[#4F6B6A]/90 uppercase">
                             Pendapatan Pembulatan
                         </CardTitle>
-                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4F6B6A]/10">
+                        <div className="flex h-9 w-9 md:h-6 md:w-6 items-center justify-center rounded-full bg-[#4F6B6A]/10">
                             <Coins
-                                className="h-4.5 w-4.5 text-[#4F6B6A]"
+                                className="h-4.5 w-4.5 md:h-2.5 md:w-2.5 text-[#4F6B6A]"
                                 strokeWidth={2}
                             />
                         </div>
@@ -220,12 +220,12 @@ export default function OwnerDashboard({
                 <Card className="group relative overflow-hidden border-[#CFC0A4]/40 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#4F6B6A]/10">
                     <div className="absolute inset-x-0 top-0 h-1 bg-[#4F6B6A]" />
                     <CardHeader className="flex flex-row items-start justify-between pt-5">
-                        <CardTitle className="text-[15px] font-semibold tracking-[0.12em] text-[#4F6B6A]/70 uppercase">
+                        <CardTitle className="text-[15px] md:text-[10px] font-semibold tracking-[0.12em] text-[#4F6B6A]/90 uppercase">
                             Kehadiran Karyawan
                         </CardTitle>
-                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4F6B6A]/10">
+                        <div className="flex h-9 w-9 md:h-6 md:w-6 items-center justify-center rounded-full bg-[#4F6B6A]/10">
                             <Clock
-                                className="h-4.5 w-4.5 text-[#4F6B6A]"
+                                className="h-4.5 w-4.5 md:h-2.5 md:w-2.5 text-[#4F6B6A]"
                                 strokeWidth={2}
                             />
                         </div>
@@ -242,12 +242,12 @@ export default function OwnerDashboard({
                 <Card className="group relative overflow-hidden border-[#CFC0A4]/40 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#4F6B6A]/10">
                     <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#CFC0A4] to-[#4F6B6A]" />
                     <CardHeader className="flex flex-row items-start justify-between pt-5">
-                        <CardTitle className="text-[15px] font-semibold tracking-[0.12em] text-[#4F6B6A]/70 uppercase">
+                        <CardTitle className="text-[15px] md:text-[10px] font-semibold tracking-[0.12em] text-[#4F6B6A]/90 uppercase">
                             Rata-rata Waktu Masak
                         </CardTitle>
-                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4F6B6A]/10">
+                        <div className="flex h-9 w-9 md:h-6 md:w-6 items-center justify-center rounded-full bg-[#4F6B6A]/10">
                             <ChefHat
-                                className="h-4.5 w-4.5 text-[#4F6B6A]"
+                                className="h-4.5 w-4.5 md:h-2.5 md:w-2.5 text-[#4F6B6A]"
                                 strokeWidth={2}
                             />
                         </div>
@@ -366,10 +366,11 @@ export default function OwnerDashboard({
                                         </span>
                                         <div className="text-right">
                                             <p className="text-sm font-semibold text-slate-800">
-                                                Rp{' '}
-                                                {p.total.toLocaleString(
-                                                    'id-ID',
-                                                )}
+                                                {new Intl.NumberFormat('id-ID', {
+                                                    style: 'currency',
+                                                    currency: 'IDR',
+                                                    maximumFractionDigits: 0,
+                                                }).format(p.total)}
                                             </p>
                                             <p className="text-xs text-slate-400">
                                                 {p.count} transaksi

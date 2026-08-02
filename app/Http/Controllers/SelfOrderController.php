@@ -11,6 +11,7 @@ use App\Http\Requests\SelfOrder\StoreRequest;
 use App\Models\Meja;
 use App\Models\MenuCategory;
 use App\Models\Order;
+use App\Models\TableSession;
 use App\Services\MidtransService;
 use App\Services\PaymentService;
 use App\Services\SelfOrderService;
@@ -30,7 +31,6 @@ class SelfOrderController extends Controller
     {
         $table = Meja::where('table_token', $tableToken)->firstOrFail();
         $outlet = $table->outlet;
-
         $categories = MenuCategory::where('outlet_id', $outlet->id)
             ->where('is_active', true)
             ->with(['menus' => fn ($q) => $q->where('is_available', true)->with('optionGroups.optionItems')])
@@ -49,26 +49,9 @@ class SelfOrderController extends Controller
     {
         $table = Meja::where('table_token', $tableToken)->firstOrFail();
         $session = $this->orderService->getOrCreateSession($table);
-
         $validated = $request->validated();
-        $orderItems = $this->orderService->buildOrderItems($validated['items']);
-        $subtotal = array_sum(array_column($orderItems, 'total_price'));
-        $totals = $this->orderService->calculateTotals($subtotal, 'cash');
 
-        $order = $this->orderService->createOrder(
-            $session,
-            $validated['customer_name'] ?? null,
-            'dine_in_qr',
-            OrderStatus::Pending,
-            $subtotal,
-            $totals['tax'],
-            $totals['serviceCharge'],
-            $totals['midtransCharge'],
-            $totals['total'],
-            $totals['roundingAmount'] ?? 0,
-        );
-
-        $this->orderService->attachOrderItems($order, $orderItems);
+        $order = $this->buildOrder($session, $validated, 'cash', OrderStatus::Pending);
 
         broadcast(new OrderCreated($order))->toOthers();
         broadcast(new OrderStatusUpdated($order))->toOthers();
@@ -80,64 +63,22 @@ class SelfOrderController extends Controller
     {
         $table = Meja::where('table_token', $tableToken)->firstOrFail();
         $session = $this->orderService->getOrCreateSession($table);
-
         $validated = $request->validated();
-        $paymentMethod = $validated['payment_method'];
+        $status = $validated['payment_method'] === 'online' ? OrderStatus::PendingPayment : OrderStatus::Pending;
 
-        $orderItems = $this->orderService->buildOrderItems($validated['items']);
-        $subtotal = array_sum(array_column($orderItems, 'total_price'));
-        $totals = $this->orderService->calculateTotals($subtotal, $paymentMethod);
-
-        $status = $paymentMethod === 'online' ? OrderStatus::PendingPayment : OrderStatus::Pending;
-
-        $order = $this->orderService->createOrder(
-            $session,
-            $validated['customer_name'] ?? null,
-            'dine_in_qr',
-            $status,
-            $subtotal,
-            $totals['tax'],
-            $totals['serviceCharge'],
-            $totals['midtransCharge'],
-            $totals['total'],
-            $totals['roundingAmount'] ?? 0,
-        );
-
-        $this->orderService->attachOrderItems($order, $orderItems);
-
-        broadcast(new OrderCreated($order))->toOthers();
-        broadcast(new OrderStatusUpdated($order))->toOthers();
-
+        $order = $this->buildOrder($session, $validated, $validated['payment_method'], $status);
         $orderNumber = config('pos.order_number_prefix', 'TRX-LW-').$order->id;
 
-        if ($paymentMethod === 'online') {
-            $paymentType = $validated['payment_type'];
-            $midtransResponse = $midtrans->createCharge((string) $order->id, (int) round($totals['total']), $paymentType);
-            $paymentData = $this->paymentService->extractPaymentResponse($midtransResponse);
-
-            $this->paymentService->createPaymentRecord($order, $midtransResponse, $paymentType, $totals['total']);
-
-            return response()->json([
-                'order_id' => $order->id,
-                'order_number' => $orderNumber,
-                'subtotal' => $subtotal,
-                'tax' => $totals['tax'],
-                'service_charge' => $totals['serviceCharge'],
-                'midtrans_charge' => $totals['midtransCharge'],
-                'rounding_amount' => $totals['roundingAmount'] ?? 0,
-                'total' => $totals['total'],
-                'payment_type' => $paymentType,
-                'transaction_id' => $midtransResponse['transaction_id'] ?? null,
-                ...$paymentData,
-            ]);
+        if ($validated['payment_method'] === 'online') {
+            return $this->payOnline($order, $validated, $midtrans, $orderNumber);
         }
 
         return response()->json([
             'order_id' => $order->id,
             'order_number' => $orderNumber,
             'status' => 'pending',
-            'rounding_amount' => $totals['roundingAmount'] ?? 0,
-            'total' => $totals['total'],
+            'rounding_amount' => (float) $order->rounding_amount,
+            'total' => (float) $order->total,
         ]);
     }
 
@@ -151,33 +92,11 @@ class SelfOrderController extends Controller
             return response()->json(['status' => 'failed']);
         }
 
-        $midtransResponse = $midtrans->getTransactionStatus((string) $order->id);
-        $status = $midtransResponse['transaction_status'] ?? 'unknown';
-
-        $mapped = match ($status) {
-            'capture', 'settlement' => 'settlement',
-            'pending' => 'pending',
-            'expire', 'cancel', 'deny' => 'failed',
-            default => 'pending',
-        };
+        $mapped = $this->mapStatus($order, $midtrans);
 
         if ($mapped !== 'pending' && $order->payment) {
             $order->payment->update(['status' => $mapped]);
-
-            if ($mapped === 'settlement') {
-                $updated = Order::where('id', $order->id)
-                    ->where('status', '!=', OrderStatus::Paid->value)
-                    ->update(['status' => OrderStatus::Paid->value]);
-
-                if ($updated) {
-                    $order->refresh();
-                    broadcast(new OrderPaid($order))->toOthers();
-                    broadcast(new OrderStatusUpdated($order))->toOthers();
-                }
-            } elseif ($mapped === 'failed') {
-                $order->update(['status' => OrderStatus::Cancelled]);
-                broadcast(new OrderStatusUpdated($order))->toOthers();
-            }
+            $this->applyFinalStatus($order, $mapped);
         }
 
         return response()->json(['status' => $mapped]);
@@ -185,13 +104,11 @@ class SelfOrderController extends Controller
 
     public function orderStatus(string $tableToken, Order $order): Response
     {
-        $table = Meja::where('table_token', $tableToken)->firstOrFail();
-        abort_if($order->tableSession?->table_id !== $table->id, 404);
-
+        $this->assertTableOwner($tableToken, $order);
         $order->load(['items.menu', 'items.options.optionItem']);
 
         return Inertia::render('self-order/Status', [
-            'table' => $table,
+            'table' => $order->tableSession->table,
             'tableToken' => $tableToken,
             'order' => $order,
         ]);
@@ -199,9 +116,7 @@ class SelfOrderController extends Controller
 
     public function pollStatus(string $tableToken, Order $order): JsonResponse
     {
-        $table = Meja::where('table_token', $tableToken)->firstOrFail();
-        abort_if($order->tableSession?->table_id !== $table->id, 404);
-
+        $this->assertTableOwner($tableToken, $order);
         $order->load(['items.menu', 'items.options.optionItem']);
 
         return response()->json([
@@ -222,5 +137,89 @@ class SelfOrderController extends Controller
             'rounding_amount' => (float) ($order->rounding_amount ?? 0),
             'total' => (float) $order->total,
         ]);
+    }
+
+    // ── Helpers ─────────────────────────────────────────────────────────────
+
+    protected function buildOrder(TableSession $session, array $validated, string $paymentMethod, OrderStatus $status): Order
+    {
+        $orderItems = $this->orderService->buildOrderItems($validated['items']);
+        $subtotal = array_sum(array_column($orderItems, 'total_price'));
+        $totals = $this->orderService->calculateTotals($subtotal, $paymentMethod);
+
+        $order = $this->orderService->createOrder(
+            $session,
+            $validated['customer_name'] ?? null,
+            'dine_in_qr',
+            $status,
+            $subtotal,
+            $totals['tax'],
+            $totals['serviceCharge'],
+            $totals['midtransCharge'],
+            $totals['total'],
+            $totals['roundingAmount'] ?? 0,
+        );
+
+        $this->orderService->attachOrderItems($order, $orderItems);
+
+        return $order;
+    }
+
+    protected function payOnline(Order $order, array $validated, MidtransService $midtrans, string $orderNumber): JsonResponse
+    {
+        $paymentType = $validated['payment_type'];
+        $midtransResponse = $midtrans->createCharge((string) $order->id, (int) round((float) $order->total), $paymentType);
+        $paymentData = $this->paymentService->extractPaymentResponse($midtransResponse);
+
+        $this->paymentService->createPaymentRecord($order, $midtransResponse, $paymentType, (float) $order->total);
+
+        return response()->json([
+            'order_id' => $order->id,
+            'order_number' => $orderNumber,
+            'subtotal' => (float) $order->subtotal,
+            'tax' => (float) $order->tax,
+            'service_charge' => (float) ($order->service_charge ?? 0),
+            'midtrans_charge' => (float) ($order->midtrans_charge ?? 0),
+            'rounding_amount' => (float) ($order->rounding_amount ?? 0),
+            'total' => (float) $order->total,
+            'payment_type' => $paymentType,
+            'transaction_id' => $midtransResponse['transaction_id'] ?? null,
+            ...$paymentData,
+        ]);
+    }
+
+    protected function mapStatus(Order $order, MidtransService $midtrans): string
+    {
+        $status = $midtrans->getTransactionStatus((string) $order->id)['transaction_status'] ?? 'unknown';
+
+        return match ($status) {
+            'capture', 'settlement' => 'settlement',
+            'expire', 'cancel', 'deny' => 'failed',
+            default => 'pending',
+        };
+    }
+
+    protected function applyFinalStatus(Order $order, string $mapped): void
+    {
+        if ($mapped === 'settlement') {
+            $updated = Order::where('id', $order->id)
+                ->where('status', '!=', OrderStatus::Paid->value)
+                ->update(['status' => OrderStatus::Paid->value]);
+
+            if ($updated) {
+                $order->refresh();
+                broadcast(new OrderPaid($order))->toOthers();
+                broadcast(new OrderStatusUpdated($order))->toOthers();
+            }
+        } elseif ($mapped === 'failed') {
+            $order->update(['status' => OrderStatus::Cancelled]);
+            broadcast(new OrderStatusUpdated($order))->toOthers();
+        }
+    }
+
+    protected function assertTableOwner(string $tableToken, Order $order): void
+    {
+        $table = Meja::where('table_token', $tableToken)->firstOrFail();
+        abort_if($order->tableSession?->table_id !== $table->id, 404);
     }
 }

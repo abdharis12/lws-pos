@@ -117,15 +117,15 @@ export default function MenuCategoriesIndex({ categories, filters }: Props) {
 
     function confirmDelete() {
         if (!deleteConfirm) {
-return;
-}
+            return;
+        }
 
         destroy(`/admin/menu-categories/${deleteConfirm.id}`);
         setDeleteConfirm(null);
     }
 
     return (
-        <div className="min-h-screen bg-[#F6F2E9] p-6 font-sans text-slate-800">
+        <div className="min-h-screen bg-[#FAF8F4] p-6 font-sans text-slate-800">
             <Head title="Kategori Menu" />
 
             <div className="mx-auto max-w-7xl">
@@ -150,7 +150,7 @@ return;
                             <Button onClick={openCreate}>
                                 <Plus className="size-4 text-[#CFC0A4]" />
                                 <span className="font-medium tracking-wide">
-                                    Tambah Kategori
+                                    Kategori
                                 </span>
                             </Button>
                         </DialogTrigger>
@@ -238,7 +238,7 @@ return;
 
                 {/* Main Content Card */}
                 <Card className="overflow-hidden border-[#CFC0A4]/40 bg-white shadow-sm backdrop-blur-sm">
-                    <CardHeader className="border-b border-[#CFC0A4]/20 bg-white/40 px-6 py-4">
+                    <CardHeader className="border-b border-[#CFC0A4]/20 px-6 py-4">
                         <CardTitle className="flex items-center gap-2 font-serif text-lg font-medium text-[#4F6B6A]">
                             <Layers className="size-4 text-[#CFC0A4]" />
                             Daftar Kategori

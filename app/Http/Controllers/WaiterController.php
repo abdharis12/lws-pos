@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\ActivityLogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -23,10 +24,40 @@ class WaiterController extends Controller
     {
         Gate::authorize('accessWaiterDashboard');
 
-        $user = auth()->user();
-        $outletId = $user?->employee?->outlet_id;
+        return Inertia::render('waiter/ReadyOrders', [
+            'readyOrders' => $this->readyOrders($this->outletId()),
+            'leaderboard' => $this->leaderboard($this->outletId()),
+        ]);
+    }
 
-        $readyOrders = Order::with(['tableSession.table', 'items.menu', 'items.options.optionItem', 'servedBy'])
+    public function serve(Request $request, Order $order): RedirectResponse
+    {
+        Gate::authorize('serve', $order);
+
+        if ($order->status !== OrderStatus::Ready) {
+            abort(422, 'Pesanan tidak dalam status siap saji.');
+        }
+
+        /** @var User $user */
+        $user = $request->user();
+
+        $this->markServed($order, $user);
+        broadcast(new OrderStatusUpdated($order))->toOthers();
+        $this->logServed($user, $order);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Pesanan telah diantar.']);
+
+        return redirect()->back();
+    }
+
+    protected function outletId(): ?int
+    {
+        return auth()->user()?->employee?->outlet_id;
+    }
+
+    protected function readyOrders(?int $outletId): Collection
+    {
+        return Order::with(['tableSession.table', 'items.menu', 'items.options.optionItem', 'servedBy'])
             ->where('status', OrderStatus::Ready)
             ->when($outletId, fn ($query) => $query->whereHas(
                 'tableSession.table',
@@ -34,8 +65,11 @@ class WaiterController extends Controller
             ))
             ->orderBy('updated_at', 'asc')
             ->get();
+    }
 
-        $leaderboard = Order::where('status', OrderStatus::Completed)
+    protected function leaderboard(?int $outletId): Collection
+    {
+        return Order::where('status', OrderStatus::Completed)
             ->whereNotNull('served_by')
             ->where('served_at', '>=', now()->startOfDay())
             ->when($outletId, fn ($query) => $query->whereHas(
@@ -51,32 +85,19 @@ class WaiterController extends Controller
             ])
             ->sortByDesc('points')
             ->values();
-
-        return Inertia::render('waiter/ReadyOrders', [
-            'readyOrders' => $readyOrders,
-            'leaderboard' => $leaderboard,
-        ]);
     }
 
-    public function serve(Request $request, Order $order): RedirectResponse
+    protected function markServed(Order $order, User $user): void
     {
-        Gate::authorize('serve', $order);
-
-        if ($order->status !== OrderStatus::Ready) {
-            abort(422, 'Pesanan tidak dalam status siap saji.');
-        }
-
-        /** @var User $user */
-        $user = $request->user();
-
         $order->update([
             'status' => OrderStatus::Completed,
             'served_by' => $user->id,
             'served_at' => now(),
         ]);
+    }
 
-        broadcast(new OrderStatusUpdated($order))->toOthers();
-
+    protected function logServed(User $user, Order $order): void
+    {
         $this->activityLog->log(
             $user,
             'order.served',
@@ -88,9 +109,5 @@ class WaiterController extends Controller
                 'served_by' => $user->id,
             ],
         );
-
-        Inertia::flash('toast', ['type' => 'success', 'message' => 'Pesanan telah diantar.']);
-
-        return redirect()->back();
     }
 }

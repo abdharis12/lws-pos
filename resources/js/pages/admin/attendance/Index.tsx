@@ -156,14 +156,14 @@ export default function AttendanceIndex({
 
     function capturePhoto() {
         if (!videoRef.current || !canvasRef.current) {
-return;
-}
+            return;
+        }
 
         const ctx = canvasRef.current.getContext('2d');
 
         if (!ctx) {
-return;
-}
+            return;
+        }
 
         canvasRef.current.width = videoRef.current.videoWidth;
         canvasRef.current.height = videoRef.current.videoHeight;
@@ -197,8 +197,8 @@ return;
         const a =
             Math.sin(dLat / 2) ** 2 +
             Math.cos((lat1 * Math.PI) / 180) *
-                Math.cos((lat2 * Math.PI) / 180) *
-                Math.sin(dLng / 2) ** 2;
+            Math.cos((lat2 * Math.PI) / 180) *
+            Math.sin(dLng / 2) ** 2;
 
         return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
@@ -218,8 +218,8 @@ return;
             const container = mapRef.current;
 
             if (destroyed || !container) {
-return;
-}
+                return;
+            }
 
             const lat = outlet.latitude!;
             const lng = outlet.longitude!;
@@ -294,8 +294,8 @@ return;
         const map = mapInstanceRef.current;
 
         if (!map || !userPosition) {
-return;
-}
+            return;
+        }
 
         const { lat: userLat, lng: userLng } = userPosition;
 
@@ -441,8 +441,8 @@ return;
                         if (import.meta.env.DEV) {
                             console.warn(
                                 '[GPS] getLocation attempt (highAccuracy=' +
-                                    highAccuracy +
-                                    ') failed:',
+                                highAccuracy +
+                                ') failed:',
                                 err.code,
                                 err.message,
                             );
@@ -611,7 +611,7 @@ return;
     });
 
     return (
-        <div className="min-h-screen bg-[#F6F2E9] p-6 font-sans text-slate-800">
+        <div className="min-h-screen bg-[#FAF8F4] p-6 font-sans text-slate-800">
             <Head title="Absensi" />
             <div className="mx-auto max-w-7xl">
                 {/* Header Section */}
@@ -736,10 +736,10 @@ return;
                                                     ? Number(e.target.value)
                                                     : null;
                                                 setSelectedEmployee(id);
-        setInFormData(
-            'employee_id',
-            e.target.value,
-        );
+                                                setInFormData(
+                                                    'employee_id',
+                                                    e.target.value,
+                                                );
                                             }}
                                         >
                                             <option value="">
@@ -887,14 +887,14 @@ return;
                                                                 <Clock className="size-3" />
                                                                 {att.clock_in_at
                                                                     ? new Date(
-                                                                          att.clock_in_at,
-                                                                      ).toLocaleTimeString(
-                                                                          'id-ID',
-                                                                          {
-                                                                              hour: '2-digit',
-                                                                              minute: '2-digit',
-                                                                          },
-                                                                      )
+                                                                        att.clock_in_at,
+                                                                    ).toLocaleTimeString(
+                                                                        'id-ID',
+                                                                        {
+                                                                            hour: '2-digit',
+                                                                            minute: '2-digit',
+                                                                        },
+                                                                    )
                                                                     : '-'}
                                                                 {att.clock_out_at && (
                                                                     <>
@@ -916,15 +916,14 @@ return;
                                                     </div>
                                                     <div className="flex items-center gap-2">
                                                         <Badge
-                                                            className={`rounded-full border-none font-semibold ${
-                                                                att.status ===
-                                                                'late'
+                                                            className={`rounded-full border-none font-semibold ${att.status ===
+                                                                    'late'
                                                                     ? 'bg-[#CFC0A4]/20 text-[#CFC0A4]'
                                                                     : 'bg-[#4F6B6A]/10 text-[#4F6B6A]'
-                                                            }`}
+                                                                }`}
                                                         >
                                                             {att.status ===
-                                                            'late'
+                                                                'late'
                                                                 ? 'Terlambat'
                                                                 : 'Hadir'}
                                                         </Badge>
@@ -971,17 +970,16 @@ return;
                                         <div className="flex items-center gap-4 text-xs">
                                             {distanceToOutlet !== null && (
                                                 <span
-                                                    className={`flex items-center gap-1.5 font-medium ${
-                                                        distanceToOutlet <=
-                                                        (outlet.geofence_radius_meters ??
-                                                            20)
+                                                    className={`flex items-center gap-1.5 font-medium ${distanceToOutlet <=
+                                                            (outlet.geofence_radius_meters ??
+                                                                20)
                                                             ? 'text-emerald-600'
                                                             : 'text-red-500'
-                                                    }`}
+                                                        }`}
                                                 >
                                                     {distanceToOutlet <=
-                                                    (outlet.geofence_radius_meters ??
-                                                        20) ? (
+                                                        (outlet.geofence_radius_meters ??
+                                                            20) ? (
                                                         <CheckCircle2 className="size-3.5" />
                                                     ) : (
                                                         <XCircle className="size-3.5" />

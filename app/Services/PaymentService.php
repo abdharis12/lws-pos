@@ -21,37 +21,62 @@ class PaymentService
     {
         $data = [];
 
-        if (! empty($response['actions'])) {
-            foreach ($response['actions'] as $action) {
-                if ($action['name'] === 'generate-qr-code') {
-                    $data['qr_code'] = $action['url'];
-                }
-                if ($action['name'] === 'deeplink-redirect') {
-                    $data['deeplink_url'] = $action['url'];
-                }
+        $this->extractActions($response, $data);
+        $this->extractBankTransfer($response, $data);
+        $this->extractPermata($response, $data);
+        $this->extractBill($response, $data);
+        $this->extractPaymentCode($response, $data);
+
+        return $data;
+    }
+
+    protected function extractActions(array $response, array &$data): void
+    {
+        if (empty($response['actions'])) {
+            return;
+        }
+
+        foreach ($response['actions'] as $action) {
+            if ($action['name'] === 'generate-qr-code') {
+                $data['qr_code'] = $action['url'];
+            }
+            if ($action['name'] === 'deeplink-redirect') {
+                $data['deeplink_url'] = $action['url'];
             }
         }
+    }
 
-        if (! empty($response['va_numbers'])) {
-            $data['va_number'] = $response['va_numbers'][0]['va_number'];
-            $data['bank'] = $response['va_numbers'][0]['bank'];
+    protected function extractBankTransfer(array $response, array &$data): void
+    {
+        if (empty($response['va_numbers'])) {
+            return;
         }
 
+        $data['va_number'] = $response['va_numbers'][0]['va_number'];
+        $data['bank'] = $response['va_numbers'][0]['bank'];
+    }
+
+    protected function extractPermata(array $response, array &$data): void
+    {
         if (! empty($response['permata_va_number'])) {
             $data['va_number'] = $response['permata_va_number'];
             $data['bank'] = 'permata';
         }
+    }
 
+    protected function extractBill(array $response, array &$data): void
+    {
         if (! empty($response['bill_key'])) {
             $data['bill_key'] = $response['bill_key'];
             $data['biller_code'] = $response['biller_code'] ?? null;
         }
+    }
 
+    protected function extractPaymentCode(array $response, array &$data): void
+    {
         if (! empty($response['payment_code'])) {
             $data['payment_code'] = $response['payment_code'];
             $data['store'] = $response['store'] ?? null;
         }
-
-        return $data;
     }
 }

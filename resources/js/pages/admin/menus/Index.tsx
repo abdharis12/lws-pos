@@ -117,7 +117,7 @@ export default function MenusIndex({ menus, categories, filters }: Props) {
     }
 
     return (
-        <div className="min-h-screen bg-[#F6F2E9] p-6 font-sans text-slate-800">
+        <div className="min-h-screen bg-[#FAF8F4] p-6 font-sans text-slate-800">
             <Head title="Menu - European Classic" />
 
             <div className="mx-auto max-w-7xl">

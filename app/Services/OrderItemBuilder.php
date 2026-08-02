@@ -4,18 +4,39 @@ namespace App\Services;
 
 use App\Models\Menu;
 use App\Models\OptionItem;
+use Illuminate\Support\Collection;
 
 class OrderItemBuilder
 {
     public function build(array $items): array
     {
-        return array_map(fn (array $item) => $this->buildSingle($item), $items);
+        $menuIds = array_unique(array_column($items, 'menu_id'));
+        $menus = Menu::whereIn('id', $menuIds)->get()->keyBy('id');
+
+        $allOptionIds = array_merge(...array_map(
+            fn (array $item) => $item['option_ids'] ?? [],
+            $items,
+        ));
+        $optionIds = array_unique($allOptionIds);
+        $optionsByItem = $optionIds
+            ? OptionItem::whereIn('id', $optionIds)->get()->keyBy('id')
+            : collect();
+
+        return array_map(
+            fn (array $item) => $this->buildSingle($item, $menus, $optionsByItem),
+            $items,
+        );
     }
 
-    public function buildSingle(array $item): array
+    public function buildSingle(array $item, ?Collection $menus = null, ?Collection $optionsByItem = null): array
     {
-        $menu = Menu::findOrFail($item['menu_id']);
-        $options = $this->resolveOptions($item['option_ids'] ?? []);
+        $menus ??= Menu::whereKey($item['menu_id'])->get()->keyBy('id');
+        $optionsByItem ??= OptionItem::whereIn('id', $item['option_ids'] ?? [])->get()->keyBy('id');
+
+        $menu = $menus->get($item['menu_id']);
+        abort_unless($menu, 404, 'Menu tidak ditemukan.');
+
+        $options = $this->resolveOptions($item['option_ids'] ?? [], $optionsByItem);
         $optionTotal = array_sum(array_map(
             fn (array $o): float => (float) $o['price_adjustment'] * (int) $o['quantity'],
             $options,
@@ -37,28 +58,30 @@ class OrderItemBuilder
             $adjustments = $data['option_adjustments'];
             unset($data['option_adjustments']);
 
-            $orderItem = $order->items()->create($data);
-
-            if (! empty($adjustments)) {
-                $orderItem->options()->createMany($adjustments);
-            }
+            $this->attachItem($order, $data, $adjustments);
         }
     }
 
-    protected function resolveOptions(array $optionIds): array
+    protected function attachItem(mixed $order, array $data, array $adjustments): void
+    {
+        $orderItem = $order->items()->create($data);
+
+        if (! empty($adjustments)) {
+            $orderItem->options()->createMany($adjustments);
+        }
+    }
+
+    protected function resolveOptions(array $optionIds, Collection $optionsByItem): array
     {
         if (empty($optionIds)) {
             return [];
         }
 
         $counts = array_count_values($optionIds);
-        $options = OptionItem::whereIn('id', array_keys($counts))
-            ->get()
-            ->keyBy('id');
 
         $adjustments = [];
         foreach ($counts as $id => $count) {
-            $opt = $options->get($id);
+            $opt = $optionsByItem->get($id);
             if (! $opt) {
                 continue;
             }

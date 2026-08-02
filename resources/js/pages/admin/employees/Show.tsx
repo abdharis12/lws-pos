@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Dialog,
@@ -56,7 +57,7 @@ export default function EmployeesShow({ employee }: Props) {
     }
 
     return (
-        <div className="min-h-screen bg-[#F6F2E9] p-6 font-sans text-slate-800">
+        <div className="min-h-screen bg-[#FAF8F4] p-6 font-sans text-slate-800">
             <Head title={employee.user.name} />
 
             <div className="mx-auto max-w-7xl">
@@ -79,10 +80,8 @@ export default function EmployeesShow({ employee }: Props) {
                         <Link href="/admin/employees">
                             <Button
                                 variant="outline"
-                                className="border-[#CFC0A4]/40 text-[#4F6B6A] hover:bg-[#CFC0A4]/10"
                             >
-                                <ArrowLeft className="mr-2 size-4" />
-                                Kembali
+                                <ArrowLeft className="size-4" />
                             </Button>
                         </Link>
                         <Button
