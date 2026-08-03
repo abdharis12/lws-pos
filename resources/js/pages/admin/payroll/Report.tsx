@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { BarChart3, Clock, Download } from 'lucide-react';
+import { BarChart3, Clock, DollarSign, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     Select,
@@ -8,6 +8,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface EmployeeUser {
     id: number;
@@ -83,7 +84,7 @@ export default function PayrollReport({
     }
 
     return (
-        <div className="min-h-screen bg-[#F6F2E9] p-6 font-sans text-slate-800">
+        <div className="min-h-screen bg-[#FAF8F4] p-6 font-sans text-slate-800">
             <Head title="Laporan Payroll" />
 
             <div className="mx-auto max-w-7xl">
@@ -123,97 +124,182 @@ export default function PayrollReport({
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    <div className="overflow-hidden rounded-lg border border-[#CFC0A4]/40 bg-white p-6 shadow-sm backdrop-blur-sm">
-                        <p className="text-xs font-semibold tracking-wider text-[#4F6B6A] uppercase">
-                            Total Labor Cost
-                        </p>
-                        <p className="mt-2 font-serif text-2xl font-bold text-[#4F6B6A]">
-                            Rp{' '}
-                            {Math.ceil(summary.total_labor_cost).toLocaleString(
-                                'id-ID',
-                            )}
-                        </p>
-                    </div>
-                    <div className="overflow-hidden rounded-lg border border-[#CFC0A4]/40 bg-white p-6 shadow-sm backdrop-blur-sm">
-                        <p className="text-xs font-semibold tracking-wider text-[#4F6B6A] uppercase">
-                            Total Gaji Pokok
-                        </p>
-                        <p className="mt-2 font-serif text-2xl font-bold text-[#4F6B6A]">
-                            Rp{' '}
-                            {Math.ceil(
-                                summary.total_base_salary,
-                            ).toLocaleString('id-ID')}
-                        </p>
-                    </div>
-                    <div className="overflow-hidden rounded-lg border border-[#CFC0A4]/40 bg-white p-6 shadow-sm backdrop-blur-sm">
-                        <p className="text-xs font-semibold tracking-wider text-[#4F6B6A] uppercase">
-                            Total Bonus
-                        </p>
-                        <p className="mt-2 font-serif text-2xl font-bold text-[#4F6B6A]">
-                            Rp{' '}
-                            {Math.ceil(summary.total_bonuses).toLocaleString(
-                                'id-ID',
-                            )}
-                        </p>
-                    </div>
-                    <div className="overflow-hidden rounded-lg border border-[#CFC0A4]/40 bg-white p-6 shadow-sm backdrop-blur-sm">
-                        <p className="text-xs font-semibold tracking-wider text-rose-700 uppercase">
-                            Total Potongan
-                        </p>
-                        <p className="mt-2 font-serif text-2xl font-bold text-rose-700">
-                            Rp{' '}
-                            {Math.ceil(summary.total_deductions).toLocaleString(
-                                'id-ID',
-                            )}
-                        </p>
-                    </div>
-                    <div className="overflow-hidden rounded-lg border border-[#CFC0A4]/40 bg-white p-6 shadow-sm backdrop-blur-sm">
-                        <p className="text-xs font-semibold tracking-wider text-[#4F6B6A] uppercase">
-                            Total Tunjangan
-                        </p>
-                        <p className="mt-2 font-serif text-2xl font-bold text-[#4F6B6A]">
-                            Rp{' '}
-                            {Math.ceil(summary.total_allowances).toLocaleString(
-                                'id-ID',
-                            )}
-                        </p>
-                    </div>
-                    <div className="overflow-hidden rounded-lg border border-[#CFC0A4]/40 bg-white p-6 shadow-sm backdrop-blur-sm">
-                        <p className="text-xs font-semibold tracking-wider text-[#4F6B6A] uppercase">
-                            Total Lembur
-                        </p>
-                        <p className="mt-2 font-serif text-2xl font-bold text-[#4F6B6A]">
-                            Rp{' '}
-                            {Math.ceil(summary.total_overtime).toLocaleString(
-                                'id-ID',
-                            )}
-                        </p>
-                    </div>
-                    <div className="overflow-hidden rounded-lg border border-[#CFC0A4]/40 bg-white p-6 shadow-sm backdrop-blur-sm">
-                        <p className="text-xs font-semibold tracking-wider text-[#4F6B6A] uppercase">
-                            Status Pembayaran
-                        </p>
-                        <div className="mt-3 space-y-1">
-                            <p className="text-sm text-slate-600">
-                                Dibayar:{' '}
-                                <span className="font-semibold">
-                                    {summary.paid_count}
-                                </span>
+
+                    <Card className="group relative overflow-hidden border-[#CFC0A4]/40 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#4F6B6A]/10">
+                        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#4F6B6A] to-[#CFC0A4]" />
+                        <CardHeader className="flex flex-row items-start justify-between pt-5">
+                            <CardTitle className="text-[15px] font-semibold tracking-[0.12em] text-[#4F6B6A]/70 uppercase">
+                                Total Labor Cost
+                            </CardTitle>
+                            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4F6B6A]/10">
+                                <DollarSign
+                                    className="h-4.5 w-4.5 text-[#4F6B6A]"
+                                    strokeWidth={2}
+                                />
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="font-serif text-2xl font-bold tracking-tight text-[#4F6B6A]">
+                                Rp {Number(summary.total_labor_cost).toLocaleString('id-ID')}
                             </p>
-                            <p className="text-sm text-slate-600">
-                                Disetujui:{' '}
-                                <span className="font-semibold">
-                                    {summary.approved_count}
-                                </span>
+                            <p className="mt-1.5 text-xs text-slate-500">
+                                Total biaya tenaga kerja untuk periode {period}
                             </p>
-                            <p className="text-sm text-slate-600">
-                                Draft:{' '}
-                                <span className="font-semibold">
-                                    {summary.draft_count}
-                                </span>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="group relative overflow-hidden border-[#CFC0A4]/40 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#4F6B6A]/10">
+                        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#4F6B6A] to-[#CFC0A4]" />
+                        <CardHeader className="flex flex-row items-start justify-between pt-5">
+                            <CardTitle className="text-[15px] font-semibold tracking-[0.12em] text-[#4F6B6A]/70 uppercase">
+                                Total Gaji Pokok
+                            </CardTitle>
+                            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4F6B6A]/10">
+                                <DollarSign
+                                    className="h-4.5 w-4.5 text-[#4F6B6A]"
+                                    strokeWidth={2}
+                                />
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="font-serif text-2xl font-bold tracking-tight text-[#4F6B6A]">
+                                Rp {Number(summary.total_base_salary).toLocaleString('id-ID')}
                             </p>
-                        </div>
-                    </div>
+                            <p className="mt-1.5 text-xs text-slate-500">
+                                Total gaji pokok untuk periode {period}
+                            </p>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="group relative overflow-hidden border-[#CFC0A4]/40 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#4F6B6A]/10">
+                        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#4F6B6A] to-[#CFC0A4]" />
+                        <CardHeader className="flex flex-row items-start justify-between pt-5">
+                            <CardTitle className="text-[15px] font-semibold tracking-[0.12em] text-[#4F6B6A]/70 uppercase">
+                                Total Bonus
+                            </CardTitle>
+                            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4F6B6A]/10">
+                                <DollarSign
+                                    className="h-4.5 w-4.5 text-[#4F6B6A]"
+                                    strokeWidth={2}
+                                />
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="font-serif text-2xl font-bold tracking-tight text-[#4F6B6A]">
+                                Rp {Number(summary.total_bonuses).toLocaleString('id-ID')}
+                            </p>
+                            <p className="mt-1.5 text-xs text-slate-500">
+                                Total bonus untuk periode {period}
+                            </p>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="group relative overflow-hidden border-[#CFC0A4]/40 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#4F6B6A]/10">
+                        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#4F6B6A] to-[#CFC0A4]" />
+                        <CardHeader className="flex flex-row items-start justify-between pt-5">
+                            <CardTitle className="text-[15px] font-semibold tracking-[0.12em] text-[#4F6B6A]/70 uppercase">
+                                Total Potongan
+                            </CardTitle>
+                            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4F6B6A]/10">
+                                <DollarSign
+                                    className="h-4.5 w-4.5 text-[#4F6B6A]"
+                                    strokeWidth={2}
+                                />
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="font-serif text-2xl font-bold tracking-tight text-[#4F6B6A]">
+                                Rp {Number(summary.total_deductions).toLocaleString('id-ID')}
+                            </p>
+                            <p className="mt-1.5 text-xs text-slate-500">
+                                Total potongan untuk periode {period}
+                            </p>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="group relative overflow-hidden border-[#CFC0A4]/40 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#4F6B6A]/10">
+                        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#4F6B6A] to-[#CFC0A4]" />
+                        <CardHeader className="flex flex-row items-start justify-between pt-5">
+                            <CardTitle className="text-[15px] font-semibold tracking-[0.12em] text-[#4F6B6A]/70 uppercase">
+                                Total Tunjangan
+                            </CardTitle>
+                            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4F6B6A]/10">
+                                <DollarSign
+                                    className="h-4.5 w-4.5 text-[#4F6B6A]"
+                                    strokeWidth={2}
+                                />
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="font-serif text-2xl font-bold tracking-tight text-[#4F6B6A]">
+                                Rp {Number(summary.total_allowances).toLocaleString('id-ID')}
+                            </p>
+                            <p className="mt-1.5 text-xs text-slate-500">
+                                Total tunjangan untuk periode {period}
+                            </p>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="group relative overflow-hidden border-[#CFC0A4]/40 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#4F6B6A]/10">
+                        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#4F6B6A] to-[#CFC0A4]" />
+                        <CardHeader className="flex flex-row items-start justify-between pt-5">
+                            <CardTitle className="text-[15px] font-semibold tracking-[0.12em] text-[#4F6B6A]/70 uppercase">
+                                Total Lembur
+                            </CardTitle>
+                            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4F6B6A]/10">
+                                <DollarSign
+                                    className="h-4.5 w-4.5 text-[#4F6B6A]"
+                                    strokeWidth={2}
+                                />
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="font-serif text-2xl font-bold tracking-tight text-[#4F6B6A]">
+                                Rp {Number(summary.total_overtime).toLocaleString('id-ID')}
+                            </p>
+                            <p className="mt-1.5 text-xs text-slate-500">
+                                Total lembur untuk periode {period}
+                            </p>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="group relative overflow-hidden border-[#CFC0A4]/40 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#4F6B6A]/10">
+                        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#4F6B6A] to-[#CFC0A4]" />
+                        <CardHeader className="flex flex-row items-start justify-between pt-5">
+                            <CardTitle className="text-[15px] font-semibold tracking-[0.12em] text-[#4F6B6A]/70 uppercase">
+                                Status Pembayaran
+                            </CardTitle>
+                            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4F6B6A]/10">
+                                <DollarSign
+                                    className="h-4.5 w-4.5 text-[#4F6B6A]"
+                                    strokeWidth={2}
+                                />
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="mt-3 space-y-1">
+                                <p className="text-sm text-slate-600">
+                                    Dibayar:{' '}
+                                    <span className="font-semibold">
+                                        {summary.paid_count}
+                                    </span>
+                                </p>
+                                <p className="text-sm text-slate-600">
+                                    Disetujui:{' '}
+                                    <span className="font-semibold">
+                                        {summary.approved_count}
+                                    </span>
+                                </p>
+                                <p className="text-sm text-slate-600">
+                                    Draft:{' '}
+                                    <span className="font-semibold">
+                                        {summary.draft_count}
+                                    </span>
+                                </p>
+                            </div>
+                        </CardContent>
+                    </Card>
+                    
                 </div>
 
                 <div className="mt-6 overflow-hidden rounded-lg border border-[#CFC0A4]/40 bg-white shadow-sm backdrop-blur-sm">

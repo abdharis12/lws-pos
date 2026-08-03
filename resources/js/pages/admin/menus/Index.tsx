@@ -223,7 +223,7 @@ export default function MenusIndex({ menus, categories, filters }: Props) {
                             </div>
 
                             {/* Card Info Header */}
-                            <CardHeader className="">
+                            <CardHeader className="mb-5">
                                 <div className="flex items-start justify-between gap-2">
                                     <div>
                                         <Badge className="rounded-full border border-primary bg-secondary/30 text-xs font-normal text-primary">
