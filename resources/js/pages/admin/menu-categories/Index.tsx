@@ -1,5 +1,5 @@
 import { Head, useForm, router } from '@inertiajs/react';
-import { Hash, Layers, Pencil, Plus, Search, Sparkles, Trash2 } from 'lucide-react';
+import { Hash, Layers, Pencil, Plus, Search, Sparkles, Trash2, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -16,10 +16,18 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Pagination } from '@/components/ui/pagination';
+import { cn } from '@/lib/utils';
+
+const ICON_OPTIONS = [
+    '🍽️', '🍜', '🍚', '🍛', '🍝', '🍕', '🥩', '🍗', '🍤', '🍟',
+    '🥗', '🥦', '🍞', '🥐', '🍰', '🍧', '🍨', '☕', '🧋', '🥤',
+    '🍹', '🍺', '🍵', '🍲', '🫕', '🌶️', '🧆', '🍢', '🥟', '🧊',
+];
 
 interface Category {
     id: number;
     name: string;
+    icon: string | null;
     sort_order: number;
 }
 
@@ -61,6 +69,7 @@ export default function MenuCategoriesIndex({ categories, filters }: Props) {
         reset,
     } = useForm({
         name: '',
+        icon: '',
         sort_order: '0',
     });
 
@@ -86,7 +95,7 @@ export default function MenuCategoriesIndex({ categories, filters }: Props) {
 
     function openEdit(cat: Category) {
         setEditing(cat);
-        setData({ name: cat.name, sort_order: String(cat.sort_order) });
+        setData({ name: cat.name, icon: cat.icon ?? '', sort_order: String(cat.sort_order) });
         setOpen(true);
     }
 
@@ -186,6 +195,65 @@ export default function MenuCategoriesIndex({ categories, filters }: Props) {
 
                                 <div className="space-y-2">
                                     <Label
+                                        htmlFor="icon"
+                                        className="text-xs font-semibold tracking-wider text-[#4F6B6A] uppercase"
+                                    >
+                                        Ikon Kategori
+                                    </Label>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setData('icon', '')}
+                                            title="Hapus ikon"
+                                            className={cn(
+                                                'flex size-10 items-center justify-center rounded-lg border text-lg transition-colors',
+                                                data.icon
+                                                    ? 'border-[#CFC0A4]/60 bg-white hover:bg-[#CFC0A4]/10'
+                                                    : 'border-[#4F6B6A] bg-[#4F6B6A]/10',
+                                            )}
+                                        >
+                                            {data.icon ? (
+                                                <X className="size-4 text-[#4F6B6A]" />
+                                            ) : (
+                                                <span className="text-sm text-[#4F6B6A]/50">
+                                                    —
+                                                </span>
+                                            )}
+                                        </button>
+                                        {data.icon && (
+                                            <span className="flex size-10 items-center justify-center rounded-lg border border-[#4F6B6A]/30 bg-white text-xl">
+                                                {data.icon}
+                                            </span>
+                                        )}
+                                        <span className="text-xs text-slate-400">
+                                            Pilih ikon atau kosongkan untuk
+                                            huruf otomatis.
+                                        </span>
+                                    </div>
+                                    <div className="grid grid-cols-6 gap-1.5 rounded-lg border border-[#CFC0A4]/40 bg-white p-2 sm:grid-cols-8">
+                                        {ICON_OPTIONS.map((icon) => (
+                                            <button
+                                                key={icon}
+                                                type="button"
+                                                onClick={() =>
+                                                    setData('icon', icon)
+                                                }
+                                                className={cn(
+                                                    'flex aspect-square items-center justify-center rounded-md text-lg transition-colors',
+                                                    data.icon === icon
+                                                        ? 'bg-[#4F6B6A]/15 ring-1 ring-[#4F6B6A]'
+                                                        : 'hover:bg-[#CFC0A4]/15',
+                                                )}
+                                            >
+                                                {icon}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <InputError message={errors.icon} />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label
                                         htmlFor="sort_order"
                                         className="text-xs font-semibold tracking-wider text-[#4F6B6A] uppercase"
                                     >
@@ -270,8 +338,16 @@ export default function MenuCategoriesIndex({ categories, filters }: Props) {
                                             key={cat.id}
                                             className="group transition-colors hover:bg-[#CFC0A4]/5"
                                         >
-                                            <td className="px-6 py-4 font-serif text-base font-medium text-slate-800">
-                                                {cat.name}
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="flex size-9 items-center justify-center rounded-lg bg-[#4F6B6A]/10 text-lg">
+                                                        {cat.icon ||
+                                                            cat.name.charAt(0)}
+                                                    </span>
+                                                    <span className="font-serif text-base font-medium text-slate-800">
+                                                        {cat.name}
+                                                    </span>
+                                                </div>
                                             </td>
                                             <td className="px-6 py-4">
                                                 <span className="inline-flex items-center gap-1 rounded-full bg-[#CFC0A4]/20 px-2.5 py-0.5 text-xs font-semibold text-[#4F6B6A]">

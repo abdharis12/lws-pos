@@ -11,7 +11,7 @@ class MenuCategory extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['outlet_id', 'name', 'sort_order', 'is_active'];
+    protected $fillable = ['outlet_id', 'name', 'icon', 'sort_order', 'is_active'];
 
     protected function casts(): array
     {

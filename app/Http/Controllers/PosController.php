@@ -29,6 +29,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -41,23 +42,29 @@ class PosController extends Controller
         private readonly PaymentService $paymentService,
     ) {}
 
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $outletId = Outlet::first()?->id;
-        $tables = Meja::with('lockedBy')->where('outlet_id', $outletId)->orderBy('code')->get();
-        $activeSessions = $this->activeSessions($tables);
-        $pendingOrders = Order::whereIn('status', [OrderStatus::Pending, OrderStatus::PendingPayment])
-            ->where('order_type', 'dine_in_qr')
-            ->with(['tableSession.table', 'items.menu', 'items.options.optionItem'])
-            ->orderByDesc('created_at')
-            ->get();
 
         return Inertia::render('pos/Index', [
             'categories' => $this->categories($outletId),
+            'tables' => $this->selectableTables($request, $outletId),
+            'pendingOrders' => $this->pendingOrders(),
+            'lastOrder' => $this->lastOrder(),
+        ]);
+    }
+
+    public function tables(Request $request): Response
+    {
+        $outletId = Outlet::first()?->id;
+        $this->viewAnyTable($request);
+
+        $tables = Meja::with('lockedBy')->where('outlet_id', $outletId)->orderBy('code')->get();
+        $activeSessions = $this->activeSessions($tables);
+
+        return Inertia::render('pos/Tables', [
             'tables' => $tables,
             'activeSessions' => $activeSessions,
-            'pendingOrders' => $pendingOrders,
-            'lastOrder' => $this->lastOrder(),
             'groupedTables' => $this->groupedTables($activeSessions),
         ]);
     }
@@ -67,7 +74,7 @@ class PosController extends Controller
         $validated = $request->validated();
         $user = $request->user();
         $posSessionId = $this->currentPosSessionId();
-        [$session, $groupedTableIds] = $this->prepareTables($validated, true);
+        [$session, $groupedTableIds] = $this->prepareTables($request, $validated, true);
 
         $orderItems = $this->orderService->buildOrderItems($validated['items']);
         $this->logLargeIfNeeded($this->orderSubtotal($orderItems), $validated, $user);
@@ -117,7 +124,7 @@ class PosController extends Controller
             $orderItems = $this->orderService->buildOrderItems($validated['items']);
             $this->validateLargeApproval($this->orderSubtotal($orderItems), $validated);
 
-            [$session] = $this->prepareTables($validated);
+            [$session] = $this->prepareTables($request, $validated);
             $order = $this->orderService->getOrCreatePaymentOrder(
                 $user, $validated, $orderItems, $session, $this->currentPosSessionId(),
             );
@@ -272,6 +279,34 @@ class PosController extends Controller
             ->get();
     }
 
+    protected function selectableTables(Request $request, ?int $outletId): Collection
+    {
+        $userId = $request->user()->id;
+
+        return Meja::with('lockedBy')
+            ->where('outlet_id', $outletId)
+            ->where(function ($query) use ($userId) {
+                $query->where('status', TableStatus::Available)
+                    ->orWhere(fn ($q) => $q->where('status', TableStatus::Locked)->where('locked_by', $userId));
+            })
+            ->orderBy('code')
+            ->get();
+    }
+
+    protected function pendingOrders(): Collection
+    {
+        return Order::whereIn('status', [OrderStatus::Pending, OrderStatus::PendingPayment])
+            ->where('order_type', 'dine_in_qr')
+            ->with(['tableSession.table', 'items.menu', 'items.options.optionItem'])
+            ->orderByDesc('created_at')
+            ->get();
+    }
+
+    protected function viewAnyTable(Request $request): void
+    {
+        $this->authorize('viewAny', Meja::class);
+    }
+
     protected function activeSessions(Collection $tables): Collection
     {
         return TableSession::whereIn('table_id', $tables->pluck('id'))
@@ -315,7 +350,7 @@ class PosController extends Controller
             ->first()?->id;
     }
 
-    protected function prepareTables(array $validated, bool $occupy = false): array
+    protected function prepareTables(Request $request, array $validated, bool $occupy = false): array
     {
         $session = null;
         $groupedTableIds = [];
@@ -326,6 +361,7 @@ class PosController extends Controller
 
         $table = Meja::find($validated['table_id']);
         $this->authorize('create', [Order::class, $table]);
+        $this->ensureTableSelectable($request, $table);
         $session = $this->orderService->getOrCreateSession($table);
 
         if ($occupy) {
@@ -460,6 +496,18 @@ class PosController extends Controller
     protected function isAvailable(Meja $table): bool
     {
         return $table->status === TableStatus::Available;
+    }
+
+    protected function ensureTableSelectable(Request $request, Meja $table): void
+    {
+        $selectable = $this->isAvailable($table)
+            || ($table->status === TableStatus::Locked && $table->locked_by === $request->user()->id);
+
+        if (! $selectable) {
+            throw ValidationException::withMessages([
+                'table_id' => "Meja {$table->code} tidak tersedia untuk pesanan baru.",
+            ]);
+        }
     }
 
     protected function isOccupied(Meja $table): bool

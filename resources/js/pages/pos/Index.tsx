@@ -1,38 +1,35 @@
-import { Head, useForm, router, usePage } from '@inertiajs/react';
-import { Search, ShoppingCart, Move, ArrowRightLeft, HandPlatter, Trash2 } from 'lucide-react';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
+import { LayoutGrid, Search, ShoppingCart, Trash2 } from 'lucide-react';
 import { useState, useMemo, useRef } from 'react';
-import { toast } from 'sonner';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { ceilTo500, roundingAmount as computeRoundingAmount } from '@/lib/currency';
 import CartPanel from './components/CartPanel';
 import CustomerNameInput from './components/CustomerNameInput';
 import MenuCard from './components/MenuCard';
 import OrderTypeSelector from './components/OrderTypeSelector';
 import PendingOrdersList from './components/PendingOrdersList';
-import TableGrid, { MobileTableStrip } from './components/TableGrid';
 import ApprovalDialog from './dialogs/ApprovalDialog';
 import CashPaymentDialog from './dialogs/CashPaymentDialog';
 import ItemDialog from './dialogs/ItemDialog';
 import MidtransPaymentDialog from './dialogs/MidtransPaymentDialog';
-import MoveMergeDialog from './dialogs/MoveMergeDialog';
 import PaymentDialog from './dialogs/PaymentDialog';
 import SplitBillDialog from './dialogs/SplitBillDialog';
 import SuccessDialog from './dialogs/SuccessDialog';
+import TablePickerDialog from './dialogs/TablePickerDialog';
 import { posFetchJson } from './lib/api';
 import { orderTypeLabel } from './lib/format';
 import { calcSubtotal } from './lib/pricing';
 import { printReceipt } from './lib/receipt';
-import { ceilTo500, roundingAmount as computeRoundingAmount } from '@/lib/currency';
-import type { CartItem, MenuItem, PendingOrder, PosPageProps, PrintReceiptData, TableData } from './types';
+import type { CartItem, MenuItem, PendingOrder, PosPageProps, PrintReceiptData } from './types';
 
 const INK = 'oklch(0.48 0.032 195.5)';
-const INK_LIGHT = 'oklch(0.48 0.032 195.5 / 0.08)';
 const BORDER = 'oklch(0.80 0.038 88.5 / 0.35)';
 const CREAM = 'oklch(0.98 0.005 85.0)';
 const MUTED = 'oklch(0.60 0.03 88.5)';
 
-export default function PosIndex({ categories, tables, pendingOrders, lastOrder, groupedTables }: PosPageProps) {
+export default function PosIndex({ categories, tables, pendingOrders, lastOrder }: PosPageProps) {
     const { auth } = usePage().props as { auth: { user: { id: number; name: string } | null } };
     const cashierName = auth?.user?.name ?? '';
 
@@ -68,8 +65,7 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
     const [isPendingCashPayment, setIsPendingCashPayment] = useState(false);
     const [successChange, setSuccessChange] = useState(0);
     const printFrameRef = useRef<HTMLIFrameElement>(null);
-    const [releaseDialogTable, setReleaseDialogTable] = useState<{ id: number; code: string } | null>(null);
-    const [moveMergeDialog, setMoveMergeDialog] = useState<{ mode: 'move' | 'merge'; sourceTable: { id: number; code: string } } | null>(null);
+    const [tablePickerOpen, setTablePickerOpen] = useState(false);
     const [orderType, setOrderType] = useState<'dine_in' | 'takeaway'>('dine_in');
     const [customerName, setCustomerName] = useState('');
     const [editingProcessing, setEditingProcessing] = useState(false);
@@ -177,38 +173,9 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
         setApprovalDialogOpen(false);
     }
 
-    function handleTableClick(table: TableData) {
-        if (table.status === 'occupied') {
-            setReleaseDialogTable({ id: table.id, code: table.code });
-
-            return;
-        }
-
-        if (table.status === 'locked' && table.locked_by && table.locked_by !== auth?.user?.id) {
-            toast.error(`Meja sedang diproses oleh ${table.locked_by_user?.name || 'pengguna lain'}`);
-
-            return;
-        }
-
-        setSelectedTableIds(prev =>
-            prev.includes(table.id) ? prev.filter(id => id !== table.id) : [...prev, table.id]
-        );
-    }
-
-    async function toggleLock(table: TableData) {
-        const isLock = table.status === 'available';
-        const { ok, data } = await posFetchJson<{ message?: string }>(
-            `/pos/tables/${table.id}/${isLock ? 'lock' : 'unlock'}`,
-            { method: 'POST' }
-        );
-
-        if (!ok) {
-            toast.error(data?.message || (isLock ? 'Gagal mengunci meja' : 'Gagal unlock meja'));
-
-            return;
-        }
-
-        router.reload();
+    function handleTablePickerApply(ids: number[]) {
+        setSelectedTableIds(ids);
+        setTablePickerOpen(false);
     }
 
     function buildReceiptData(amountGiven?: number): PrintReceiptData {
@@ -382,7 +349,7 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
 
         requestAnimationFrame(() => {
             router.reload({
-                only: ['tables', 'activeSessions', 'pendingOrders', 'lastOrder'],
+                only: ['tables', 'pendingOrders', 'lastOrder'],
             });
         });
     }
@@ -547,6 +514,8 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
         saveProcessing: editingProcessing,
         onSaveEdits: handleSaveEdits,
         tableSelected: isDineIn ? selectedTableIds.length > 0 : true,
+        selectedTableCodes: tables.filter(t => selectedTableIds.includes(t.id)).map(t => t.code),
+        onOpenTablePicker: () => setTablePickerOpen(true),
         customerName,
         orderType,
         onUpdateQty: (i: number, q: number) => setCartItems(prev => q < 1 ? prev : prev.map((item, idx) => idx === i ? { ...item, qty: q } : item)),
@@ -572,50 +541,58 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
                         <PendingOrdersList orders={pendingOrders} selectedId={selectedPendingOrderId} onSelect={handleSelectPendingOrder} onDelete={handleDeletePendingOrder} variant="sidebar" />
                         <OrderTypeSelector orderType={orderType} onChange={handleOrderTypeChange} variant="sidebar" />
                         {!isDineIn && <CustomerNameInput value={customerName} onChange={setCustomerName} variant="sidebar" />}
-                        {isDineIn && (
-                            <TableGrid
-                                tables={tables}
-                                selectedTableIds={selectedTableIds}
-                                groupedTables={groupedTables ?? null}
-                                onTableClick={handleTableClick}
-                                onLockToggle={toggleLock}
-                            />
-                        )}
                     </div>
                 </aside>
 
                 <div className="flex flex-1 flex-col overflow-hidden">
                     <div className="border-b px-5 py-3" style={{ borderColor: BORDER, backgroundColor: '#fff' }}>
-                        <div>
-                            <p className="text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: MUTED }}>POS Kasir</p>
-                            <h2 className="font-serif text-lg font-bold tracking-tight" style={{ color: INK }}>Kasir</h2>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: MUTED }}>POS Kasir</p>
+                                <h2 className="font-serif text-lg font-bold tracking-tight" style={{ color: INK }}>Kasir</h2>
+                            </div>
+                            <Link
+                                href="/pos/tables"
+                                className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-all hover:opacity-80"
+                                style={{ backgroundColor: 'oklch(0.48 0.032 195.5 / 0.06)', color: INK }}
+                            >
+                                <LayoutGrid className="size-4" /> Meja
+                            </Link>
                         </div>
                     </div>
 
                     <div className="lg:hidden"><OrderTypeSelector orderType={orderType} onChange={handleOrderTypeChange} variant="mobile" /></div>
                     {!isDineIn && <CustomerNameInput value={customerName} onChange={setCustomerName} variant="mobile" />}
-                    <MobileTableStrip
-                        tables={tables}
-                        selectedTableIds={selectedTableIds}
-                        groupedTables={groupedTables ?? null}
-                        onTableClick={handleTableClick}
-                        onLockToggle={toggleLock}
-                        isDineIn={isDineIn}
-                    />
 
                     <PendingOrdersList orders={pendingOrders} selectedId={selectedPendingOrderId} onSelect={handleSelectPendingOrder} onDelete={handleDeletePendingOrder} variant="mobile" />
 
-                    <div className="flex gap-1 overflow-x-auto px-5 pt-4 pb-2">
+                    <div className="flex gap-2 overflow-x-auto px-5 pt-4 pb-2 scroll-smooth snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                         {categories.map(cat => (
-                            <button key={cat.id} onClick={() => setSelectedCategoryId(cat.id)}
-                                className={`flex-shrink-0 rounded-xl px-4 py-2 text-sm font-medium transition-all ${
+                            <button
+                                key={cat.id}
+                                onClick={() => setSelectedCategoryId(cat.id)}
+                                className={`flex flex-shrink-0 snap-start flex-col items-center justify-center gap-1 rounded-xl px-3 py-2 text-center transition-all ${
                                     selectedCategoryId === cat.id
-                                        ? 'text-white shadow-sm'
+                                        ? 'shadow-sm'
                                         : 'hover:opacity-80'
                                 }`}
-                                style={{ backgroundColor: selectedCategoryId === cat.id ? INK : 'oklch(0.48 0.032 195.5 / 0.06)', color: selectedCategoryId === cat.id ? '#fff' : INK }}
+                                style={{
+                                    minWidth: 64,
+                                    backgroundColor: selectedCategoryId === cat.id ? INK : 'oklch(0.48 0.032 195.5 / 0.06)',
+                                    color: selectedCategoryId === cat.id ? '#fff' : INK,
+                                }}
                             >
-                                {cat.name}
+                                <span
+                                    className="flex size-7 items-center justify-center rounded-full text-xs font-semibold"
+                                    style={{
+                                        backgroundColor: selectedCategoryId === cat.id ? 'rgba(255,255,255,0.18)' : 'oklch(0.48 0.032 195.5 / 0.1)',
+                                    }}
+                                >
+                                    {cat.icon || cat.name.charAt(0)}
+                                </span>
+                                <span className="text-[11px] font-medium whitespace-nowrap">
+                                    {cat.name}
+                                </span>
                             </button>
                         ))}
                     </div>
@@ -687,65 +664,13 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder,
                 }} total={total} onConfirm={isPendingCashPayment ? handlePendingCashConfirm : handleCashConfirm} processing={processing} />
                 <MidtransPaymentDialog open={midtransDialogOpen} onOpenChange={setMidtransDialogOpen} subtotal={subtotal} total={total} onSuccess={handleMidtransSuccess} onInitiated={handleMidtransInitiated} getCsrfToken={() => document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? ''} selectedTableId={selectedTableIds[0] ?? null} cartItems={cartItems.map(item => ({ menu_id: item.menu.id, qty: item.qty, notes: item.notes || null, option_ids: item.selectedOptions.flatMap(o => Array.from({ length: o.quantity }, () => o.itemId)) }))} discountType={discountType} discountValue={discountValue} discountApprovedBy={discountApprovedBy} orderType={orderType} />
 
-                <Dialog open={releaseDialogTable !== null} onOpenChange={(v) => {
- if (!v) {
-setReleaseDialogTable(null);
-} 
-}}>
-                    <DialogContent className="sm:max-w-xs border-0 shadow-lg shadow-slate-900/10" style={{ backgroundColor: '#fff' }}>
-                        <div className="flex flex-col items-center py-4 text-center">
-                            <div className="mb-4 flex size-16 items-center justify-center rounded-2xl" style={{ backgroundColor: INK_LIGHT }}>
-                                <HandPlatter className="size-7" style={{ color: INK }} />
-                            </div>
-                            <h3 className="text-lg font-bold" style={{ color: INK }}>Meja {releaseDialogTable?.code}</h3>
-                            <p className="mt-1 text-sm" style={{ color: MUTED }}>Meja sedang digunakan</p>
-                            <div className="mt-5 flex w-full flex-col gap-2">
-                                <button onClick={() => {
-                                    const t = releaseDialogTable; setReleaseDialogTable(null);
-
-                                    if (t) {
-setMoveMergeDialog({ mode: 'move', sourceTable: t });
-}
-                                }}
-                                    className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold text-white transition-all hover:opacity-90"
-                                    style={{ backgroundColor: INK }}>
-                                    <Move className="size-4" /> Pindah Meja
-                                </button>
-                                {(tables.filter(t => t.status === 'occupied' && t.id !== releaseDialogTable?.id).length > 0) && (
-                                    <button onClick={() => {
-                                        const t = releaseDialogTable; setReleaseDialogTable(null);
-
-                                        if (t) {
-setMoveMergeDialog({ mode: 'merge', sourceTable: t });
-}
-                                    }}
-                                        className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold text-white transition-all hover:opacity-90"
-                                        style={{ backgroundColor: INK }}>
-                                        <ArrowRightLeft className="size-4" /> Gabung Meja
-                                    </button>
-                                )}
-                                <button onClick={() => {
- if (!releaseDialogTable) {
-return;
-}
-
- router.post(`/pos/tables/${releaseDialogTable.id}/release`); 
-}}
-                                    className="w-full rounded-xl py-2.5 text-sm font-semibold text-white transition-all hover:opacity-90"
-                                    style={{ backgroundColor: INK }}>
-                                    Kosongkan Meja
-                                </button>
-                                <button onClick={() => setReleaseDialogTable(null)}
-                                    className="w-full rounded-xl py-2.5 text-sm font-semibold transition-all hover:opacity-70"
-                                    style={{ backgroundColor: '#f1f5f9', color: '#475569' }}>
-                                    Batal
-                                </button>
-                            </div>
-                        </div>
-                    </DialogContent>
-                </Dialog>
-
-                <MoveMergeDialog open={moveMergeDialog !== null} mode={moveMergeDialog?.mode ?? null} sourceTable={moveMergeDialog?.sourceTable ?? { id: 0, code: '' }} tables={tables} onClose={() => setMoveMergeDialog(null)} />
+                <TablePickerDialog
+                    open={tablePickerOpen}
+                    onOpenChange={setTablePickerOpen}
+                    tables={tables}
+                    selectedTableIds={selectedTableIds}
+                    onApply={handleTablePickerApply}
+                />
 
                 <Dialog open={deleteConfirmOrder !== null} onOpenChange={(v) => {
  if (!v) {

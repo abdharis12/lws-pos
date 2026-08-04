@@ -1,14 +1,14 @@
 import {
     Plus, Minus, X, Percent, SplitSquareVertical,
     Printer, Wallet, Globe, ShieldCheck,
-    PackageOpen,
+    PackageOpen, Table2,
 } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { BORDER, CREAM, INK, MUTED, PRIMARY, SAND } from '../constants';
 import { ceilTo500, roundingAmount as computeRoundingAmount } from '@/lib/currency';
+import { BORDER, CREAM, INK, MUTED, PRIMARY, SAND } from '../constants';
 import type { CartItem } from '../types';
 
 interface Props {
@@ -23,6 +23,8 @@ interface Props {
     confirmPayProcessing?: boolean;
     saveProcessing?: boolean;
     tableSelected?: boolean;
+    selectedTableCodes?: string[];
+    onOpenTablePicker?: () => void;
     customerName?: string;
     orderType?: 'dine_in' | 'takeaway';
     discountType: string | null;
@@ -39,7 +41,8 @@ interface Props {
 export default function CartPanel({
     items, processing, onUpdateQty, onRemove, onOrder, onConfirmPay,
     onSaveEdits, pendingOrderId, confirmPayProcessing, saveProcessing,
-    tableSelected = true, customerName = '', orderType = 'dine_in',
+    tableSelected = true, selectedTableCodes = [], onOpenTablePicker,
+    customerName = '', orderType = 'dine_in',
     discountType, discountValue, discountApprovedBy,
     onDiscountChange, onOpenApproval, splitCount, onOpenSplitBill,
     onPrintReceipt, showPrintButton,
@@ -246,6 +249,27 @@ export default function CartPanel({
                     <span>Total</span>
                     <span style={{ color: PRIMARY }}>Rp {total.toLocaleString('id-ID')}</span>
                 </div>
+
+                {orderType === 'dine_in' && !isConfirmMode && !showPrintButton && (
+                    <button
+                        onClick={() => onOpenTablePicker?.()}
+                        disabled={items.length === 0}
+                        className="mb-3 flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-sm transition-all hover:opacity-80"
+                        style={{ border: `1px solid ${BORDER}`, backgroundColor: `${CREAM}80` }}
+                    >
+                        <span className="flex items-center gap-2">
+                            <Table2 className="size-4" style={{ color: PRIMARY }} />
+                            {selectedTableCodes.length > 0 ? (
+                                <span className="font-medium" style={{ color: INK }}>{selectedTableCodes.join(', ')}</span>
+                            ) : (
+                                <span style={{ color: MUTED }}>Pilih Meja</span>
+                            )}
+                        </span>
+                        <span className="text-xs font-semibold" style={{ color: PRIMARY }}>
+                            {selectedTableCodes.length > 0 ? 'Ubah' : 'Pilih'}
+                        </span>
+                    </button>
+                )}
 
                 <div className="flex flex-col gap-2">
                     {isConfirmMode ? (

@@ -26,6 +26,7 @@ export interface MenuItem {
 export interface Category {
     id: number;
     name: string;
+    icon?: string | null;
     menus: MenuItem[];
 }
 
@@ -118,9 +119,13 @@ export interface PosSessionData {
 export interface PosPageProps {
     categories: Category[];
     tables: TableData[];
-    activeSessions: ActiveSession[];
     pendingOrders: PendingOrder[];
     lastOrder?: OrderData | null;
+}
+
+export interface MejaPageProps {
+    tables: TableData[];
+    activeSessions: ActiveSession[];
     groupedTables?: Record<number, number[]> | null;
 }
 

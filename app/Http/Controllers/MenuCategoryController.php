@@ -38,6 +38,7 @@ class MenuCategoryController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'icon' => 'nullable|string|max:64',
             'sort_order' => 'nullable|integer|min:0',
         ]);
 
@@ -46,6 +47,7 @@ class MenuCategoryController extends Controller
         MenuCategory::create([
             'outlet_id' => $outlet->id,
             'name' => $validated['name'],
+            'icon' => $validated['icon'] ?? null,
             'sort_order' => $validated['sort_order'] ?? 0,
         ]);
 
@@ -60,6 +62,7 @@ class MenuCategoryController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'icon' => 'nullable|string|max:64',
             'sort_order' => 'nullable|integer|min:0',
         ]);
 

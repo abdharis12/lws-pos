@@ -37,11 +37,13 @@ test('owner can create menu category', function () {
 
     $this->actingAs($owner)->post(route('admin.menu-categories.store'), [
         'name' => 'Makanan Baru',
+        'icon' => '🍜',
         'sort_order' => 5,
     ])->assertRedirect();
 
     $this->assertDatabaseHas('menu_categories', [
         'name' => 'Makanan Baru',
+        'icon' => '🍜',
         'outlet_id' => $this->outlet->id,
     ]);
 });
@@ -52,10 +54,12 @@ test('owner can update menu category', function () {
 
     $this->actingAs($owner)->put(route('admin.menu-categories.update', $category), [
         'name' => 'Minuman Segar',
+        'icon' => '🥤',
         'sort_order' => 3,
     ])->assertRedirect();
 
     expect($category->fresh()->name)->toBe('Minuman Segar');
+    expect($category->fresh()->icon)->toBe('🥤');
 });
 
 test('owner can delete menu category', function () {

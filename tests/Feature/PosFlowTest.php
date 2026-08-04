@@ -62,6 +62,62 @@ test('authenticated user can view POS index', function () {
         ->assertOk();
 });
 
+test('pos index only exposes selectable tables', function () {
+    Meja::factory()->create(['outlet_id' => $this->outlet->id, 'status' => 'occupied']);
+    Meja::factory()->create([
+        'outlet_id' => $this->outlet->id,
+        'status' => 'locked',
+        'locked_by' => User::factory()->create()->id,
+    ]);
+
+    $this->actingAs($this->cashier)
+        ->get(route('pos.index'))
+        ->assertInertia(fn ($page) => $page
+            ->component('pos/Index')
+            ->has('tables', 1)
+            ->where('tables.0.id', $this->table->id));
+});
+
+test('locked-by-self table is exposed on pos index', function () {
+    $this->table->update(['status' => 'locked', 'locked_by' => $this->cashier->id]);
+
+    $this->actingAs($this->cashier)
+        ->get(route('pos.index'))
+        ->assertInertia(fn ($page) => $page
+            ->component('pos/Index')
+            ->has('tables', 1)
+            ->where('tables.0.id', $this->table->id));
+});
+
+test('cashier can view tables page', function () {
+    $this->actingAs($this->cashier)
+        ->get(route('pos.tables'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->component('pos/Tables'));
+});
+
+test('tables page exposes all table statuses', function () {
+    Meja::factory()->create(['outlet_id' => $this->outlet->id, 'status' => 'occupied']);
+
+    $this->actingAs($this->cashier)
+        ->get(route('pos.tables'))
+        ->assertInertia(fn ($page) => $page
+            ->component('pos/Tables')
+            ->has('tables', 2)
+            ->where('activeSessions', []));
+});
+
+test('dine-in order is rejected when selected table is occupied', function () {
+    $this->table->update(['status' => 'occupied']);
+
+    $this->actingAs($this->cashier)->post(route('pos.orders.store'), [
+        'table_id' => $this->table->id,
+        'items' => [
+            ['menu_id' => $this->menu->id, 'qty' => 1, 'notes' => null, 'option_ids' => []],
+        ],
+    ])->assertSessionHasErrors(['table_id']);
+});
+
 // ─── Create Order ────────────────────────────────────────────
 
 test('cashier can create order with cash payment', function () {
