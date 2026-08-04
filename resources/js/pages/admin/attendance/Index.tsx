@@ -27,6 +27,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { useAttendanceUpdated } from '@/hooks/use-attendance-updated';
 
 interface UserData {
     id: number;
@@ -126,6 +127,8 @@ export default function AttendanceIndex({
     } | null>(null);
     const mapRef = useRef<HTMLDivElement>(null);
     const mapInstanceRef = useRef<unknown>(null);
+
+    useAttendanceUpdated();
 
     const {
         setData: setInFormData,

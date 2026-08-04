@@ -640,35 +640,42 @@ export default function TablesIndex({ tables, floors, filters }: Props) {
                 </div>
 
                 {/* Floor Filter Tabs */}
-                <div className="mb-8 inline-flex flex-wrap gap-1.5 rounded-xl border border-[#CFC0A4]/30 bg-white/50 p-1.5">
-                    <button
-                        onClick={() => setFilterFloor('')}
-                        className={`rounded-lg px-3.5 py-1.5 text-xs font-medium transition-all duration-200 ${!filterFloor
-                                ? 'bg-[#4F6B6A] text-white shadow-sm'
-                                : 'text-slate-500 hover:bg-white/60 hover:text-slate-700'
-                            }`}
+                <div className="relative mb-8">
+                    <div
+                        className="flex gap-1.5 overflow-x-auto scroll-smooth rounded-xl border border-[#CFC0A4]/30 bg-white/50 p-1.5 [-ms-overflow-style:none] [scrollbar-width:none] snap-x snap-mandatory sm:flex-wrap sm:overflow-visible [&::-webkit-scrollbar]:hidden"
                     >
-                        Semua
-                    </button>
-                    {floors.map((f, i) => {
-                        const icons = ['①', '②', '③', '④', '🌿'];
+                        <button
+                            onClick={() => setFilterFloor('')}
+                            className={`cursor-pointer shrink-0 snap-start rounded-lg px-3.5 py-1.5 text-xs font-medium whitespace-nowrap transition-all duration-200 ${
+                                !filterFloor
+                                    ? 'bg-[#4F6B6A] text-white shadow-sm'
+                                    : 'text-slate-500 hover:bg-white/60 hover:text-slate-700'
+                            }`}
+                        >
+                            Semua
+                        </button>
+                        {floors.map((f, i) => {
+                            const icons = ['①', '②', '③', '④', '🌿'];
 
-                        return (
-                            <button
-                                key={f}
-                                onClick={() => setFilterFloor(f)}
-                                className={`rounded-lg px-3.5 py-1.5 text-xs font-medium transition-all duration-200 ${filterFloor === f
-                                        ? 'bg-[#4F6B6A] text-white shadow-sm'
-                                        : 'text-slate-500 hover:bg-white/60 hover:text-slate-700'
+                            return (
+                                <button
+                                    key={f}
+                                    onClick={() => setFilterFloor(f)}
+                                    className={`cursor-pointer shrink-0 snap-start rounded-lg px-3.5 py-1.5 text-xs font-medium whitespace-nowrap transition-all duration-200 ${
+                                        filterFloor === f
+                                            ? 'bg-[#4F6B6A] text-white shadow-sm'
+                                            : 'text-slate-500 hover:bg-white/60 hover:text-slate-700'
                                     }`}
-                            >
-                                <span className="mr-1 opacity-60">
-                                    {icons[i] ?? ''}
-                                </span>
-                                {f}
-                            </button>
-                        );
-                    })}
+                                >
+                                    <span className="mr-1 opacity-60">{icons[i] ?? ''}</span>
+                                    {f}
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    {/* Fade hint di tepi kanan — hanya muncul saat overflow (mobile/tablet) */}
+                    <div className="pointer-events-none absolute inset-y-1.5 right-0 w-10 rounded-r-xl bg-gradient-to-l from-[#FAF8F4] via-[#FAF8F4]/80 to-transparent sm:hidden" />
                 </div>
 
                 {/* Grid Table Cards */}

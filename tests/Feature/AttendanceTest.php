@@ -1,10 +1,12 @@
 <?php
 
+use App\Events\AttendanceUpdated;
 use App\Models\Attendance;
 use App\Models\Employee;
 use App\Models\Outlet;
 use App\Models\User;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Event;
 use Spatie\Permission\Models\Role;
 
 beforeEach(function () {
@@ -61,6 +63,34 @@ test('cannot clock in twice on same day', function () {
     $this->actingAs($this->owner)->post(route('attendance.clock-in'), [
         'employee_id' => $this->employee->id,
     ])->assertSessionHasErrors(['employee_id']);
+});
+
+test('dispatches AttendanceUpdated event when clocking in', function () {
+    Event::fake([AttendanceUpdated::class]);
+
+    $this->travelTo(now()->setHours(8)->setMinutes(5)->setSeconds(0));
+
+    $this->actingAs($this->owner)->post(route('attendance.clock-in'), [
+        'employee_id' => $this->employee->id,
+    ]);
+
+    Event::assertDispatched(AttendanceUpdated::class);
+});
+
+test('dispatches AttendanceUpdated event when clocking out', function () {
+    Event::fake([AttendanceUpdated::class]);
+
+    Attendance::factory()->create([
+        'employee_id' => $this->employee->id,
+        'clock_in_at' => now()->subHours(5),
+        'clock_out_at' => null,
+    ]);
+
+    $this->actingAs($this->owner)->post(route('attendance.clock-out'), [
+        'employee_id' => $this->employee->id,
+    ]);
+
+    Event::assertDispatched(AttendanceUpdated::class);
 });
 
 test('employee can clock out', function () {

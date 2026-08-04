@@ -191,8 +191,9 @@ return tables;
 
     return (
         <div className="rounded-xl bg-white p-4 shadow-sm" style={{ border: `1px solid ${BORDER}` }}>
-            <h2 className="text-base font-semibold" style={{ color: INK }}>Meja</h2>
-            <p className="mt-0.5 text-xs" style={{ color: MUTED }}>Pilih meja</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: MUTED }}>Pilih Meja</p>
+            <h2 className="font-serif text-lg font-bold tracking-tight pb-2" style={{ color: PRIMARY }}>Meja</h2>
+            <hr className='pb-2'/>
             {allFloors.length > 0 && (
                 <FloorTabs
                     floors={allFloors}
