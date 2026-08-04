@@ -124,7 +124,7 @@ class OwnerDashboardController extends Controller
             ->get()
             ->map(fn ($o) => [
                 'id' => $o->id,
-                'table_code' => $o->tableSession?->table?->table_number ?? '-',
+                'table_code' => $o->tableSession?->table?->code ?? '-',
                 'status' => $o->status,
                 'items_count' => $o->items()->count(),
                 'created_at' => $o->created_at->format('H:i'),
