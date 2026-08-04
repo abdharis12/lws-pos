@@ -7,6 +7,8 @@ import {
     CreditCard,
     ChevronLeft,
     ChevronRight,
+    CheckCircle,
+    QrCode,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -116,19 +118,11 @@ export default function Reconciliation({
     endDate,
 }: Props) {
     return (
-        <div className="min-h-screen bg-[#F6F2E9] p-6 font-sans text-slate-800">
+        <div className="min-h-screen bg-[#FAF8F4] p-6 font-sans text-slate-800">
             <Head title="Rekonsiliasi Pembayaran" />
 
             <div className="mb-8 flex flex-col justify-between gap-4 border-b border-[#CFC0A4]/40 pb-6 sm:flex-row sm:items-end">
                 <div className="flex items-center gap-4">
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => router.get('/admin/reports')}
-                        className="text-[#4F6B6A] hover:bg-[#CFC0A4]/10"
-                    >
-                        <ArrowLeft className="size-5" />
-                    </Button>
                     <div>
                         <div className="flex items-center gap-2 text-xs font-semibold tracking-[0.2em] text-[#CFC0A4] uppercase">
                             <CreditCard className="size-3.5 text-[#4F6B6A]" />
@@ -145,15 +139,21 @@ export default function Reconciliation({
             </div>
 
             <div className="mb-6 grid gap-4 md:grid-cols-3">
-                <Card className="border-[#CFC0A4]/40 bg-white shadow-sm backdrop-blur-sm">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-slate-500">
+                <Card className="group relative overflow-hidden border-[#CFC0A4]/40 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#4F6B6A]/10">
+                    <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#4F6B6A] to-[#CFC0A4]" />
+                    <CardHeader className="flex flex-row items-start justify-between pt-5">
+                        <CardTitle className="text-[15px] font-semibold tracking-[0.12em] text-[#4F6B6A]/70 uppercase">
                             Sukses
                         </CardTitle>
-                        <CheckCircle2 className="size-4 text-[#4F6B6A]" />
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
+                            <CheckCircle
+                                className="h-4.5 w-4.5 text-primary"
+                                strokeWidth={2}
+                            />
+                        </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="font-serif text-2xl font-bold text-slate-800">
+                        <div className="font-serif text-2xl font-bold text-primary mt-5">
                             Rp{' '}
                             {Math.ceil(summary.total_system).toLocaleString(
                                 'id-ID',
@@ -161,15 +161,22 @@ export default function Reconciliation({
                         </div>
                     </CardContent>
                 </Card>
-                <Card className="border-[#CFC0A4]/40 bg-white shadow-sm backdrop-blur-sm">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-slate-500">
+
+                <Card className="group relative overflow-hidden border-[#CFC0A4]/40 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#4F6B6A]/10">
+                    <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#4F6B6A] to-[#CFC0A4]" />
+                    <CardHeader className="flex flex-row items-start justify-between pt-5">
+                        <CardTitle className="text-[15px] font-semibold tracking-[0.12em] text-[#4F6B6A]/70 uppercase">
                             Pending
                         </CardTitle>
-                        <Clock className="size-4 text-[#CFC0A4]" />
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-500/10">
+                            <Clock
+                                className="h-4.5 w-4.5 text-amber-500"
+                                strokeWidth={2}
+                            />
+                        </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="font-serif text-2xl font-bold text-[#CFC0A4]">
+                        <div className="font-serif text-2xl font-bold text-amber-600 mt-5">
                             Rp{' '}
                             {Math.ceil(summary.total_pending).toLocaleString(
                                 'id-ID',
@@ -177,15 +184,22 @@ export default function Reconciliation({
                         </div>
                     </CardContent>
                 </Card>
-                <Card className="border-[#CFC0A4]/40 bg-white shadow-sm backdrop-blur-sm">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-slate-500">
+
+                <Card className="group relative overflow-hidden border-[#CFC0A4]/40 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#4F6B6A]/10">
+                    <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#4F6B6A] to-[#CFC0A4]" />
+                    <CardHeader className="flex flex-row items-start justify-between pt-5">
+                        <CardTitle className="text-[15px] font-semibold tracking-[0.12em] text-[#4F6B6A]/70 uppercase">
                             Gagal
                         </CardTitle>
-                        <XCircle className="size-4 text-red-600" />
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-red-600/10">
+                            <XCircle
+                                className="h-4.5 w-4.5 text-red-600"
+                                strokeWidth={2}
+                            />
+                        </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="font-serif text-2xl font-bold text-red-600">
+                        <div className="font-serif text-2xl font-bold text-red-600 mt-5">
                             Rp{' '}
                             {Math.ceil(summary.total_failed).toLocaleString(
                                 'id-ID',
@@ -197,37 +211,40 @@ export default function Reconciliation({
 
             <div className="mb-6 grid gap-4 md:grid-cols-3">
                 <Card className="border-[#CFC0A4]/40 bg-white shadow-sm backdrop-blur-sm">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-slate-500">
+                    <CardHeader className="pb-2 bg-secondary">
+                        <CardTitle className="flex items-center gap-2 text-sm font-medium text-primary">
+                            <QrCode className="size-4 text-primary" />
                             QRIS
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="font-serif text-xl font-bold text-slate-800">
+                        <div className="font-serif text-xl font-bold text-slate-800 mt-5">
                             {summary.qris_count} transaksi
                         </div>
                     </CardContent>
                 </Card>
                 <Card className="border-[#CFC0A4]/40 bg-white shadow-sm backdrop-blur-sm">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-slate-500">
+                    <CardHeader className="pb-2 bg-primary">
+                        <CardTitle className="flex items-center gap-2 text-sm font-medium text-secondary">
+                            <CheckCircle className="size-4 text-[#CFC0A4]" />
                             Tunai
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="font-serif text-xl font-bold text-slate-800">
+                        <div className="font-serif text-xl font-bold text-slate-800 mt-5">
                             {summary.cash_count} transaksi
                         </div>
                     </CardContent>
                 </Card>
                 <Card className="border-[#CFC0A4]/40 bg-white shadow-sm backdrop-blur-sm">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-slate-500">
+                    <CardHeader className="pb-2 bg-blue-800">
+                        <CardTitle className="flex items-center gap-2 text-sm font-medium text-secondary">
+                            <CreditCard className="size-4 text-secondary" />
                             Kartu Debit
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="font-serif text-xl font-bold text-slate-800">
+                        <div className="font-serif text-xl font-bold text-slate-800 mt-5">
                             {summary.debit_count} transaksi
                         </div>
                     </CardContent>

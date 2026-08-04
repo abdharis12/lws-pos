@@ -562,8 +562,7 @@ export default function SessionsIndex({
                         style={{ backgroundColor: '#fff' }}
                     >
                         <CardHeader
-                            className="border-b px-6 py-5"
-                            style={{ borderColor: BORDER }}
+                            className="border-b px-6 py-5 border-[#CFC0A4]/20"
                         >
                             <div className="flex items-center gap-2.5">
                                 <div

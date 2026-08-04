@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { BarChart3, Clock, DollarSign, Download } from 'lucide-react';
+import { BarChart3, Clock, Coins, DollarSign, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     Select,
@@ -302,142 +302,147 @@ export default function PayrollReport({
                     
                 </div>
 
-                <div className="mt-6 overflow-hidden rounded-lg border border-[#CFC0A4]/40 bg-white shadow-sm backdrop-blur-sm">
-                    <div className="border-b border-[#CFC0A4]/20 px-6 py-4">
-                        <h2 className="font-serif text-lg font-medium text-[#4F6B6A]">
-                            Rincian Payroll — {period}
-                        </h2>
-                    </div>
-                    <div className="p-0">
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="border-b border-[#CFC0A4]/20 bg-[#4F6B6A]/5 text-left text-xs tracking-wider text-[#4F6B6A] uppercase">
-                                    <th className="px-6 py-3.5 font-semibold">
-                                        Karyawan
-                                    </th>
-                                    <th className="px-6 py-3.5 font-semibold">
-                                        Gaji Pokok
-                                    </th>
-                                    <th className="px-6 py-3.5 font-semibold">
-                                        Tunjangan
-                                    </th>
-                                    <th className="px-6 py-3.5 font-semibold">
-                                        Bonus
-                                    </th>
-                                    <th className="px-6 py-3.5 font-semibold">
-                                        Lembur
-                                    </th>
-                                    <th className="px-6 py-3.5 font-semibold">
-                                        Potongan
-                                    </th>
-                                    <th className="px-6 py-3.5 font-semibold">
-                                        THP
-                                    </th>
-                                    <th className="px-6 py-3.5 font-semibold">
-                                        Status
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-[#CFC0A4]/15">
-                                {payslips.map((p) => (
-                                    <tr
-                                        key={p.id}
-                                        className="transition-colors hover:bg-[#CFC0A4]/5"
-                                    >
-                                        <td className="px-6 py-4 font-medium">
-                                            {p.employee.user.name}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            Rp{' '}
-                                            {Number(
-                                                p.base_salary,
-                                            ).toLocaleString('id-ID')}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            Rp{' '}
-                                            {Number(
-                                                p.allowances_total,
-                                            ).toLocaleString('id-ID')}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            Rp{' '}
-                                            {Number(
-                                                p.bonus_total,
-                                            ).toLocaleString('id-ID')}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            Rp{' '}
-                                            {Number(
-                                                p.overtime_total,
-                                            ).toLocaleString('id-ID')}
-                                        </td>
-                                        <td className="px-6 py-4 text-rose-700">
-                                            (Rp{' '}
-                                            {Number(
-                                                p.deduction_total,
-                                            ).toLocaleString('id-ID')}
-                                            )
-                                        </td>
-                                        <td className="px-6 py-4 font-semibold">
-                                            Rp{' '}
-                                            {Number(
-                                                p.take_home_pay,
-                                            ).toLocaleString('id-ID')}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span
-                                                className={
-                                                    statusClasses[p.status] ??
-                                                    ''
-                                                }
+                <div className="mt-8">
+                    <Card className="border-[#CFC0A4]/40 bg-white shadow-sm backdrop-blur-sm">
+                        <CardHeader className="border-b border-[#CFC0A4]/20">
+                            <CardTitle className="flex items-center gap-2 font-serif text-lg font-medium text-[#4F6B6A]">
+                                <Coins className="size-5 text-[#CFC0A4]" />
+                                Rincian Payroll Periode {period}
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <div className="p-0">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="border-b border-[#CFC0A4]/20 bg-[#4F6B6A]/5 text-left text-xs tracking-wider text-[#4F6B6A] uppercase">
+                                            <th className="px-6 py-3.5 font-semibold">
+                                                Karyawan
+                                            </th>
+                                            <th className="px-6 py-3.5 font-semibold">
+                                                Gaji Pokok
+                                            </th>
+                                            <th className="px-6 py-3.5 font-semibold">
+                                                Tunjangan
+                                            </th>
+                                            <th className="px-6 py-3.5 font-semibold">
+                                                Bonus
+                                            </th>
+                                            <th className="px-6 py-3.5 font-semibold">
+                                                Lembur
+                                            </th>
+                                            <th className="px-6 py-3.5 font-semibold">
+                                                Potongan
+                                            </th>
+                                            <th className="px-6 py-3.5 font-semibold">
+                                                THP
+                                            </th>
+                                            <th className="px-6 py-3.5 font-semibold">
+                                                Status
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-[#CFC0A4]/15">
+                                        {payslips.map((p) => (
+                                            <tr
+                                                key={p.id}
+                                                className="transition-colors hover:bg-[#CFC0A4]/5"
                                             >
-                                                {statusLabels[p.status] ??
-                                                    p.status}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                ))}
-                                {payslips.length === 0 && (
-                                    <tr>
-                                        <td
-                                            colSpan={8}
-                                            className="py-12 text-center text-sm text-slate-500 italic"
-                                        >
-                                            <div className="flex flex-col items-center px-6 py-12 text-center">
-                                                <div
-                                                    className="mb-4 flex size-16 items-center justify-center rounded-2xl"
-                                                    style={{
-                                                        backgroundColor:
-                                                            INK_LIGHT,
-                                                    }}
+                                                <td className="px-6 py-4 font-medium">
+                                                    {p.employee.user.name}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    Rp{' '}
+                                                    {Number(
+                                                        p.base_salary,
+                                                    ).toLocaleString('id-ID')}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    Rp{' '}
+                                                    {Number(
+                                                        p.allowances_total,
+                                                    ).toLocaleString('id-ID')}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    Rp{' '}
+                                                    {Number(
+                                                        p.bonus_total,
+                                                    ).toLocaleString('id-ID')}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    Rp{' '}
+                                                    {Number(
+                                                        p.overtime_total,
+                                                    ).toLocaleString('id-ID')}
+                                                </td>
+                                                <td className="px-6 py-4 text-rose-700">
+                                                    (Rp{' '}
+                                                    {Number(
+                                                        p.deduction_total,
+                                                    ).toLocaleString('id-ID')}
+                                                    )
+                                                </td>
+                                                <td className="px-6 py-4 font-semibold">
+                                                    Rp{' '}
+                                                    {Number(
+                                                        p.take_home_pay,
+                                                    ).toLocaleString('id-ID')}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <span
+                                                        className={
+                                                            statusClasses[p.status] ??
+                                                            ''
+                                                        }
+                                                    >
+                                                        {statusLabels[p.status] ??
+                                                            p.status}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {payslips.length === 0 && (
+                                            <tr>
+                                                <td
+                                                    colSpan={8}
+                                                    className="py-12 text-center text-sm text-slate-500 italic"
                                                 >
-                                                    <Clock
-                                                        className="size-8"
-                                                        style={{ color: INK }}
-                                                    />
-                                                </div>
-                                                <h2
-                                                    className="font-serif text-xl font-bold"
-                                                    style={{ color: INK }}
-                                                >
-                                                    Belum Ada Payroll
-                                                </h2>
-                                                <p
-                                                    className="mt-1 max-w-sm text-sm"
-                                                    style={{
-                                                        color: 'oklch(0.60 0.03 88.5)',
-                                                    }}
-                                                >
-                                                    Belum ada payroll yang
-                                                    ditambahkan.
-                                                </p>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
+                                                    <div className="flex flex-col items-center px-6 py-12 text-center">
+                                                        <div
+                                                            className="mb-4 flex size-16 items-center justify-center rounded-2xl"
+                                                            style={{
+                                                                backgroundColor:
+                                                                    INK_LIGHT,
+                                                            }}
+                                                        >
+                                                            <Clock
+                                                                className="size-8"
+                                                                style={{ color: INK }}
+                                                            />
+                                                        </div>
+                                                        <h2
+                                                            className="font-serif text-xl font-bold"
+                                                            style={{ color: INK }}
+                                                        >
+                                                            Belum Ada Payroll
+                                                        </h2>
+                                                        <p
+                                                            className="mt-1 max-w-sm text-sm"
+                                                            style={{
+                                                                color: 'oklch(0.60 0.03 88.5)',
+                                                            }}
+                                                        >
+                                                            Belum ada payroll yang
+                                                            ditambahkan.
+                                                        </p>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </CardContent>
+                    </Card>
                 </div>
             </div>
         </div>

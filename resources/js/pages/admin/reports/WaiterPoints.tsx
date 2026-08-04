@@ -3,6 +3,7 @@ import {
     Award,
     Calendar,
     Crown,
+    DollarSign,
     HandPlatter,
     Trophy,
     Users,
@@ -64,7 +65,7 @@ export default function WaiterPointsReport({
     }
 
     return (
-        <div className="min-h-screen bg-[#F6F2E9] p-6 font-sans text-slate-800">
+        <div className="min-h-screen bg-[#FAF8F4] p-6 font-sans text-slate-800">
             <Head title="Poin Waiter" />
 
             <div className="mx-auto max-w-7xl">
@@ -105,46 +106,75 @@ export default function WaiterPointsReport({
 
                 {/* Stats Cards */}
                 <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <Card className="border-[#CFC0A4]/40 bg-white shadow-sm backdrop-blur-sm">
+                    <Card className="group relative overflow-hidden border-[#CFC0A4]/40 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#4F6B6A]/10">
+                        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#4F6B6A] to-[#CFC0A4]" />
+                        <CardHeader className="flex flex-row items-start justify-between pt-5">
+                            <CardTitle className="text-[15px] font-semibold tracking-[0.12em] text-[#4F6B6A]/70 uppercase">
+                                Waiter Aktif
+                            </CardTitle>
+                            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4F6B6A]/10">
+                                <Users
+                                    className="h-4.5 w-4.5 text-[#4F6B6A]"
+                                    strokeWidth={2}
+                                />
+                            </div>
+                        </CardHeader>
                         <CardContent className="flex items-center gap-4 p-5">
                             <div className="flex size-11 items-center justify-center rounded-full bg-[#4F6B6A]/10">
                                 <Users className="size-5 text-[#4F6B6A]" />
                             </div>
                             <div>
-                                <p className="text-xs font-semibold tracking-wider text-slate-400 uppercase">
-                                    Waiter Aktif
-                                </p>
                                 <p className="font-serif text-2xl font-bold text-[#4F6B6A]">
-                                    {totalWaiters}
+                                    {totalWaiters} Orang
                                 </p>
                             </div>
                         </CardContent>
                     </Card>
-                    <Card className="border-[#CFC0A4]/40 bg-white shadow-sm backdrop-blur-sm">
+
+                    <Card className="group relative overflow-hidden border-[#CFC0A4]/40 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#4F6B6A]/10">
+                        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#4F6B6A] to-[#CFC0A4]" />
+                        <CardHeader className="flex flex-row items-start justify-between pt-5">
+                            <CardTitle className="text-[15px] font-semibold tracking-[0.12em] text-[#4F6B6A]/70 uppercase">
+                                Total Poin
+                            </CardTitle>
+                            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4F6B6A]/10">
+                                <Trophy
+                                    className="h-4.5 w-4.5 text-[#4F6B6A]"
+                                    strokeWidth={2}
+                                />
+                            </div>
+                        </CardHeader>
                         <CardContent className="flex items-center gap-4 p-5">
-                            <div className="flex size-11 items-center justify-center rounded-full bg-emerald-100">
-                                <Trophy className="size-5 text-emerald-600" />
+                            <div className="flex size-11 items-center justify-center rounded-full bg-pink-500/10">
+                                <Trophy className="size-5 text-pink-500" />
                             </div>
                             <div>
-                                <p className="text-xs font-semibold tracking-wider text-slate-400 uppercase">
-                                    Total Poin
-                                </p>
-                                <p className="font-serif text-2xl font-bold text-emerald-600">
-                                    {totalPoints}
+                                <p className="font-serif text-2xl font-bold text-pink-500">
+                                    {totalPoints} Poin
                                 </p>
                             </div>
                         </CardContent>
                     </Card>
-                    <Card className="border-[#CFC0A4]/40 bg-white shadow-sm backdrop-blur-sm sm:col-span-2 lg:col-span-2">
+
+                    <Card className="group relative overflow-hidden border-[#CFC0A4]/40 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#4F6B6A]/10">
+                        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#4F6B6A] to-[#CFC0A4]" />
+                        <CardHeader className="flex flex-row items-start justify-between pt-5">
+                            <CardTitle className="text-[15px] font-semibold tracking-[0.12em] text-[#4F6B6A]/70 uppercase">
+                                Waiter Terbaik
+                            </CardTitle>
+                            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4F6B6A]/10">
+                                <Crown
+                                    className="h-4.5 w-4.5 text-[#4F6B6A]"
+                                    strokeWidth={2}
+                                />
+                            </div>
+                        </CardHeader>
                         <CardContent className="flex items-center gap-4 p-5">
-                            <div className="flex size-11 items-center justify-center rounded-full bg-amber-100">
-                                <Crown className="size-5 text-amber-600" />
+                            <div className="flex size-11 items-center justify-center rounded-full bg-emerald-500/10">
+                                <Crown className="size-5 text-emerald-500" />
                             </div>
                             <div>
-                                <p className="text-xs font-semibold tracking-wider text-slate-400 uppercase">
-                                    Waiter Terbaik
-                                </p>
-                                <p className="font-serif text-xl font-bold text-amber-600">
+                                <p className="font-serif text-2xl font-bold text-emerald-500">
                                     {topWaiter}
                                 </p>
                             </div>
@@ -156,6 +186,7 @@ export default function WaiterPointsReport({
                 <Card className="border-[#CFC0A4]/40 bg-white shadow-sm backdrop-blur-sm">
                     <CardHeader className="border-b border-[#CFC0A4]/20">
                         <CardTitle className="font-serif text-lg font-medium text-[#4F6B6A]">
+                            <Trophy className="mr-2 inline size-4 text-secondary" />
                             Peringkat Poin Waiter — {monthLabel}
                         </CardTitle>
                     </CardHeader>

@@ -295,7 +295,8 @@ return;
                 {/* Add Shift Form */}
                 <Card className="border-[#CFC0A4]/40 bg-white shadow-sm backdrop-blur-sm">
                     <CardHeader className="border-b border-[#CFC0A4]/20">
-                        <CardTitle className="font-serif text-lg font-medium text-[#4F6B6A]">
+                        <CardTitle className="flex items-center gap-2 font-serif text-lg font-medium text-[#4F6B6A]">
+                            <Calendar className="size-4 text-[#4F6B6A]" />
                             Tambah Shift
                         </CardTitle>
                     </CardHeader>

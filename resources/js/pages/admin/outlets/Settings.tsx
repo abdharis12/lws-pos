@@ -1,5 +1,5 @@
 import { Head, useForm } from '@inertiajs/react';
-import { MapPin, Navigation, Save, Search } from 'lucide-react';
+import { FileText, MapPin, Navigation, Save, Search } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -340,7 +340,7 @@ return;
     }
 
     return (
-        <div className="min-h-screen bg-[#F6F2E9] p-6 font-sans text-slate-800">
+        <div className="min-h-screen bg-[#FAF8F4] p-6 font-sans text-slate-800">
             <Head title="Pengaturan Outlet" />
 
             <div className="mb-8 flex flex-col justify-between gap-4 border-b border-[#CFC0A4]/40 pb-6 sm:flex-row sm:items-end">
@@ -361,7 +361,8 @@ return;
             <div className="grid gap-6 lg:grid-cols-2">
                 <Card className="border-[#CFC0A4]/40 bg-white shadow-sm backdrop-blur-sm">
                     <CardHeader className="border-b border-[#CFC0A4]/20">
-                        <CardTitle className="font-serif text-lg font-medium text-[#4F6B6A]">
+                        <CardTitle className="flex items-center gap-2 font-serif text-lg font-medium text-[#4F6B6A]">
+                            <FileText className="size-4 text-secondary" />
                             Informasi Outlet
                         </CardTitle>
                     </CardHeader>
@@ -480,7 +481,8 @@ return;
 
                 <Card className="border-[#CFC0A4]/40 bg-white shadow-sm backdrop-blur-sm">
                     <CardHeader className="border-b border-[#CFC0A4]/20">
-                        <CardTitle className="font-serif text-lg font-medium text-[#4F6B6A]">
+                        <CardTitle className="flex items-center gap-2 font-serif text-lg font-medium text-[#4F6B6A]">
+                            <MapPin className="size-4 text-secondary" />
                             Peta Lokasi
                         </CardTitle>
                     </CardHeader>

@@ -24,7 +24,6 @@ export default function KitchenHeader({
         <div
             className="sticky top-0 z-20 -mx-4 -mt-4 mb-6 px-4 pt-4 pb-4"
             style={{
-                backgroundColor: 'rgba(35,52,51,0.92)',
                 backdropFilter: 'blur(16px)',
                 borderBottom: '1px solid rgb(177, 163, 125)',
             }}
@@ -40,7 +39,7 @@ export default function KitchenHeader({
                     <h1 className="text-xl font-bold text-white">
                         Kitchen Display
                     </h1>
-                    <p className="text-xs text-white/40">
+                    <p className="text-xs text-white/80">
                         Update terakhir{' '}
                         {now.toLocaleTimeString('id-ID', {
                             hour: '2-digit',
@@ -51,21 +50,20 @@ export default function KitchenHeader({
 
                 <div className="ml-auto flex items-center gap-3">
                     <span
-                        className="flex items-center gap-2 rounded-full px-3 py-1.5 text-xs"
-                        style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
+                        className="flex items-center gap-2 rounded-full px-3 py-1.5 text-xs bg-primary"
                     >
                         <span className="relative flex size-2">
                             <span className="absolute inline-flex size-2 animate-ping rounded-full bg-green-400 opacity-75" />
                             <span className="relative inline-flex size-2 rounded-full bg-green-500" />
                         </span>
-                        <span className="text-white/60">
+                        <span className="text-secondary">
                             {orderCount} pesanan
                         </span>
                     </span>
 
                     <button
                         onClick={onSoundToggle}
-                        className="flex size-8 items-center justify-center rounded-lg transition-all hover:bg-white/10"
+                        className="flex text-secondary size-8 items-center justify-center rounded-lg transition-all bg-primary hover:bg-primary/80 cursor-pointer"
                         title={
                             soundEnabled
                                 ? 'Nonaktifkan suara'

@@ -534,7 +534,7 @@ export default function TablesIndex({ tables, floors, filters }: Props) {
                             <Button onClick={openCreate}>
                                 <Plus className="size-4 text-[#CFC0A4]" />
                                 <span className="font-medium tracking-wide">
-                                    Tambah Meja
+                                    Meja
                                 </span>
                             </Button>
                         </DialogTrigger>

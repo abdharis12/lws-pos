@@ -8,6 +8,7 @@ import {
     Calendar,
     ChevronDown,
     ChevronRight,
+    CheckCheck,
 } from 'lucide-react';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -108,9 +109,11 @@ export default function AttendanceReport({
 
     const totalKaryawan = summary.length;
     const adaShift = summary.filter((e) => e.total_shift_days > 0).length;
+    const INK = 'oklch(0.48 0.032 195.5)';
+    const INK_LIGHT = 'oklch(0.48 0.032 195.5 / 0.08)';
 
     return (
-        <div className="min-h-screen bg-[#F6F2E9] p-6 font-sans text-slate-800">
+        <div className="min-h-screen bg-[#FAF8F4] p-6 font-sans text-slate-800">
             <Head title="Laporan Kehadiran" />
 
             <div className="mx-auto max-w-7xl">
@@ -153,14 +156,26 @@ export default function AttendanceReport({
 
                 {/* Stats Cards */}
                 <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <Card className="border-[#CFC0A4]/40 bg-white shadow-sm backdrop-blur-sm">
+                    <Card className="group relative overflow-hidden border-[#CFC0A4]/40 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#4F6B6A]/10">
+                    <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#4F6B6A] to-[#CFC0A4]" />
+                        <CardHeader className="flex flex-row items-start justify-between pt-5">
+                            <CardTitle className="text-[15px] font-semibold tracking-[0.12em] text-[#4F6B6A]/70 uppercase">
+                                Total Karyawan
+                            </CardTitle>
+                            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4F6B6A]/10">
+                                <CheckCircle
+                                    className="h-4.5 w-4.5 text-[#4F6B6A]"
+                                    strokeWidth={2}
+                                />
+                            </div>
+                        </CardHeader>
                         <CardContent className="flex items-center gap-4 p-5">
                             <div className="flex size-11 items-center justify-center rounded-full bg-[#4F6B6A]/10">
                                 <Users className="size-5 text-[#4F6B6A]" />
                             </div>
                             <div>
                                 <p className="text-xs font-semibold tracking-wider text-slate-400 uppercase">
-                                    Total Karyawan
+                                    Jumlah Keseluruhan
                                 </p>
                                 <p className="font-serif text-2xl font-bold text-[#4F6B6A]">
                                     {totalKaryawan}
@@ -171,14 +186,26 @@ export default function AttendanceReport({
                             </div>
                         </CardContent>
                     </Card>
-                    <Card className="border-[#CFC0A4]/40 bg-white shadow-sm backdrop-blur-sm">
+                    <Card className="group relative overflow-hidden border-[#CFC0A4]/40 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#4F6B6A]/10">
+                    <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#4F6B6A] to-[#CFC0A4]" />
+                        <CardHeader className="flex flex-row items-start justify-between pt-5">
+                            <CardTitle className="text-[15px] font-semibold tracking-[0.12em] text-[#4F6B6A]/70 uppercase">
+                                Total Hadir
+                            </CardTitle>
+                            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4F6B6A]/10">
+                                <CheckCircle
+                                    className="h-4.5 w-4.5 text-[#4F6B6A]"
+                                    strokeWidth={2}
+                                />
+                            </div>
+                        </CardHeader>
                         <CardContent className="flex items-center gap-4 p-5">
                             <div className="flex size-11 items-center justify-center rounded-full bg-emerald-100">
-                                <CheckCircle className="size-5 text-emerald-600" />
+                                <CheckCheck className="size-5 text-emerald-600" />
                             </div>
                             <div>
                                 <p className="text-xs font-semibold tracking-wider text-slate-400 uppercase">
-                                    Total Hadir
+                                    Karyawan yang Hadir
                                 </p>
                                 <p className="font-serif text-2xl font-bold text-emerald-600">
                                     {grandTotal.hadir}
@@ -186,14 +213,26 @@ export default function AttendanceReport({
                             </div>
                         </CardContent>
                     </Card>
-                    <Card className="border-[#CFC0A4]/40 bg-white shadow-sm backdrop-blur-sm">
+                    <Card className="group relative overflow-hidden border-[#CFC0A4]/40 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#4F6B6A]/10">
+                    <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#4F6B6A] to-[#CFC0A4]" />
+                        <CardHeader className="flex flex-row items-start justify-between pt-5">
+                            <CardTitle className="text-[15px] font-semibold tracking-[0.12em] text-[#4F6B6A]/70 uppercase">
+                                Total Terlambat
+                            </CardTitle>
+                            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4F6B6A]/10">
+                                <CheckCircle
+                                    className="h-4.5 w-4.5 text-[#4F6B6A]"
+                                    strokeWidth={2}
+                                />
+                            </div>
+                        </CardHeader>
                         <CardContent className="flex items-center gap-4 p-5">
                             <div className="flex size-11 items-center justify-center rounded-full bg-amber-100">
                                 <AlertTriangle className="size-5 text-amber-600" />
                             </div>
                             <div>
                                 <p className="text-xs font-semibold tracking-wider text-slate-400 uppercase">
-                                    Total Terlambat
+                                    Karyawan yang Terlambat
                                 </p>
                                 <p className="font-serif text-2xl font-bold text-amber-600">
                                     {grandTotal.terlambat}
@@ -201,14 +240,26 @@ export default function AttendanceReport({
                             </div>
                         </CardContent>
                     </Card>
-                    <Card className="border-[#CFC0A4]/40 bg-white shadow-sm backdrop-blur-sm">
+                    <Card className="group relative overflow-hidden border-[#CFC0A4]/40 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#4F6B6A]/10">
+                    <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#4F6B6A] to-[#CFC0A4]" />
+                        <CardHeader className="flex flex-row items-start justify-between pt-5">
+                            <CardTitle className="text-[15px] font-semibold tracking-[0.12em] text-[#4F6B6A]/70 uppercase">
+                                Total Alfa
+                            </CardTitle>
+                            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4F6B6A]/10">
+                                <CheckCircle
+                                    className="h-4.5 w-4.5 text-[#4F6B6A]"
+                                    strokeWidth={2}
+                                />
+                            </div>
+                        </CardHeader>
                         <CardContent className="flex items-center gap-4 p-5">
                             <div className="flex size-11 items-center justify-center rounded-full bg-red-100">
                                 <XCircle className="size-5 text-red-600" />
                             </div>
                             <div>
                                 <p className="text-xs font-semibold tracking-wider text-slate-400 uppercase">
-                                    Total Alfa
+                                    Karyawan yang Alfa
                                 </p>
                                 <p className="font-serif text-2xl font-bold text-red-600">
                                     {grandTotal.alfa}
@@ -221,15 +272,36 @@ export default function AttendanceReport({
                 {/* Detail Table */}
                 <Card className="border-[#CFC0A4]/40 bg-white shadow-sm backdrop-blur-sm">
                     <CardHeader className="border-b border-[#CFC0A4]/20">
-                        <CardTitle className="font-serif text-lg font-medium text-[#4F6B6A]">
+                        <CardTitle className="flex items-center gap-2 font-serif text-lg font-medium text-[#4F6B6A]">
+                            <Users className="size-5 text-[#CFC0A4]" />
                             Detail Kehadiran — {monthLabel}
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-0">
                         {summary.length === 0 ? (
-                            <p className="py-8 text-center text-sm text-slate-500 italic">
-                                Belum ada data kehadiran untuk periode ini.
-                            </p>
+                            <div className="flex flex-col items-center px-6 py-12 text-center">
+                                <div
+                                    className="mb-4 flex size-16 items-center justify-center rounded-2xl"
+                                    style={{ backgroundColor: INK_LIGHT }}
+                                >
+                                    <Users
+                                        className="size-8"
+                                        style={{ color: INK }}
+                                    />
+                                </div>
+                                <h3
+                                    className="font-serif text-xl font-bold"
+                                    style={{ color: INK }}
+                                >
+                                    Belum Ada Kehadiran
+                                </h3>
+                                <p
+                                    className="mt-1 max-w-sm text-sm"
+                                    style={{ color: 'oklch(0.60 0.03 88.5)' }}
+                                >
+                                    Belum ada karyawan yang melakukan absensi.
+                                </p>
+                            </div>
                         ) : (
                             <div className="overflow-x-auto">
                                 <table className="w-full text-sm">

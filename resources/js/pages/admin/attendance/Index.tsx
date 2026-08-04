@@ -10,6 +10,9 @@ import {
     Navigation,
     UserX,
     Users,
+    Clock1,
+    Clock7,
+    MapIcon,
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import InputError from '@/components/input-error';
@@ -719,7 +722,8 @@ export default function AttendanceIndex({
                             {/* Clock-In Card */}
                             <Card className="border-[#CFC0A4]/40 bg-white shadow-sm backdrop-blur-sm">
                                 <CardHeader className="border-b border-[#CFC0A4]/20">
-                                    <CardTitle className="font-serif text-lg font-medium text-[#4F6B6A]">
+                                    <CardTitle className="flex items-center gap-2 font-serif text-lg font-medium text-[#4F6B6A]">
+                                        <Clock1 className="size-5 text-[#CFC0A4]" />
                                         Clock-In
                                     </CardTitle>
                                 </CardHeader>
@@ -828,7 +832,8 @@ export default function AttendanceIndex({
                             {/* Today's Attendance */}
                             <Card className="border-[#CFC0A4]/40 bg-white shadow-sm backdrop-blur-sm">
                                 <CardHeader className="border-b border-[#CFC0A4]/20">
-                                    <CardTitle className="font-serif text-lg font-medium text-[#4F6B6A]">
+                                    <CardTitle className="flex items-center gap-2 font-serif text-lg font-medium text-[#4F6B6A]">
+                                        <Clock7 className="size-5 text-[#CFC0A4]" />
                                         Absensi Hari Ini
                                     </CardTitle>
                                 </CardHeader>
@@ -964,7 +969,8 @@ export default function AttendanceIndex({
                             <Card className="h-fit overflow-hidden border-[#CFC0A4]/40 bg-white shadow-sm backdrop-blur-sm">
                                 <CardHeader className="border-b border-[#CFC0A4]/20">
                                     <div className="flex items-center justify-between">
-                                        <CardTitle className="font-serif text-lg font-medium text-[#4F6B6A]">
+                                        <CardTitle className="flex items-center gap-2 font-serif text-lg font-medium text-[#4F6B6A]">
+                                            <MapIcon className="size-5 text-[#CFC0A4]" />
                                             Peta Geofence
                                         </CardTitle>
                                         <div className="flex items-center gap-4 text-xs">
@@ -1008,7 +1014,8 @@ export default function AttendanceIndex({
                         ) : (
                             <Card className="border-[#CFC0A4]/40 bg-white shadow-sm backdrop-blur-sm">
                                 <CardHeader className="border-b border-[#CFC0A4]/20">
-                                    <CardTitle className="font-serif text-lg font-medium text-[#4F6B6A]">
+                                    <CardTitle className="flex items-center gap-2 font-serif text-lg font-medium text-[#4F6B6A]">
+                                        <MapIcon className="size-5 text-[#CFC0A4]" />
                                         Peta Geofence
                                     </CardTitle>
                                 </CardHeader>

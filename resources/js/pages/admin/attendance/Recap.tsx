@@ -1,6 +1,6 @@
 import { Head } from '@inertiajs/react';
 import { useForm } from '@inertiajs/react';
-import { ClipboardList, Download, Filter } from 'lucide-react';
+import { Calendar, ClipboardList, Download, Filter, Users } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -93,6 +93,9 @@ export default function AttendanceRecap({
         return { value, label };
     });
 
+    const INK = 'oklch(0.48 0.032 195.5)';
+    const INK_LIGHT = 'oklch(0.48 0.032 195.5 / 0.08)';
+
     return (
         <>
             <Head title="Rekap Absensi" />
@@ -129,7 +132,7 @@ export default function AttendanceRecap({
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="flex flex-wrap items-end gap-4">
+                            <div className="flex flex-wrap items-end gap-4 mt-5">
                                 <div className="grid gap-2">
                                     <label className="text-xs font-semibold tracking-wider text-[#4F6B6A] uppercase">
                                         Bulan
@@ -193,7 +196,8 @@ export default function AttendanceRecap({
 
                     <Card className="border-[#CFC0A4]/40 bg-white shadow-sm backdrop-blur-sm">
                         <CardHeader className="border-b border-[#CFC0A4]/20">
-                            <CardTitle className="font-serif text-lg font-medium text-[#4F6B6A]">
+                            <CardTitle className="flex items-center gap-2 font-serif text-lg font-medium text-[#4F6B6A]">
+                                <Calendar className="size-4" />
                                 Ringkasan Bulanan
                             </CardTitle>
                         </CardHeader>
@@ -284,7 +288,8 @@ export default function AttendanceRecap({
                     <Card className="border-[#CFC0A4]/40 bg-white shadow-sm backdrop-blur-sm">
                         <CardHeader className="border-b border-[#CFC0A4]/20">
                             <div className="flex items-center justify-between">
-                                <CardTitle className="font-serif text-lg font-medium text-[#4F6B6A]">
+                                <CardTitle className="flex items-center gap-2 font-serif text-lg font-medium text-[#4F6B6A]">
+                                    <Calendar className="mr-2 size-4 text-[#4F6B6A]" />
                                     Kalender Absensi Bulanan
                                 </CardTitle>
                                 <div className="flex items-center gap-4 text-xs">
@@ -508,7 +513,8 @@ export default function AttendanceRecap({
 
                     <Card className="border-[#CFC0A4]/40 bg-white shadow-sm backdrop-blur-sm">
                         <CardHeader className="border-b border-[#CFC0A4]/20">
-                            <CardTitle className="font-serif text-lg font-medium text-[#4F6B6A]">
+                            <CardTitle className="flex items-center gap-2 font-serif text-lg font-medium text-[#4F6B6A]">
+                                <Calendar className="size-4" />
                                 Detail Absensi
                             </CardTitle>
                         </CardHeader>
@@ -605,7 +611,30 @@ export default function AttendanceRecap({
                                                     colSpan={5}
                                                     className="py-8 text-center text-sm text-slate-500 italic"
                                                 >
-                                                    Belum ada data absensi.
+                                                    <div className="flex flex-col items-center px-6 py-12 text-center">
+                                                        <div
+                                                            className="mb-4 flex size-16 items-center justify-center rounded-2xl"
+                                                            style={{ backgroundColor: INK_LIGHT }}
+                                                        >
+                                                            <Users
+                                                                className="size-8"
+                                                                style={{ color: INK }}
+                                                            />
+                                                        </div>
+                                                        <h3
+                                                            className="font-serif text-xl font-bold"
+                                                            style={{ color: INK }}
+                                                        >
+                                                            Belum Ada Kehadiran
+                                                        </h3>
+                                                        <p
+                                                            className="mt-1 max-w-sm text-sm"
+                                                            style={{ color: 'oklch(0.60 0.03 88.5)' }}
+                                                        >
+                                                            Belum ada karyawan yang melakukan absensi hari
+                                                            ini.
+                                                        </p>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         )}

@@ -1,6 +1,6 @@
 import { Head } from '@inertiajs/react';
 import { useForm } from '@inertiajs/react';
-import { Clock, Gift, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Clock, Coins, Gift, Pencil, Plus, Trash2, Users } from 'lucide-react';
 import { useState } from 'react';
 import { CurrencyInput } from '@/components/currency-input';
 import InputError from '@/components/input-error';
@@ -23,6 +23,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface EmployeeUser {
     id: number;
@@ -247,119 +248,124 @@ return;
                     </Dialog>
                 </div>
 
-                <div className="overflow-hidden rounded-lg border border-[#CFC0A4]/40 bg-white shadow-sm backdrop-blur-sm">
-                    <div className="border-b border-[#CFC0A4]/20 px-6 py-4">
-                        <h2 className="font-serif text-lg font-medium text-[#4F6B6A]">
-                            Riwayat Bonus
-                        </h2>
-                    </div>
-                    <div className="p-0">
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="border-b border-[#CFC0A4]/20 bg-[#4F6B6A]/5 text-left text-xs tracking-wider text-[#4F6B6A] uppercase">
-                                    <th className="px-6 py-3.5 font-semibold">
-                                        Karyawan
-                                    </th>
-                                    <th className="px-6 py-3.5 font-semibold">
-                                        Periode
-                                    </th>
-                                    <th className="px-6 py-3.5 font-semibold">
-                                        Jumlah
-                                    </th>
-                                    <th className="px-6 py-3.5 font-semibold">
-                                        Alasan
-                                    </th>
-                                    <th className="px-6 py-3.5 text-right font-semibold">
-                                        Aksi
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-[#CFC0A4]/15">
-                                {bonuses.map((b) => (
-                                    <tr
-                                        key={b.id}
-                                        className="transition-colors hover:bg-[#CFC0A4]/5"
-                                    >
-                                        <td className="px-6 py-4 font-medium">
-                                            {b.employee.user.name}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className="rounded-full border border-[#CFC0A4]/30 bg-[#4F6B6A]/10 px-2.5 py-0.5 text-xs font-medium text-[#4F6B6A]">
-                                                {b.period}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 font-semibold">
-                                            Rp{' '}
-                                            {Number(b.amount).toLocaleString(
-                                                'id-ID',
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-4 text-slate-500">
-                                            {b.reason}
-                                        </td>
-                                        <td className="flex justify-end gap-1 px-6 py-4">
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => openEdit(b)}
-                                                className="bg-[#4F6B6A] text-white transition-colors hover:bg-[#4F6B6A]/70 hover:text-white"
+                <div>
+                    <Card className="border-[#CFC0A4]/40 bg-white shadow-sm backdrop-blur-sm">
+                        <CardHeader className="border-b border-[#CFC0A4]/20">
+                            <CardTitle className="flex items-center gap-2 font-serif text-lg font-medium text-[#4F6B6A]">
+                                <Coins className="size-5 text-[#CFC0A4]" />
+                                Bonus Karyawan
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <div className="p-0">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="border-b border-[#CFC0A4]/20 bg-[#4F6B6A]/5 text-left text-xs tracking-wider text-[#4F6B6A] uppercase">
+                                            <th className="px-6 py-3.5 font-semibold">
+                                                Karyawan
+                                            </th>
+                                            <th className="px-6 py-3.5 font-semibold">
+                                                Periode
+                                            </th>
+                                            <th className="px-6 py-3.5 font-semibold">
+                                                Jumlah
+                                            </th>
+                                            <th className="px-6 py-3.5 font-semibold">
+                                                Alasan
+                                            </th>
+                                            <th className="px-6 py-3.5 text-right font-semibold">
+                                                Aksi
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-[#CFC0A4]/15">
+                                        {bonuses.map((b) => (
+                                            <tr
+                                                key={b.id}
+                                                className="transition-colors hover:bg-[#CFC0A4]/5"
                                             >
-                                                <Pencil className="size-4" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() =>
-                                                    handleDelete(b.id)
-                                                }
-                                                className="bg-rose-700 text-rose-50 hover:bg-rose-200 hover:text-rose-800"
-                                            >
-                                                <Trash2 className="size-4" />
-                                            </Button>
-                                        </td>
-                                    </tr>
-                                ))}
-                                {bonuses.length === 0 && (
-                                    <tr>
-                                        <td
-                                            colSpan={5}
-                                            className="py-12 text-center text-sm text-slate-500 italic"
-                                        >
-                                            <div className="flex flex-col items-center px-6 py-12 text-center">
-                                                <div
-                                                    className="mb-4 flex size-16 items-center justify-center rounded-2xl"
-                                                    style={{
-                                                        backgroundColor:
-                                                            INK_LIGHT,
-                                                    }}
+                                                <td className="px-6 py-4 font-medium">
+                                                    {b.employee.user.name}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <span className="rounded-full border border-[#CFC0A4]/30 bg-[#4F6B6A]/10 px-2.5 py-0.5 text-xs font-medium text-[#4F6B6A]">
+                                                        {b.period}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 font-semibold">
+                                                    Rp{' '}
+                                                    {Number(b.amount).toLocaleString(
+                                                        'id-ID',
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-4 text-slate-500">
+                                                    {b.reason}
+                                                </td>
+                                                <td className="flex justify-end gap-1 px-6 py-4">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => openEdit(b)}
+                                                        className="bg-[#4F6B6A] text-white transition-colors hover:bg-[#4F6B6A]/70 hover:text-white"
+                                                    >
+                                                        <Pencil className="size-4" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() =>
+                                                            handleDelete(b.id)
+                                                        }
+                                                        className="bg-rose-700 text-rose-50 hover:bg-rose-200 hover:text-rose-800"
+                                                    >
+                                                        <Trash2 className="size-4" />
+                                                    </Button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {bonuses.length === 0 && (
+                                            <tr>
+                                                <td
+                                                    colSpan={5}
+                                                    className="py-12 text-center text-sm text-slate-500 italic"
                                                 >
-                                                    <Clock
-                                                        className="size-8"
-                                                        style={{ color: INK }}
-                                                    />
-                                                </div>
-                                                <h2
-                                                    className="font-serif text-xl font-bold"
-                                                    style={{ color: INK }}
-                                                >
-                                                    Belum Ada Bonus
-                                                </h2>
-                                                <p
-                                                    className="mt-1 max-w-sm text-sm"
-                                                    style={{
-                                                        color: 'oklch(0.60 0.03 88.5)',
-                                                    }}
-                                                >
-                                                    Bonus karyawan belum
-                                                    ditambahkan.
-                                                </p>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
+                                                    <div className="flex flex-col items-center px-6 py-12 text-center">
+                                                        <div
+                                                            className="mb-4 flex size-16 items-center justify-center rounded-2xl"
+                                                            style={{
+                                                                backgroundColor:
+                                                                    INK_LIGHT,
+                                                            }}
+                                                        >
+                                                            <Clock
+                                                                className="size-8"
+                                                                style={{ color: INK }}
+                                                            />
+                                                        </div>
+                                                        <h2
+                                                            className="font-serif text-xl font-bold"
+                                                            style={{ color: INK }}
+                                                        >
+                                                            Belum Ada Bonus
+                                                        </h2>
+                                                        <p
+                                                            className="mt-1 max-w-sm text-sm"
+                                                            style={{
+                                                                color: 'oklch(0.60 0.03 88.5)',
+                                                            }}
+                                                        >
+                                                            Bonus karyawan belum
+                                                            ditambahkan.
+                                                        </p>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </CardContent>
+                    </Card>
                 </div>
 
                 {/* Delete Confirmation Dialog */}

@@ -4,6 +4,7 @@ import {
     Banknote,
     Check,
     Clock,
+    DollarSign,
     Download,
     Eye,
     FileText,
@@ -28,6 +29,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface EmployeeUser {
     id: number;
@@ -194,250 +196,296 @@ export default function Payslips({ payslips, period, periods }: Props) {
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-3">
-                    <div className="overflow-hidden rounded-lg border border-[#CFC0A4]/40 bg-white p-6 shadow-sm backdrop-blur-sm">
-                        <p className="text-xs font-semibold tracking-wider text-[#4F6B6A] uppercase">
-                            Total
-                        </p>
-                        <p className="mt-2 font-serif text-2xl font-bold text-[#4F6B6A]">
-                            {payslips.length} slip
-                        </p>
-                    </div>
-                    <div className="overflow-hidden rounded-lg border border-[#CFC0A4]/40 bg-white p-6 shadow-sm backdrop-blur-sm">
-                        <p className="text-xs font-semibold tracking-wider text-[#4F6B6A] uppercase">
-                            Disetujui
-                        </p>
-                        <p className="mt-2 font-serif text-2xl font-bold text-[#4F6B6A]">
-                            {
-                                payslips.filter((p) => p.status === 'approved')
-                                    .length
-                            }
-                        </p>
-                    </div>
-                    <div className="overflow-hidden rounded-lg border border-[#CFC0A4]/40 bg-white p-6 shadow-sm backdrop-blur-sm">
-                        <p className="text-xs font-semibold tracking-wider text-[#4F6B6A] uppercase">
-                            Dibayar
-                        </p>
-                        <p className="mt-2 font-serif text-2xl font-bold text-[#4F6B6A]">
-                            {payslips.filter((p) => p.status === 'paid').length}
-                        </p>
-                    </div>
+                    <Card className="group relative overflow-hidden border-[#CFC0A4]/40 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#4F6B6A]/10">
+                        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#4F6B6A] to-[#CFC0A4]" />
+                        <CardHeader className="flex flex-row items-start justify-between pt-5">
+                            <CardTitle className="text-[15px] font-semibold tracking-[0.12em] text-[#4F6B6A]/70 uppercase">
+                                Total Slip Gaji
+                            </CardTitle>
+                            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4F6B6A]/10">
+                                <DollarSign
+                                    className="h-4.5 w-4.5 text-[#4F6B6A]"
+                                    strokeWidth={2}
+                                />
+                            </div>
+                        </CardHeader>
+                        <CardContent className="mt-5">
+                            <p className="font-serif text-2xl font-bold tracking-tight text-[#4F6B6A]">
+                                {payslips.length} slip
+                            </p>
+                            <p className="mt-1.5 text-xs text-slate-500">
+                                Total slip gaji yang sudah dibuat untuk periode{' '}
+                                <span className="font-semibold text-[#4F6B6A]">
+                                    {period}
+                                </span>
+                            </p>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="group relative overflow-hidden border-[#CFC0A4]/40 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#4F6B6A]/10">
+                        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#4F6B6A] to-[#CFC0A4]" />
+                        <CardHeader className="flex flex-row items-start justify-between pt-5">
+                            <CardTitle className="text-[15px] font-semibold tracking-[0.12em] text-[#4F6B6A]/70 uppercase">
+                                Slip Gaji Disetujui
+                            </CardTitle>
+                            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4F6B6A]/10">
+                                <DollarSign
+                                    className="h-4.5 w-4.5 text-[#4F6B6A]"
+                                    strokeWidth={2}
+                                />
+                            </div>
+                        </CardHeader>
+                        <CardContent className="mt-5">
+                            <p className="font-serif text-2xl font-bold tracking-tight text-[#4F6B6A]">
+                                {
+                                    payslips.filter((p) => p.status === 'approved')
+                                        .length
+                                }
+                            </p>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="group relative overflow-hidden border-[#CFC0A4]/40 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#4F6B6A]/10">
+                        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#4F6B6A] to-[#CFC0A4]" />
+                        <CardHeader className="flex flex-row items-start justify-between pt-5">
+                            <CardTitle className="text-[15px] font-semibold tracking-[0.12em] text-[#4F6B6A]/70 uppercase">
+                                Slip Gaji Dibayar
+                            </CardTitle>
+                            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4F6B6A]/10">
+                                <DollarSign
+                                    className="h-4.5 w-4.5 text-[#4F6B6A]"
+                                    strokeWidth={2}
+                                />
+                            </div>
+                        </CardHeader>
+                        <CardContent className="mt-5">
+                            <p className="font-serif text-2xl font-bold tracking-tight text-[#4F6B6A]">
+                                {payslips.filter((p) => p.status === 'paid').length}
+                            </p>
+                        </CardContent>
+                    </Card>                    
                 </div>
 
-                <div className="mt-6 overflow-hidden rounded-lg border border-[#CFC0A4]/40 bg-white shadow-sm backdrop-blur-sm">
-                    <div className="border-b border-[#CFC0A4]/20 px-6 py-4">
-                        <h2 className="font-serif text-lg font-medium text-[#4F6B6A]">
-                            Slip Gaji — {period}
-                        </h2>
-                    </div>
-                    <div className="p-0">
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="border-b border-[#CFC0A4]/20 bg-[#4F6B6A]/5 text-left text-xs tracking-wider text-[#4F6B6A] uppercase">
-                                    <th className="px-6 py-3.5 font-semibold">
-                                        Karyawan
-                                    </th>
-                                    <th className="px-6 py-3.5 font-semibold">
-                                        Gaji Pokok
-                                    </th>
-                                    <th className="px-6 py-3.5 font-semibold">
-                                        Uang Makan
-                                    </th>
-                                    <th className="px-6 py-3.5 font-semibold">
-                                        Transport
-                                    </th>
-                                    <th className="px-6 py-3.5 font-semibold">
-                                        Bonus
-                                    </th>
-                                    <th className="px-6 py-3.5 font-semibold">
-                                        Potongan
-                                    </th>
-                                    <th className="px-6 py-3.5 font-semibold">
-                                        Take Home Pay
-                                    </th>
-                                    <th className="px-6 py-3.5 font-semibold">
-                                        Status
-                                    </th>
-                                    <th className="px-6 py-3.5 text-right font-semibold">
-                                        Aksi
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-[#CFC0A4]/15">
-                                {payslips.map((p) => (
-                                    <tr
-                                        key={p.id}
-                                        className="transition-colors hover:bg-[#CFC0A4]/5"
-                                    >
-                                        <td className="px-6 py-4">
-                                            <span className="font-medium">
-                                                {p.employee.user.name}
-                                            </span>
-                                            <p className="text-xs text-slate-500">
-                                                {p.employee.position}
-                                            </p>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            Rp{' '}
-                                            {Number(
-                                                p.base_salary,
-                                            ).toLocaleString('id-ID')}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            Rp{' '}
-                                            {Number(
-                                                p.meal_allowance,
-                                            ).toLocaleString('id-ID')}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            Rp{' '}
-                                            {Number(
-                                                p.transport_allowance,
-                                            ).toLocaleString('id-ID')}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            Rp{' '}
-                                            {Number(
-                                                p.bonus_total,
-                                            ).toLocaleString('id-ID')}
-                                        </td>
-                                        <td className="px-6 py-4 text-rose-700">
-                                            <span>
-                                                (Rp{' '}
-                                                {Number(
-                                                    p.deduction_total,
-                                                ).toLocaleString('id-ID')}
-                                                )
-                                            </span>
-                                            {p.employee.deductions?.length >
-                                                0 && (
-                                                <div className="mt-1 space-y-0.5 text-xs text-slate-500">
-                                                    {p.employee.deductions.map(
-                                                        (d) => (
-                                                            <div key={d.id}>
-                                                                {deductionLabels[
-                                                                    d.type
-                                                                ] ?? d.type}
-                                                                {d.notes
-                                                                    ? ` — ${d.notes}`
-                                                                    : ''}
-                                                                : Rp{' '}
-                                                                {Number(
-                                                                    d.amount,
-                                                                ).toLocaleString(
-                                                                    'id-ID',
-                                                                )}
-                                                            </div>
-                                                        ),
+                <div className='mt-5'>
+                    <Card className="border-[#CFC0A4]/40 bg-white shadow-sm backdrop-blur-sm">
+                        <CardHeader className="border-b border-[#CFC0A4]/20">
+                            <CardTitle className="flex items-center gap-2 font-serif text-lg font-medium text-[#4F6B6A]">
+                                <DollarSign className="size-5 text-[#CFC0A4]" />
+                                Slip Gaji Karyawan
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <div className="p-0">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="border-b border-[#CFC0A4]/20 bg-[#4F6B6A]/5 text-left text-xs tracking-wider text-[#4F6B6A] uppercase">
+                                            <th className="px-6 py-3.5 font-semibold">
+                                                Karyawan
+                                            </th>
+                                            <th className="px-6 py-3.5 font-semibold">
+                                                Gaji Pokok
+                                            </th>
+                                            <th className="px-6 py-3.5 font-semibold">
+                                                Uang Makan
+                                            </th>
+                                            <th className="px-6 py-3.5 font-semibold">
+                                                Transport
+                                            </th>
+                                            <th className="px-6 py-3.5 font-semibold">
+                                                Bonus
+                                            </th>
+                                            <th className="px-6 py-3.5 font-semibold">
+                                                Potongan
+                                            </th>
+                                            <th className="px-6 py-3.5 font-semibold">
+                                                Take Home Pay
+                                            </th>
+                                            <th className="px-6 py-3.5 font-semibold">
+                                                Status
+                                            </th>
+                                            <th className="px-6 py-3.5 text-right font-semibold">
+                                                Aksi
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-[#CFC0A4]/15">
+                                        {payslips.map((p) => (
+                                            <tr
+                                                key={p.id}
+                                                className="transition-colors hover:bg-[#CFC0A4]/5"
+                                            >
+                                                <td className="px-6 py-4">
+                                                    <span className="font-medium">
+                                                        {p.employee.user.name}
+                                                    </span>
+                                                    <p className="text-xs text-slate-500">
+                                                        {p.employee.position}
+                                                    </p>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    Rp{' '}
+                                                    {Number(
+                                                        p.base_salary,
+                                                    ).toLocaleString('id-ID')}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    Rp{' '}
+                                                    {Number(
+                                                        p.meal_allowance,
+                                                    ).toLocaleString('id-ID')}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    Rp{' '}
+                                                    {Number(
+                                                        p.transport_allowance,
+                                                    ).toLocaleString('id-ID')}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    Rp{' '}
+                                                    {Number(
+                                                        p.bonus_total,
+                                                    ).toLocaleString('id-ID')}
+                                                </td>
+                                                <td className="px-6 py-4 text-rose-700">
+                                                    <span>
+                                                        (Rp{' '}
+                                                        {Number(
+                                                            p.deduction_total,
+                                                        ).toLocaleString('id-ID')}
+                                                        )
+                                                    </span>
+                                                    {p.employee.deductions?.length >
+                                                        0 && (
+                                                        <div className="mt-1 space-y-0.5 text-xs text-slate-500">
+                                                            {p.employee.deductions.map(
+                                                                (d) => (
+                                                                    <div key={d.id}>
+                                                                        {deductionLabels[
+                                                                            d.type
+                                                                        ] ?? d.type}
+                                                                        {d.notes
+                                                                            ? ` — ${d.notes}`
+                                                                            : ''}
+                                                                        : Rp{' '}
+                                                                        {Number(
+                                                                            d.amount,
+                                                                        ).toLocaleString(
+                                                                            'id-ID',
+                                                                        )}
+                                                                    </div>
+                                                                ),
+                                                            )}
+                                                        </div>
                                                     )}
-                                                </div>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-4 font-semibold">
-                                            Rp{' '}
-                                            {Number(
-                                                p.take_home_pay,
-                                            ).toLocaleString('id-ID')}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span
-                                                className={
-                                                    statusClasses[p.status] ??
-                                                    ''
-                                                }
-                                            >
-                                                {statusLabels[p.status] ??
-                                                    p.status}
-                                            </span>
-                                        </td>
-                                        <td className="flex justify-end gap-1 px-6 py-4">
-                                            <a href={`/admin/payslips/${p.id}`}>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="bg-[#4F6B6A] text-white transition-colors hover:bg-[#4F6B6A]/70 hover:text-white"
+                                                </td>
+                                                <td className="px-6 py-4 font-semibold">
+                                                    Rp{' '}
+                                                    {Number(
+                                                        p.take_home_pay,
+                                                    ).toLocaleString('id-ID')}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <span
+                                                        className={
+                                                            statusClasses[p.status] ??
+                                                            ''
+                                                        }
+                                                    >
+                                                        {statusLabels[p.status] ??
+                                                            p.status}
+                                                    </span>
+                                                </td>
+                                                <td className="flex justify-end gap-1 px-6 py-4">
+                                                    <a href={`/admin/payslips/${p.id}`}>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="bg-[#4F6B6A] text-white transition-colors hover:bg-[#4F6B6A]/70 hover:text-white"
+                                                        >
+                                                            <Eye className="size-4" />
+                                                        </Button>
+                                                    </a>
+                                                    <a
+                                                        href={`/payslips/${p.id}/pdf`}
+                                                        target="_blank"
+                                                    >
+                                                        <Button
+                                                            variant="outline"
+                                                            size="icon"
+                                                        >
+                                                            <Download className="size-4" />
+                                                        </Button>
+                                                    </a>
+                                                    {p.status === 'draft' && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() =>
+                                                                approve(p.id)
+                                                            }
+                                                            className="bg-teal-700 text-white transition-colors hover:bg-teal-600 hover:text-white"
+                                                        >
+                                                            <Check className="size-4" />
+                                                        </Button>
+                                                    )}
+                                                    {p.status === 'approved' && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() =>
+                                                                openPayDialog(p)
+                                                            }
+                                                            className="border border-blue-700 bg-blue-700 text-white transition-colors hover:bg-blue-600 hover:text-white"
+                                                        >
+                                                            <HandCoins className="size-4" />
+                                                        </Button>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {payslips.length === 0 && (
+                                            <tr>
+                                                <td
+                                                    colSpan={9}
+                                                    className="py-12 text-center text-sm text-slate-500 italic"
                                                 >
-                                                    <Eye className="size-4" />
-                                                </Button>
-                                            </a>
-                                            <a
-                                                href={`/payslips/${p.id}/pdf`}
-                                                target="_blank"
-                                            >
-                                                <Button
-                                                    variant="outline"
-                                                    size="icon"
-                                                >
-                                                    <Download className="size-4" />
-                                                </Button>
-                                            </a>
-                                            {p.status === 'draft' && (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    onClick={() =>
-                                                        approve(p.id)
-                                                    }
-                                                    className="bg-teal-700 text-white transition-colors hover:bg-teal-600 hover:text-white"
-                                                >
-                                                    <Check className="size-4" />
-                                                </Button>
-                                            )}
-                                            {p.status === 'approved' && (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    onClick={() =>
-                                                        openPayDialog(p)
-                                                    }
-                                                    className="border border-blue-700 bg-blue-700 text-white transition-colors hover:bg-blue-600 hover:text-white"
-                                                >
-                                                    <HandCoins className="size-4" />
-                                                </Button>
-                                            )}
-                                        </td>
-                                    </tr>
-                                ))}
-                                {payslips.length === 0 && (
-                                    <tr>
-                                        <td
-                                            colSpan={9}
-                                            className="py-12 text-center text-sm text-slate-500 italic"
-                                        >
-                                            <div className="flex flex-col items-center px-6 py-12 text-center">
-                                                <div
-                                                    className="mb-4 flex size-16 items-center justify-center rounded-2xl"
-                                                    style={{
-                                                        backgroundColor:
-                                                            INK_LIGHT,
-                                                    }}
-                                                >
-                                                    <Clock
-                                                        className="size-8"
-                                                        style={{ color: INK }}
-                                                    />
-                                                </div>
-                                                <h2
-                                                    className="font-serif text-xl font-bold"
-                                                    style={{ color: INK }}
-                                                >
-                                                    Belum Ada Slip Gaji
-                                                </h2>
-                                                <p
-                                                    className="mt-1 max-w-sm text-sm"
-                                                    style={{
-                                                        color: 'oklch(0.60 0.03 88.5)',
-                                                    }}
-                                                >
-                                                    Belum ada slip gaji. Klik
-                                                    "Generate" untuk membuat.
-                                                </p>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
+                                                    <div className="flex flex-col items-center px-6 py-12 text-center">
+                                                        <div
+                                                            className="mb-4 flex size-16 items-center justify-center rounded-2xl"
+                                                            style={{
+                                                                backgroundColor:
+                                                                    INK_LIGHT,
+                                                            }}
+                                                        >
+                                                            <Clock
+                                                                className="size-8"
+                                                                style={{ color: INK }}
+                                                            />
+                                                        </div>
+                                                        <h2
+                                                            className="font-serif text-xl font-bold"
+                                                            style={{ color: INK }}
+                                                        >
+                                                            Belum Ada Slip Gaji
+                                                        </h2>
+                                                        <p
+                                                            className="mt-1 max-w-sm text-sm"
+                                                            style={{
+                                                                color: 'oklch(0.60 0.03 88.5)',
+                                                            }}
+                                                        >
+                                                            Belum ada slip gaji. Klik
+                                                            "Generate" untuk membuat.
+                                                        </p>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </CardContent>
+                    </Card>
                 </div>
 
                 <Dialog

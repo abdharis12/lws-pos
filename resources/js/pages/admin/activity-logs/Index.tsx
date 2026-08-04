@@ -1,5 +1,5 @@
 import { Head } from '@inertiajs/react';
-import { X, ScrollText } from 'lucide-react';
+import { X, ScrollText, Filter, LogsIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -161,192 +161,222 @@ export default function ActivityLogs({ logs, actions, filters }: Props) {
     const hasFilters = filters.action || filters.start_date || filters.end_date;
     const selectedAction = filters.action ?? '';
 
+    const INK = 'oklch(0.48 0.032 195.5)';
+    const INK_LIGHT = 'oklch(0.48 0.032 195.5 / 0.08)';
+
     return (
-        <div className="min-h-screen bg-[#F6F2E9] p-6 font-sans text-slate-800">
+        <div className="min-h-screen bg-[#FAF8F4] p-6 font-sans text-slate-800">
             <Head title="Log Aktivitas" />
 
-            {/* Header Section */}
-            <div className="mb-8 flex flex-col justify-between gap-4 border-b border-[#CFC0A4]/40 pb-6 sm:flex-row sm:items-end">
-                <div>
-                    <div className="flex items-center gap-2 text-xs font-semibold tracking-[0.2em] text-[#CFC0A4] uppercase">
-                        <ScrollText className="size-3.5 text-[#4F6B6A]" />
-                        <span>Riwayat Aktivitas</span>
+            <div className="mx-auto max-w-7xl">          
+                {/* Header Section */}
+                <div className="mb-8 flex flex-col justify-between gap-4 border-b border-[#CFC0A4]/40 pb-6 sm:flex-row sm:items-end">
+                    <div>
+                        <div className="flex items-center gap-2 text-xs font-semibold tracking-[0.2em] text-[#CFC0A4] uppercase">
+                            <ScrollText className="size-3.5 text-[#4F6B6A]" />
+                            <span>Riwayat Aktivitas</span>
+                        </div>
+                        <h1 className="mt-1 font-serif text-3xl font-bold tracking-tight text-[#4F6B6A]">
+                            Log Aktivitas
+                        </h1>
+                        <p className="mt-1 text-sm text-slate-500 italic">
+                            Pantau riwayat aksi kritikal yang terjadi dalam sistem.
+                        </p>
                     </div>
-                    <h1 className="mt-1 font-serif text-3xl font-bold tracking-tight text-[#4F6B6A]">
-                        Log Aktivitas
-                    </h1>
-                    <p className="mt-1 text-sm text-slate-500 italic">
-                        Pantau riwayat aksi kritikal yang terjadi dalam sistem.
-                    </p>
                 </div>
-            </div>
 
-            {/* Filter Controls */}
-            <Card className="mb-8 border-[#CFC0A4]/40 bg-white shadow-sm backdrop-blur-sm">
-                <CardHeader className="border-b border-[#CFC0A4]/20 pb-3">
-                    <div className="flex items-center justify-between">
-                        <CardTitle className="font-serif text-base font-medium text-[#4F6B6A]">
-                            Filter Pencarian
+                {/* Filter Controls */}
+                <Card className="mb-8 border-[#CFC0A4]/40 bg-white shadow-sm backdrop-blur-sm">
+                    <CardHeader className="border-b border-[#CFC0A4]/20 pb-3">
+                        <div className="flex items-center justify-between">
+                            <CardTitle className="flex items-center gap-2 font-serif text-base font-medium text-[#4F6B6A]">
+                                <Filter className="size-3.5 text-secondary" />
+                                Filter Pencarian
+                            </CardTitle>
+                            {hasFilters && (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={resetFilters}
+                                    className="h-8 text-xs text-slate-500 hover:text-[#4F6B6A]"
+                                >
+                                    <X className="mr-1 size-3" />
+                                    Reset
+                                </Button>
+                            )}
+                        </div>
+                    </CardHeader>
+                    <CardContent className="pt-4">
+                        <div className="flex flex-wrap items-end gap-4">
+                            <div className="grid gap-1.5">
+                                <Label className="text-xs font-semibold tracking-wider text-[#4F6B6A] uppercase">
+                                    Aksi
+                                </Label>
+                                <Select
+                                    value={selectedAction}
+                                    onValueChange={(v) =>
+                                        visit({ action: v, page: 1 })
+                                    }
+                                >
+                                    <SelectTrigger className="w-48 border-[#CFC0A4]/50 bg-white focus:ring-[#4F6B6A]">
+                                        <SelectValue placeholder="Semua aksi" />
+                                    </SelectTrigger>
+                                    <SelectContent className="border-[#CFC0A4]/40 bg-[#F6F2E9]">
+                                        <SelectItem value="">Semua aksi</SelectItem>
+                                        {actions.map((a) => (
+                                            <SelectItem key={a} value={a}>
+                                                {actionLabels[a] ?? a}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="grid gap-1.5">
+                                <Label className="text-xs font-semibold tracking-wider text-[#4F6B6A] uppercase">
+                                    Dari Tanggal
+                                </Label>
+                                <Input
+                                    type="date"
+                                    value={localStartDate}
+                                    onChange={(e) =>
+                                        setLocalStartDate(e.target.value)
+                                    }
+                                    className="w-40 border-[#CFC0A4]/50 bg-white focus-visible:border-[#4F6B6A] focus-visible:ring-[#4F6B6A]"
+                                />
+                            </div>
+
+                            <div className="grid gap-1.5">
+                                <Label className="text-xs font-semibold tracking-wider text-[#4F6B6A] uppercase">
+                                    Sampai Tanggal
+                                </Label>
+                                <Input
+                                    type="date"
+                                    value={localEndDate}
+                                    onChange={(e) =>
+                                        setLocalEndDate(e.target.value)
+                                    }
+                                    className="w-40 border-[#CFC0A4]/50 bg-white focus-visible:border-[#4F6B6A] focus-visible:ring-[#4F6B6A]"
+                                />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Table */}
+                <Card className="border-[#CFC0A4]/40 bg-white shadow-sm backdrop-blur-sm">
+                    <CardHeader className="border-b border-[#CFC0A4]/20 pb-3">
+                        <CardTitle className="flex items-center gap-2 font-serif text-base font-medium text-[#4F6B6A]">
+                            <ScrollText className="size-3.5 text-secondary" />
+                            Riwayat Aktivitas
+                            <span className="ml-2 text-sm font-normal text-slate-500">
+                                ({logs.total} entri)
+                            </span>
                         </CardTitle>
-                        {hasFilters && (
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={resetFilters}
-                                className="h-8 text-xs text-slate-500 hover:text-[#4F6B6A]"
-                            >
-                                <X className="mr-1 size-3" />
-                                Reset
-                            </Button>
-                        )}
-                    </div>
-                </CardHeader>
-                <CardContent className="pt-4">
-                    <div className="flex flex-wrap items-end gap-4">
-                        <div className="grid gap-1.5">
-                            <Label className="text-xs font-semibold tracking-wider text-[#4F6B6A] uppercase">
-                                Aksi
-                            </Label>
-                            <Select
-                                value={selectedAction}
-                                onValueChange={(v) =>
-                                    visit({ action: v, page: 1 })
-                                }
-                            >
-                                <SelectTrigger className="w-48 border-[#CFC0A4]/50 bg-white focus:ring-[#4F6B6A]">
-                                    <SelectValue placeholder="Semua aksi" />
-                                </SelectTrigger>
-                                <SelectContent className="border-[#CFC0A4]/40 bg-[#F6F2E9]">
-                                    <SelectItem value="">Semua aksi</SelectItem>
-                                    {actions.map((a) => (
-                                        <SelectItem key={a} value={a}>
-                                            {actionLabels[a] ?? a}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        <div className="grid gap-1.5">
-                            <Label className="text-xs font-semibold tracking-wider text-[#4F6B6A] uppercase">
-                                Dari Tanggal
-                            </Label>
-                            <Input
-                                type="date"
-                                value={localStartDate}
-                                onChange={(e) =>
-                                    setLocalStartDate(e.target.value)
-                                }
-                                className="w-40 border-[#CFC0A4]/50 bg-white focus-visible:border-[#4F6B6A] focus-visible:ring-[#4F6B6A]"
-                            />
-                        </div>
-
-                        <div className="grid gap-1.5">
-                            <Label className="text-xs font-semibold tracking-wider text-[#4F6B6A] uppercase">
-                                Sampai Tanggal
-                            </Label>
-                            <Input
-                                type="date"
-                                value={localEndDate}
-                                onChange={(e) =>
-                                    setLocalEndDate(e.target.value)
-                                }
-                                className="w-40 border-[#CFC0A4]/50 bg-white focus-visible:border-[#4F6B6A] focus-visible:ring-[#4F6B6A]"
-                            />
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-
-            {/* Table */}
-            <Card className="border-[#CFC0A4]/40 bg-white shadow-sm backdrop-blur-sm">
-                <CardHeader className="border-b border-[#CFC0A4]/20 pb-3">
-                    <CardTitle className="font-serif text-base font-medium text-[#4F6B6A]">
-                        Riwayat Aktivitas
-                        <span className="ml-2 text-sm font-normal text-slate-500">
-                            ({logs.total} entri)
-                        </span>
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="border-b border-[#CFC0A4]/20 bg-[#4F6B6A]/5 text-left text-xs tracking-wider text-[#4F6B6A] uppercase">
-                                    <th className="px-6 py-3.5 font-semibold">
-                                        Waktu
-                                    </th>
-                                    <th className="px-6 py-3.5 font-semibold">
-                                        User
-                                    </th>
-                                    <th className="px-6 py-3.5 font-semibold">
-                                        Aksi
-                                    </th>
-                                    <th className="px-6 py-3.5 font-semibold">
-                                        Deskripsi
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-[#CFC0A4]/15">
-                                {logs.data.map((log) => (
-                                    <tr
-                                        key={log.id}
-                                        className="transition-colors hover:bg-[#CFC0A4]/5"
-                                    >
-                                        <td className="px-6 py-4 text-xs whitespace-nowrap text-slate-500">
-                                            {new Date(
-                                                log.created_at,
-                                            ).toLocaleString('id-ID', {
-                                                year: 'numeric',
-                                                month: '2-digit',
-                                                day: '2-digit',
-                                                hour: '2-digit',
-                                                minute: '2-digit',
-                                            })}
-                                        </td>
-                                        <td className="px-6 py-4 text-sm font-medium text-slate-800">
-                                            {log.user?.name ?? (
-                                                <span className="text-slate-400 italic">
-                                                    Sistem
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <Badge
-                                                variant="secondary"
-                                                className="rounded-full border border-[#CFC0A4]/30 bg-[#4F6B6A]/10 px-2.5 py-0.5 text-xs font-medium whitespace-nowrap text-[#4F6B6A]"
-                                            >
-                                                {actionLabels[log.action] ??
-                                                    log.action}
-                                            </Badge>
-                                        </td>
-                                        <td className="max-w-xs truncate px-6 py-4 text-sm text-slate-500">
-                                            {log.description ?? '-'}
-                                        </td>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="border-b border-[#CFC0A4]/20 bg-[#4F6B6A]/5 text-left text-xs tracking-wider text-[#4F6B6A] uppercase">
+                                        <th className="px-6 py-3.5 font-semibold">
+                                            Waktu
+                                        </th>
+                                        <th className="px-6 py-3.5 font-semibold">
+                                            User
+                                        </th>
+                                        <th className="px-6 py-3.5 font-semibold">
+                                            Aksi
+                                        </th>
+                                        <th className="px-6 py-3.5 font-semibold">
+                                            Deskripsi
+                                        </th>
                                     </tr>
-                                ))}
-                                {logs.data.length === 0 && (
-                                    <tr>
-                                        <td
-                                            colSpan={4}
-                                            className="px-6 py-12 text-center text-sm text-slate-500"
+                                </thead>
+                                <tbody className="divide-y divide-[#CFC0A4]/15">
+                                    {logs.data.map((log) => (
+                                        <tr
+                                            key={log.id}
+                                            className="transition-colors hover:bg-[#CFC0A4]/5"
                                         >
-                                            {hasFilters
-                                                ? 'Tidak ada aktivitas yang cocok dengan filter.'
-                                                : 'Belum ada aktivitas.'}
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
+                                            <td className="px-6 py-4 text-xs whitespace-nowrap text-slate-500">
+                                                {new Date(
+                                                    log.created_at,
+                                                ).toLocaleString('id-ID', {
+                                                    year: 'numeric',
+                                                    month: '2-digit',
+                                                    day: '2-digit',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit',
+                                                })}
+                                            </td>
+                                            <td className="px-6 py-4 text-sm font-medium text-slate-800">
+                                                {log.user?.name ?? (
+                                                    <span className="text-slate-400 italic">
+                                                        Sistem
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <Badge
+                                                    variant="secondary"
+                                                    className="rounded-full border border-[#CFC0A4]/30 bg-[#4F6B6A]/10 px-2.5 py-0.5 text-xs font-medium whitespace-nowrap text-[#4F6B6A]"
+                                                >
+                                                    {actionLabels[log.action] ??
+                                                        log.action}
+                                                </Badge>
+                                            </td>
+                                            <td className="max-w-xs truncate px-6 py-4 text-sm text-slate-500">
+                                                {log.description ?? '-'}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {logs.data.length === 0 && (
+                                        <tr>
+                                            <td
+                                                colSpan={4}
+                                                className="px-6 py-12 text-center text-sm text-slate-500"
+                                            >
+                                                <div className="flex flex-col items-center px-6 py-12 text-center">
+                                                    <div
+                                                        className="mb-4 flex size-16 items-center justify-center rounded-2xl"
+                                                        style={{ backgroundColor: INK_LIGHT }}
+                                                    >
+                                                        <LogsIcon
+                                                            className="size-8"
+                                                            style={{ color: INK }}
+                                                        />
+                                                    </div>
+                                                    <h3
+                                                        className="font-serif text-xl font-bold"
+                                                        style={{ color: INK }}
+                                                    >
+                                                        Belum Ada Log
+                                                    </h3>
+                                                    <p
+                                                        className="mt-1 max-w-sm text-sm"
+                                                        style={{ color: 'oklch(0.60 0.03 88.5)' }}
+                                                    >
+                                                        {hasFilters
+                                                            ? 'Tidak ada aktivitas yang cocok dengan filter.'
+                                                            : 'Belum ada aktivitas.'
+                                                        }
+                                                    </p>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
 
-                    <Pagination
-                        meta={logs}
-                        onPerPageChange={handlePerPageChange}
-                    />
-                </CardContent>
-            </Card>
+                        <Pagination
+                            meta={logs}
+                            onPerPageChange={handlePerPageChange}
+                        />
+                    </CardContent>
+                </Card>
+            </div>
         </div>
     );
 }
