@@ -26,6 +26,7 @@ interface Props {
     selectedTableCodes?: string[];
     onOpenTablePicker?: () => void;
     customerName?: string;
+    onCustomerNameChange?: (value: string) => void;
     orderType?: 'dine_in' | 'takeaway';
     discountType: string | null;
     discountValue: number;
@@ -42,7 +43,7 @@ export default function CartPanel({
     items, processing, onUpdateQty, onRemove, onOrder, onConfirmPay,
     onSaveEdits, pendingOrderId, confirmPayProcessing, saveProcessing,
     tableSelected = true, selectedTableCodes = [], onOpenTablePicker,
-    customerName = '', orderType = 'dine_in',
+    customerName = '', onCustomerNameChange, orderType = 'dine_in',
     discountType, discountValue, discountApprovedBy,
     onDiscountChange, onOpenApproval, splitCount, onOpenSplitBill,
     onPrintReceipt, showPrintButton,
@@ -87,6 +88,22 @@ export default function CartPanel({
                     )}
                 </div>
             </div>
+
+            {isTakeaway && !isConfirmMode && (
+                <div className="px-4 pb-2">
+                    <label className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: MUTED }}>
+                        Nama Pelanggan
+                    </label>
+                    <Input
+                        type="text"
+                        value={customerName}
+                        onChange={e => onCustomerNameChange?.(e.target.value)}
+                        placeholder="Untuk pemanggilan saat pesanan siap..."
+                        className="h-9 rounded-lg text-sm"
+                        style={{ borderColor: BORDER, color: INK }}
+                    />
+                </div>
+            )}
 
             <div className="flex-1 space-y-2 overflow-y-auto p-4">
                 {items.length === 0 ? (

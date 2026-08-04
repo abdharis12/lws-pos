@@ -69,6 +69,53 @@ class PosController extends Controller
         ]);
     }
 
+    public function history(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', Order::class);
+
+        $orders = Order::whereIn('status', [OrderStatus::Paid, OrderStatus::Completed])
+            ->whereDate('created_at', today())
+            ->with(['items.menu', 'items.options.optionItem', 'payment', 'tableSession.table', 'createdBy'])
+            ->orderByDesc('created_at')
+            ->limit(100)
+            ->get();
+
+        return response()->json([
+            'orders' => $orders->map(fn (Order $order) => [
+                'id' => $order->id,
+                'order_type' => $order->order_type,
+                'status' => $order->status->value,
+                'subtotal' => (float) $order->subtotal,
+                'tax' => (float) $order->tax,
+                'service_charge' => (float) $order->service_charge,
+                'midtrans_charge' => (float) ($order->midtrans_charge ?? 0),
+                'rounding_amount' => (float) ($order->rounding_amount ?? 0),
+                'discount' => (float) $order->discount,
+                'discount_type' => $order->discount_type,
+                'discount_value' => $order->discount_value !== null ? (float) $order->discount_value : null,
+                'total' => (float) $order->total,
+                'customer_name' => $order->customer_name,
+                'created_at' => $order->created_at->toIso8601String(),
+                'created_by' => $order->createdBy ? ['id' => $order->createdBy->id, 'name' => $order->createdBy->name] : null,
+                'table_session' => $order->tableSession ? ['table' => ['code' => $order->tableSession->table?->code]] : null,
+                'grouped_tables' => $order->grouped_tables,
+                'payment' => $order->payment ? ['method' => $order->payment->method] : null,
+                'items' => $order->items->map(fn ($item) => [
+                    'id' => $item->id,
+                    'qty' => $item->qty,
+                    'base_price' => (float) $item->base_price,
+                    'total_price' => (float) $item->total_price,
+                    'notes' => $item->notes,
+                    'menu' => ['name' => $item->menu->name, 'price' => (float) $item->menu->price],
+                    'options' => $item->options->map(fn ($opt) => [
+                        'price_adjustment' => (float) $opt->price_adjustment,
+                        'option_item' => ['name' => $opt->optionItem->name, 'price_adjustment' => (float) $opt->optionItem->price_adjustment],
+                    ])->all(),
+                ])->all(),
+            ])->all(),
+        ]);
+    }
+
     public function store(StoreOrderRequest $request): RedirectResponse
     {
         $validated = $request->validated();

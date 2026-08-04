@@ -13,16 +13,12 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
+import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Pagination } from '@/components/ui/pagination';
+import { CATEGORY_ICONS, CATEGORY_ICON_NAMES, getCategoryIcon } from '@/lib/categoryIcons';
 import { cn } from '@/lib/utils';
-
-const ICON_OPTIONS = [
-    '🍽️', '🍜', '🍚', '🍛', '🍝', '🍕', '🥩', '🍗', '🍤', '🍟',
-    '🥗', '🥦', '🍞', '🥐', '🍰', '🍧', '🍨', '☕', '🧋', '🥤',
-    '🍹', '🍺', '🍵', '🍲', '🫕', '🌶️', '🧆', '🍢', '🥟', '🧊',
-];
 
 interface Category {
     id: number;
@@ -206,7 +202,7 @@ export default function MenuCategoriesIndex({ categories, filters }: Props) {
                                             onClick={() => setData('icon', '')}
                                             title="Hapus ikon"
                                             className={cn(
-                                                'flex size-10 items-center justify-center rounded-lg border text-lg transition-colors',
+                                                'flex size-10 items-center justify-center rounded-lg border transition-colors',
                                                 data.icon
                                                     ? 'border-[#CFC0A4]/60 bg-white hover:bg-[#CFC0A4]/10'
                                                     : 'border-[#4F6B6A] bg-[#4F6B6A]/10',
@@ -221,33 +217,48 @@ export default function MenuCategoriesIndex({ categories, filters }: Props) {
                                             )}
                                         </button>
                                         {data.icon && (
-                                            <span className="flex size-10 items-center justify-center rounded-lg border border-[#4F6B6A]/30 bg-white text-xl">
-                                                {data.icon}
+                                            <span
+                                                className="flex size-10 items-center justify-center rounded-lg border border-[#4F6B6A]/30 bg-white text-[#4F6B6A]"
+                                                title={data.icon}
+                                            >
+                                                {(() => {
+                                                    const LucideIcon = getCategoryIcon(data.icon);
+
+                                                    if (LucideIcon) {
+                                                        return <Icon iconNode={LucideIcon} className="size-5" />;
+                                                    }
+
+                                                    return <span className="text-xl leading-none">{data.icon}</span>;
+                                                })()}
                                             </span>
                                         )}
                                         <span className="text-xs text-slate-400">
-                                            Pilih ikon atau kosongkan untuk
-                                            huruf otomatis.
+                                            Pilih ikon atau kosongkan untuk huruf otomatis.
                                         </span>
                                     </div>
                                     <div className="grid grid-cols-6 gap-1.5 rounded-lg border border-[#CFC0A4]/40 bg-white p-2 sm:grid-cols-8">
-                                        {ICON_OPTIONS.map((icon) => (
-                                            <button
-                                                key={icon}
-                                                type="button"
-                                                onClick={() =>
-                                                    setData('icon', icon)
-                                                }
-                                                className={cn(
-                                                    'flex aspect-square items-center justify-center rounded-md text-lg transition-colors',
-                                                    data.icon === icon
-                                                        ? 'bg-[#4F6B6A]/15 ring-1 ring-[#4F6B6A]'
-                                                        : 'hover:bg-[#CFC0A4]/15',
-                                                )}
-                                            >
-                                                {icon}
-                                            </button>
-                                        ))}
+                                        {CATEGORY_ICON_NAMES.map((name) => {
+                                            const LucideIcon = CATEGORY_ICONS[name];
+
+                                            return (
+                                                <button
+                                                    key={name}
+                                                    type="button"
+                                                    onClick={() =>
+                                                        setData('icon', name)
+                                                    }
+                                                    title={name}
+                                                    className={cn(
+                                                        'flex aspect-square items-center justify-center rounded-md text-[#4F6B6A] transition-colors',
+                                                        data.icon === name
+                                                            ? 'bg-[#4F6B6A]/15 ring-1 ring-[#4F6B6A]'
+                                                            : 'hover:bg-[#CFC0A4]/15',
+                                                    )}
+                                                >
+                                                    <Icon iconNode={LucideIcon} className="size-5" />
+                                                </button>
+                                            );
+                                        })}
                                     </div>
                                     <InputError message={errors.icon} />
                                 </div>
@@ -340,9 +351,16 @@ export default function MenuCategoriesIndex({ categories, filters }: Props) {
                                         >
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
-                                                    <span className="flex size-9 items-center justify-center rounded-lg bg-[#4F6B6A]/10 text-lg">
-                                                        {cat.icon ||
-                                                            cat.name.charAt(0)}
+                                                    <span className="flex size-9 items-center justify-center rounded-lg bg-[#4F6B6A]/10 text-[#4F6B6A]">
+                                                        {(() => {
+                                                            const LucideIcon = getCategoryIcon(cat.icon);
+
+                                                            if (LucideIcon) {
+                                                                return <Icon iconNode={LucideIcon} className="size-5" />;
+                                                            }
+
+                                                            return <span className="text-lg">{cat.icon || cat.name.charAt(0)}</span>;
+                                                        })()}
                                                     </span>
                                                     <span className="font-serif text-base font-medium text-slate-800">
                                                         {cat.name}

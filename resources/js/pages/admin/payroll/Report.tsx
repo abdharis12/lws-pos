@@ -1,6 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import { BarChart3, Clock, Coins, DollarSign, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Select,
     SelectContent,
@@ -8,7 +9,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface EmployeeUser {
     id: number;

@@ -132,6 +132,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('owner/dashboard', [OwnerDashboardController::class, 'index'])->name('owner.dashboard')->middleware('can:viewOwnerDashboard');
 
     Route::get('pos', [PosController::class, 'index'])->name('pos.index');
+    Route::get('pos/history', [PosController::class, 'history'])->name('pos.history');
     Route::get('pos/tables', [PosController::class, 'tables'])->name('pos.tables');
     Route::post('pos/orders', [PosController::class, 'store'])->name('pos.orders.store');
     Route::put('pos/orders/{order}/confirm-pay', [PosController::class, 'confirmPay'])->name('pos.orders.confirm-pay');

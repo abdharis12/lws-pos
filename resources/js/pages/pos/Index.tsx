@@ -1,28 +1,35 @@
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
-import { LayoutGrid, Search, ShoppingCart, Trash2 } from 'lucide-react';
+import { History, LayoutGrid, Printer, Search, ShoppingBag, ShoppingCart, Trash2 } from 'lucide-react';
 import { useState, useMemo, useRef } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { getCategoryIcon } from '@/lib/categoryIcons';
 import { ceilTo500, roundingAmount as computeRoundingAmount } from '@/lib/currency';
+import {
+    printReceipt as printReceiptOrchestrator,
+    getPairedPrinterName,
+} from '@/lib/printers/printReceipt';
+import type { ReceiptData } from '@/lib/printers/types';
 import CartPanel from './components/CartPanel';
-import CustomerNameInput from './components/CustomerNameInput';
 import MenuCard from './components/MenuCard';
-import OrderTypeSelector from './components/OrderTypeSelector';
-import PendingOrdersList from './components/PendingOrdersList';
+import PendingOrdersInbox from './components/PendingOrdersInbox';
 import ApprovalDialog from './dialogs/ApprovalDialog';
 import CashPaymentDialog from './dialogs/CashPaymentDialog';
+import HistoryDialog from './dialogs/HistoryDialog';
 import ItemDialog from './dialogs/ItemDialog';
 import MidtransPaymentDialog from './dialogs/MidtransPaymentDialog';
 import PaymentDialog from './dialogs/PaymentDialog';
+import PrinterPairDialog from './dialogs/PrinterPairDialog';
 import SplitBillDialog from './dialogs/SplitBillDialog';
 import SuccessDialog from './dialogs/SuccessDialog';
 import TablePickerDialog from './dialogs/TablePickerDialog';
 import { posFetchJson } from './lib/api';
 import { orderTypeLabel } from './lib/format';
+import { buildReceiptDataFromOrder } from './lib/orderReceipt';
 import { calcSubtotal } from './lib/pricing';
-import { printReceipt } from './lib/receipt';
-import type { CartItem, MenuItem, PendingOrder, PosPageProps, PrintReceiptData } from './types';
+import { printViaOsDialog } from './lib/receipt';
+import type { CartItem, MenuItem, OrderData, PendingOrder, PosPageProps, PrintReceiptData } from './types';
 
 const INK = 'oklch(0.48 0.032 195.5)';
 const BORDER = 'oklch(0.80 0.038 88.5 / 0.35)';
@@ -66,6 +73,12 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder 
     const [successChange, setSuccessChange] = useState(0);
     const printFrameRef = useRef<HTMLIFrameElement>(null);
     const [tablePickerOpen, setTablePickerOpen] = useState(false);
+    const [historyOpen, setHistoryOpen] = useState(false);
+    const [printerDialogOpen, setPrinterDialogOpen] = useState(false);
+    const [printerPairedName, setPrinterPairedName] = useState<string | null>(() => getPairedPrinterName());
+    const [historyOrders, setHistoryOrders] = useState<OrderData[]>([]);
+    const [historyLoading, setHistoryLoading] = useState(false);
+    const [historyError, setHistoryError] = useState<string | null>(null);
     const [orderType, setOrderType] = useState<'dine_in' | 'takeaway'>('dine_in');
     const [customerName, setCustomerName] = useState('');
     const [editingProcessing, setEditingProcessing] = useState(false);
@@ -178,13 +191,13 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder 
         setTablePickerOpen(false);
     }
 
-    function buildReceiptData(amountGiven?: number): PrintReceiptData {
+    function buildReceiptData(amountGiven?: number, paymentMethod: 'cash' | 'online' = 'cash'): PrintReceiptData {
         const pendingOrder = pendingOrders.find(o => o.id === selectedPendingOrderId);
         const selectedCodes = tables.filter(t => selectedTableIds.includes(t.id)).map(t => t.code).join(', ');
         const cashAmount = amountGiven ?? undefined;
         const change = amountGiven ? amountGiven - total : undefined;
 
-        const localServiceCharge = Math.round(subtotal * 0.05);
+        const localServiceCharge = paymentMethod === 'online' ? Math.round(subtotal * 0.05) : 0;
         const localMidtransCharge = 0;
 
         return {
@@ -216,7 +229,7 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder 
         }
 
         if (paymentMethod === 'online') {
-            setPrintReceiptData(buildReceiptData());
+            setPrintReceiptData(buildReceiptData(undefined, 'online'));
             setMidtransDialogOpen(true);
 
             return;
@@ -241,7 +254,7 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder 
             order_type: orderType,
             customer_name: isDineIn ? null : customerName,
         });
-        setPrintReceiptData(buildReceiptData());
+        setPrintReceiptData(buildReceiptData(undefined, 'cash'));
         post('/pos/orders', {
             preserveScroll: true,
             onSuccess: () => {
@@ -271,7 +284,7 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder 
             order_type: orderType,
             customer_name: isDineIn ? null : customerName,
         });
-        setPrintReceiptData(buildReceiptData(amountGiven));
+        setPrintReceiptData(buildReceiptData(amountGiven, 'cash'));
         post('/pos/orders', {
             preserveScroll: true,
             onSuccess: () => {
@@ -383,7 +396,7 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder 
         setCashAmountGiven(amountGiven);
         setCashDialogOpen(false);
         setConfirmPayProcessing(true);
-        setPrintReceiptData(buildReceiptData(amountGiven));
+        setPrintReceiptData(buildReceiptData(amountGiven, 'cash'));
 
         router.put(`/pos/orders/${selectedPendingOrderId}/confirm-pay`, {
             items: cartItems.map(item => ({
@@ -421,7 +434,8 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder 
 
         const sub = num(calcSubtotal(items), 0);
         const tx = num(Math.round(sub * 0.10), 0);
-        const sc = num(data.serviceCharge, Math.round(sub * 0.05));
+        const fallbackServiceCharge = data.paymentMethod === 'online' ? Math.round(sub * 0.05) : 0;
+        const sc = num(data.serviceCharge, fallbackServiceCharge);
         const mc = num(data.midtransCharge, 0);
         const disc = dType && dVal
             ? (dType === 'percentage' ? Math.min(sub * (dVal / 100), sub) : Math.min(dVal, sub))
@@ -446,7 +460,7 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder 
             ? num(order.total, totalCalc)
             : num(data.total, totalCalc);
 
-        printReceipt(printFrameRef.current, {
+        const receiptData: ReceiptData = {
             orderNumber, createdAt: order?.created_at ?? new Date().toISOString(),
             kasir, orderType: ot, tableCode, customerName: customerNameVal,
             receiptItems: order
@@ -471,6 +485,12 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder 
             discountLabel: order?.discount_type === 'percentage' ? `${order.discount_value}%` : dType === 'percentage' ? `${dVal}%` : null,
             total: resolvedTotal,
             paymentMethod, cashAmount: data.cashAmount, change: data.change,
+        };
+
+        void printReceiptOrchestrator({
+            osPrinter: { printViaOsDialog },
+            iframeRef: printFrameRef.current,
+            data: receiptData,
         });
     }
 
@@ -483,10 +503,42 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder 
         }
     }
 
+    function openHistory() {
+        setHistoryOpen(true);
+        setHistoryLoading(true);
+        setHistoryError(null);
+
+        posFetchJson<{ orders: OrderData[] }>('/pos/history')
+            .then(({ ok, data }) => {
+                if (ok) {
+                    setHistoryOrders(data.orders ?? []);
+                } else {
+                    setHistoryError('Gagal memuat histori pesanan');
+                }
+            })
+            .catch(() => setHistoryError('Gagal memuat histori pesanan'))
+            .finally(() => setHistoryLoading(false));
+    }
+
+    function openPrinterDialog() {
+        setPrinterDialogOpen(true);
+        setPrinterPairedName(getPairedPrinterName());
+    }
+
+    function handleHistoryPrint(order: OrderData) {
+        const receiptData = buildReceiptDataFromOrder(order, { cashierOverride: cashierName });
+
+        void printReceiptOrchestrator({
+            osPrinter: { printViaOsDialog },
+            iframeRef: printFrameRef.current,
+            data: receiptData,
+        });
+    }
+
     function handleSaveEdits() {
         if (!selectedPendingOrderId || cartItems.length === 0) {
- return; 
-}
+            return;
+        }
 
         setEditingProcessing(true);
 
@@ -517,6 +569,7 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder 
         selectedTableCodes: tables.filter(t => selectedTableIds.includes(t.id)).map(t => t.code),
         onOpenTablePicker: () => setTablePickerOpen(true),
         customerName,
+        onCustomerNameChange: setCustomerName,
         orderType,
         onUpdateQty: (i: number, q: number) => setCartItems(prev => q < 1 ? prev : prev.map((item, idx) => idx === i ? { ...item, qty: q } : item)),
         onRemove: (i: number) => setCartItems(prev => prev.filter((_, idx) => idx !== i)),
@@ -536,46 +589,67 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder 
             <Head title="POS Kasir" />
             <div className="flex h-screen overflow-hidden" style={{ backgroundColor: CREAM }}>
 
-                <aside className="hidden w-80 flex-shrink-0 flex-col overflow-y-auto border-r p-4 lg:flex" style={{ borderColor: BORDER, backgroundColor: '#fff' }}>
-                    <div className="flex-1 space-y-4">
-                        <PendingOrdersList orders={pendingOrders} selectedId={selectedPendingOrderId} onSelect={handleSelectPendingOrder} onDelete={handleDeletePendingOrder} variant="sidebar" />
-                        <OrderTypeSelector orderType={orderType} onChange={handleOrderTypeChange} variant="sidebar" />
-                        {!isDineIn && <CustomerNameInput value={customerName} onChange={setCustomerName} variant="sidebar" />}
-                    </div>
-                </aside>
-
                 <div className="flex flex-1 flex-col overflow-hidden">
-                    <div className="border-b px-5 py-3" style={{ borderColor: BORDER, backgroundColor: '#fff' }}>
-                        <div className="flex items-center justify-between">
+                    <div className="border-b px-3 py-3 lg:px-5" style={{ borderColor: BORDER, backgroundColor: '#fff' }}>
+                        <div className="flex items-center justify-between gap-2">
                             <div>
                                 <p className="text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: MUTED }}>POS Kasir</p>
                                 <h2 className="font-serif text-lg font-bold tracking-tight" style={{ color: INK }}>Kasir</h2>
                             </div>
-                            <Link
-                                href="/pos/tables"
-                                className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-all hover:opacity-80"
-                                style={{ backgroundColor: 'oklch(0.48 0.032 195.5 / 0.06)', color: INK }}
-                            >
-                                <LayoutGrid className="size-4" /> Meja
-                            </Link>
+                            <div className="flex items-center gap-2">
+                                <Link
+                                    href="/pos/tables"
+                                    title="Meja"
+                                    className="flex items-center gap-2 rounded-xl px-2 py-2 text-sm font-medium transition-all hover:opacity-80 lg:px-3"
+                                    style={{ backgroundColor: 'oklch(0.48 0.032 195.5 / 0.06)', color: INK }}
+                                >
+                                    <LayoutGrid className="size-4" /> <span className="hidden lg:inline">Meja</span>
+                                </Link>
+                                <button
+                                    onClick={() => handleOrderTypeChange(isDineIn ? 'takeaway' : 'dine_in')}
+                                    title="Take Away"
+                                    className="flex items-center gap-2 rounded-xl px-2 py-2 text-sm font-medium transition-all hover:opacity-80 lg:px-3"
+                                    style={{
+                                        backgroundColor: isDineIn ? 'oklch(0.48 0.032 195.5 / 0.06)' : INK,
+                                        color: isDineIn ? INK : '#fff',
+                                    }}
+                                >
+                                    <ShoppingBag className="size-4" /> <span className="hidden lg:inline">Take Away</span>
+                                </button>
+                                <button
+                                    onClick={openHistory}
+                                    title="Histori"
+                                    className="flex items-center gap-2 rounded-xl px-2 py-2 text-sm font-medium transition-all hover:opacity-80 lg:px-3"
+                                    style={{ backgroundColor: 'oklch(0.48 0.032 195.5 / 0.06)', color: INK }}
+                                >
+                                    <History className="size-4" /> <span className="hidden lg:inline">Histori</span>
+                                </button>
+                                <button
+                                    onClick={openPrinterDialog}
+                                    title="Pair printer Bluetooth / USB"
+                                    className="flex items-center gap-2 rounded-xl px-2 py-2 text-sm font-medium transition-all hover:opacity-80 lg:px-3"
+                                    style={{
+                                        backgroundColor: printerPairedName ? INK : 'oklch(0.48 0.032 195.5 / 0.06)',
+                                        color: printerPairedName ? '#fff' : INK,
+                                    }}
+                                >
+                                    <Printer className="size-4" /> <span className="hidden lg:inline">Printer</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
-                    <div className="lg:hidden"><OrderTypeSelector orderType={orderType} onChange={handleOrderTypeChange} variant="mobile" /></div>
-                    {!isDineIn && <CustomerNameInput value={customerName} onChange={setCustomerName} variant="mobile" />}
-
-                    <PendingOrdersList orders={pendingOrders} selectedId={selectedPendingOrderId} onSelect={handleSelectPendingOrder} onDelete={handleDeletePendingOrder} variant="mobile" />
+                    <PendingOrdersInbox orders={pendingOrders} selectedId={selectedPendingOrderId} onSelect={handleSelectPendingOrder} onDelete={handleDeletePendingOrder} />
 
                     <div className="flex gap-2 overflow-x-auto px-5 pt-4 pb-2 scroll-smooth snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                         {categories.map(cat => (
                             <button
                                 key={cat.id}
                                 onClick={() => setSelectedCategoryId(cat.id)}
-                                className={`flex flex-shrink-0 snap-start flex-col items-center justify-center gap-1 rounded-xl px-3 py-2 text-center transition-all ${
-                                    selectedCategoryId === cat.id
+                                className={`flex flex-shrink-0 snap-start flex-col items-center justify-center gap-1 rounded-xl px-3 py-2 text-center transition-all ${selectedCategoryId === cat.id
                                         ? 'shadow-sm'
                                         : 'hover:opacity-80'
-                                }`}
+                                    }`}
                                 style={{
                                     minWidth: 64,
                                     backgroundColor: selectedCategoryId === cat.id ? INK : 'oklch(0.48 0.032 195.5 / 0.06)',
@@ -583,12 +657,20 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder 
                                 }}
                             >
                                 <span
-                                    className="flex size-7 items-center justify-center rounded-full text-xs font-semibold"
+                                    className="flex size-7 items-center justify-center rounded-full"
                                     style={{
                                         backgroundColor: selectedCategoryId === cat.id ? 'rgba(255,255,255,0.18)' : 'oklch(0.48 0.032 195.5 / 0.1)',
                                     }}
                                 >
-                                    {cat.icon || cat.name.charAt(0)}
+                                    {(() => {
+                                        const LucideIcon = getCategoryIcon(cat.icon);
+
+                                        if (LucideIcon) {
+                                            return <LucideIcon className="size-4" />;
+                                        }
+
+                                        return <span className="text-xs font-semibold">{cat.icon || cat.name.charAt(0)}</span>;
+                                    })()}
                                 </span>
                                 <span className="text-[11px] font-medium whitespace-nowrap">
                                     {cat.name}
@@ -673,10 +755,10 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder 
                 />
 
                 <Dialog open={deleteConfirmOrder !== null} onOpenChange={(v) => {
- if (!v) {
-setDeleteConfirmOrder(null);
-} 
-}}>
+                    if (!v) {
+                        setDeleteConfirmOrder(null);
+                    }
+                }}>
                     <DialogContent className="sm:max-w-xs border-0 shadow-lg shadow-slate-900/10" style={{ backgroundColor: '#fff' }}>
                         <div className="flex flex-col items-center py-4 text-center">
                             <div className="mb-4 flex size-16 items-center justify-center rounded-2xl" style={{ backgroundColor: '#fef2f2' }}>
@@ -691,8 +773,8 @@ setDeleteConfirmOrder(null);
                                     const order = deleteConfirmOrder; setDeleteConfirmOrder(null);
 
                                     if (order) {
-router.delete(`/pos/orders/${order.id}`, { preserveScroll: true });
-}
+                                        router.delete(`/pos/orders/${order.id}`, { preserveScroll: true });
+                                    }
                                 }}
                                     className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold text-white transition-all hover:opacity-90"
                                     style={{ backgroundColor: '#e11d48' }}>
@@ -709,6 +791,8 @@ router.delete(`/pos/orders/${order.id}`, { preserveScroll: true });
                 </Dialog>
 
                 <SuccessDialog open={successDialogOpen} onClose={handleSuccessClose} onPrint={handlePrintReceipt} type={successType} changeAmount={successChange} />
+                <HistoryDialog open={historyOpen} onOpenChange={setHistoryOpen} onPrint={handleHistoryPrint} loading={historyLoading} error={historyError} orders={historyOrders} />
+                <PrinterPairDialog open={printerDialogOpen} onOpenChange={setPrinterDialogOpen} onPairChange={setPrinterPairedName} />
             </div>
 
             <iframe ref={printFrameRef} style={{ position: 'absolute', width: 0, height: 0, border: 'none' }} title="print-frame" />

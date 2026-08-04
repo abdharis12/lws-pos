@@ -1,37 +1,12 @@
+import type { ReceiptData } from '@/lib/printers/types';
 import { formatPrice, formatDate, formatTime, paymentLabel } from './format';
 
-export interface ReceiptData {
-    orderNumber: string;
-    createdAt: string;
-    kasir: string;
-    orderType: string;
-    tableCode: string | null;
-    customerName: string | null;
-    receiptItems: {
-        name: string;
-        qty: number;
-        basePrice: number;
-        totalPrice: number;
-        options: { name: string; price: number; quantity: number }[];
-        notes: string | null;
-    }[];
-    subtotal: number;
-    tax: number;
-    serviceCharge: number;
-    midtransCharge: number;
-    discount: number;
-    roundingAmount?: number;
-    discountLabel: string | null;
-    total: number;
-    paymentMethod: string | null;
-    cashAmount?: number;
-    change?: number;
-}
+export type { ReceiptData };
 
-export function printReceipt(iframe: HTMLIFrameElement | null, data: ReceiptData): void {
+export function printViaOsDialog(iframe: HTMLIFrameElement | null, data: ReceiptData): void {
     if (!iframe?.contentWindow) {
 return;
-}
+ }
 
     const paymentLabelText = paymentLabel(data.paymentMethod);
     const tableInfo = data.tableCode ? `Meja ${data.tableCode}` : '—';

@@ -128,6 +128,7 @@ export default function MidtransPaymentDialog({
             if (!groups[method.category]) {
                 groups[method.category] = [];
             }
+
             groups[method.category].push(method);
         }
 
@@ -197,6 +198,7 @@ export default function MidtransPaymentDialog({
 
                 if (!ok) {
                     setError(data.message || `Gagal memproses ${method.name}`);
+
                     return;
                 }
 
@@ -288,6 +290,7 @@ export default function MidtransPaymentDialog({
             clearInterval(pollRef.current);
             pollRef.current = null;
         }
+
         setStep('select');
         setSelectedMethod(null);
         setError(null);
@@ -312,6 +315,7 @@ export default function MidtransPaymentDialog({
         if (!navigator.clipboard?.writeText) {
             return;
         }
+
         navigator.clipboard.writeText(text).then(() => {
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
@@ -329,12 +333,15 @@ export default function MidtransPaymentDialog({
         if (method.category === 'qris') {
             return QrCode;
         }
+
         if (method.category === 'ewallet') {
             return Smartphone;
         }
+
         if (method.category === 'cstore') {
             return Store;
         }
+
         return Building2;
     }
 

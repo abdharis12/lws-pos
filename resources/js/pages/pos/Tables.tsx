@@ -135,7 +135,7 @@ export default function PosTables({ tables, groupedTables }: MejaPageProps) {
                                         style={{ backgroundColor: '#fff', borderColor: BORDER }}
                                     >
                                         <div className="flex items-center justify-between gap-2">
-                                            <span className="flex size-11 items-center justify-center rounded-xl text-lg font-bold" style={{ backgroundColor: selectedBg, color: textColor }}>
+                                            <span className="flex size-16 items-center justify-center rounded-xl text-lg font-bold" style={{ backgroundColor: selectedBg, color: textColor }}>
                                                 {table.code}
                                             </span>
                                             <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ backgroundColor: `${PRIMARY}10`, color: PRIMARY }}>
@@ -157,7 +157,7 @@ export default function PosTables({ tables, groupedTables }: MejaPageProps) {
                                                     className="flex flex-1 items-center justify-center gap-1 rounded-lg py-1.5 text-xs font-medium transition-all hover:opacity-80"
                                                     style={{ backgroundColor: `${PRIMARY}10`, color: PRIMARY }}
                                                 >
-                                                    {table.status === 'available' ? <Lock className="size-3" /> : <Unlock className="size-3" />}
+                                                    {table.status === 'available' ? <Lock className="size-3 cursor-pointer" /> : <Unlock className="size-3 cursor-pointer" />}
                                                     {table.status === 'available' ? 'Kunci' : 'Buka'}
                                                 </button>
                                             )}
