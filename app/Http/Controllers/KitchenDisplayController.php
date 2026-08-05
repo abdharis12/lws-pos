@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Enums\OrderStatus;
-use App\Models\Menu;
 use App\Models\Order;
 use Illuminate\Database\Eloquent\Collection;
 use Inertia\Inertia;
@@ -11,15 +10,19 @@ use Inertia\Response;
 
 class KitchenDisplayController extends Controller
 {
+    private const GROUPS = [
+        ['name' => 'Main', 'isDrink' => false],
+        ['name' => 'Drink', 'isDrink' => true],
+    ];
+
     public function index(): Response
     {
         $orders = $this->kitchenOrders();
-        $stations = $this->stationNames();
         $activeOrders = $orders->whereIn('status', [OrderStatus::Paid, OrderStatus::Processing]);
         $readyOrders = $orders->where('status', OrderStatus::Ready)->values();
 
         return Inertia::render('kitchen/Index', [
-            'stations' => $this->groupByStation($activeOrders, $stations),
+            'stations' => $this->groupByType($activeOrders),
             'unassignedOrders' => $this->unassigned($activeOrders),
             'readyOrders' => $readyOrders,
         ]);
@@ -33,61 +36,75 @@ class KitchenDisplayController extends Controller
             ->get();
     }
 
-    protected function stationNames(): array
-    {
-        return Menu::whereNotNull('station')
-            ->distinct()
-            ->pluck('station')
-            ->sort()
-            ->values()
-            ->toArray();
-    }
-
-    protected function groupByStation(Collection $orders, array $stations): array
+    /**
+     * Bucket active orders into the 2 kitchen stations: Main (food) and Drink.
+     */
+    protected function groupByType(Collection $orders): array
     {
         $grouped = [];
 
-        foreach ($stations as $station) {
-            $filtered = $this->filterByStation($orders, $station);
+        foreach (self::GROUPS as $group) {
+            $filtered = $this->filterByGroup($orders, $group['isDrink']);
 
             if ($filtered->isNotEmpty()) {
-                $grouped[] = ['name' => $station, 'orders' => $filtered];
+                $grouped[] = ['name' => $group['name'], 'orders' => $filtered];
             }
         }
 
         return $grouped;
     }
 
-    protected function filterByStation(Collection $orders, string $station): Collection
+    protected function filterByGroup(Collection $orders, bool $isDrink): Collection
     {
-        return $orders
-            ->filter(fn (Order $order) => $order->items->contains(fn ($item) => $item->menu?->station === $station))
-            ->map(function (Order $order) use ($station) {
-                $this->setStationItems($order, $station);
+        $target = $isDrink ? 'drink' : 'main';
 
-                return $order;
+        return $orders
+            ->filter(fn (Order $order) => $order->items->contains(
+                fn ($item) => $this->stationOf($item) === $target
+            ))
+            ->map(function (Order $order) use ($target) {
+                $copy = clone $order;
+
+                $copy->setRelation('items', $copy->items->filter(
+                    fn ($item) => $this->stationOf($item) === $target
+                )->values());
+
+                return $copy;
             })
             ->values();
-    }
-
-    protected function setStationItems(Order $order, string $station): void
-    {
-        $keptItems = $order->items->filter(fn ($item) => $item->menu?->station === $station)->values();
-        $keptItems->each(fn ($i) => $i->setRelation('options', $i->options));
-        $order->setRelation('items', $keptItems);
     }
 
     protected function unassigned(Collection $orders): Collection
     {
         return $orders
-            ->filter(fn (Order $order) => $order->items->contains(fn ($item) => blank($item->menu?->station)))
+            ->filter(fn (Order $order) => $order->items->contains(
+                fn ($item) => $this->stationOf($item) === null
+            ))
             ->map(function (Order $order) {
-                $keptItems = $order->items->filter(fn ($item) => blank($item->menu?->station))->values();
-                $keptItems->each(fn ($i) => $i->setRelation('options', $i->options));
-                $order->setRelation('items', $keptItems);
+                $copy = clone $order;
 
-                return $order;
+                $copy->setRelation('items', $copy->items->filter(
+                    fn ($item) => $this->stationOf($item) === null
+                )->values());
+
+                return $copy;
             })
             ->values();
+    }
+
+    /**
+     * Classify an order item's menu station.
+     * Returns 'drink' for drinks, 'main' for food, or null if the menu
+     * has no station (those go to the unassigned bucket).
+     */
+    protected function stationOf(mixed $item): ?string
+    {
+        $station = $item->menu?->station;
+
+        if (blank($station)) {
+            return null;
+        }
+
+        return strtolower($station) === 'drink' ? 'drink' : 'main';
     }
 }

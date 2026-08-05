@@ -55,11 +55,12 @@ export interface PrintReceiptOptions {
     iframeRef: HTMLIFrameElement | null;
     data: ReceiptData;
     charsPerLine?: number;
+    openDrawer?: boolean;
 }
 
 export async function printReceipt(opts: PrintReceiptOptions): Promise<PrintResult> {
-    const { osPrinter, iframeRef, data, charsPerLine = 32 } = opts;
-    const bytes = encodeReceipt(data, charsPerLine);
+    const { osPrinter, iframeRef, data, charsPerLine = 48, openDrawer = false } = opts;
+    const bytes = encodeReceipt(data, charsPerLine, openDrawer);
     const info = getPairedDeviceInfo();
 
     if (info?.kind === 'bluetooth' && isWebBluetoothSupported()) {

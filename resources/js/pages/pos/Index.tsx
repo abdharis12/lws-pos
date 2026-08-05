@@ -491,6 +491,7 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder 
             osPrinter: { printViaOsDialog },
             iframeRef: printFrameRef.current,
             data: receiptData,
+            openDrawer: paymentMethod === 'cash',
         });
     }
 

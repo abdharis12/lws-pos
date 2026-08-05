@@ -7,7 +7,7 @@ import ReadyOrderCard from './components/ReadyOrderCard';
 import { printLabel } from './lib/printLabel';
 import type { LabelData } from './lib/printLabel';
 import { useKitchenOrders } from './lib/useKitchenOrders';
-import { filterNewOrderIds, optionDisplayName, playBeep } from './lib/utils';
+import { filterNewOrderIds, optionDisplayName, playBeep, stationIcon } from './lib/utils';
 import type { StationGroup, KitchenOrder } from './types';
 
 interface Props {
@@ -147,7 +147,7 @@ export default function KitchenIndex({
                 ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
             `}</style>
 
-            <div className="mx-auto max-w-7xl p-4 px-4">
+            <div className="mx-auto p-4 px-4">
                 <KitchenHeader
                     orderCount={allOrders.length}
                     soundEnabled={soundEnabled}
@@ -184,18 +184,56 @@ export default function KitchenIndex({
                         </p>
                     </div>
                 ) : (
-                    <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                        {allFlat.map((order) => (
-                            <OrderCard
-                                key={order.id}
-                                order={order}
-                                isNew={newIds.has(order.id)}
-                                stationName={order._stationName}
-                                onPrint={() =>
-                                    printOrderLabel(order, order._stationName)
-                                }
-                            />
+                    <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-2">
+                        {stations.map((group) => (
+                            <section key={group.name} className="min-w-0">
+                                <div className="mb-3 flex items-center gap-2 border-b border-secondary/70 pb-2">
+                                    <span className="text-lg leading-none">{stationIcon(group.name)}</span>
+                                    <h2 className="text-sm font-semibold tracking-widest text-white/90 uppercase">
+                                        {group.name}
+                                    </h2>
+                                    <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs font-bold text-white/70">
+                                        {group.orders.length}
+                                    </span>
+                                </div>
+                                <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+                                    {group.orders.map((order) => (
+                                        <OrderCard
+                                            key={order.id}
+                                            order={order}
+                                            isNew={newIds.has(order.id)}
+                                            stationName={group.name}
+                                            onPrint={() => printOrderLabel(order, group.name)}
+                                        />
+                                    ))}
+                                </div>
+                            </section>
                         ))}
+
+                        {unassignedOrders.length > 0 && (
+                            <section className="min-w-0">
+                                <div className="mb-3 flex items-center gap-2 border-b border-white/10 pb-2">
+                                    <span className="text-lg leading-none">{stationIcon('lainnya')}</span>
+                                    <h2 className="text-sm font-semibold tracking-widest text-white/90 uppercase">
+                                        Unassigned
+                                    </h2>
+                                    <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs font-bold text-white/70">
+                                        {unassignedOrders.length}
+                                    </span>
+                                </div>
+                                <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+                                    {unassignedOrders.map((order) => (
+                                        <OrderCard
+                                            key={order.id}
+                                            order={order}
+                                            isNew={newIds.has(order.id)}
+                                            stationName=""
+                                            onPrint={() => printOrderLabel(order)}
+                                        />
+                                    ))}
+                                </div>
+                            </section>
+                        )}
                     </div>
                 )}
             </div>

@@ -60,13 +60,14 @@ export function getStatusConfig(status: string): StatusConfig {
 export function stationIcon(name: string): string {
     const map: Record<string, string> = {
         main: '🍽️',
+        drink: '🥤',
+        minuman: '🥤',
         grill: '🔥',
         fry: '🍳',
         steam: '♨️',
         cold: '🧊',
         dessert: '🍰',
         bakery: '🥖',
-        minuman: '🥤',
         lainnya: '📦',
     };
 

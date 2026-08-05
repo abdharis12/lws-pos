@@ -155,6 +155,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('kitchen', [KitchenDisplayController::class, 'index'])->name('kitchen.index');
     Route::patch('orders/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.update-status');
+    Route::patch('orders/{order}/items/status', [OrderController::class, 'updateItemsStatus'])->name('orders.items.update-status');
 
     Route::get('waiter/ready', [WaiterController::class, 'index'])
         ->middleware('can:accessWaiterDashboard')

@@ -2,7 +2,7 @@ import { router } from '@inertiajs/react';
 import { Check, CookingPot, MapPin, Play, Printer } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { getStatusConfig, optionDisplayName, stationIcon } from '../lib/utils';
+import { optionDisplayName, stationIcon } from '../lib/utils';
 import type { KitchenOrder } from '../types';
 
 interface Props {
@@ -20,15 +20,35 @@ export default function OrderCard({
 }: Props) {
     const [loading, setLoading] = useState(false);
     const [checkedItems, setCheckedItems] = useState<Set<number>>(new Set());
-    const statusCfg = getStatusConfig(order.status);
+
+    const itemStatuses = order.items.map(i => i.status ?? 'pending');
+    const allPending = order.items.length > 0 && itemStatuses.every(s => s === 'pending');
+    const allReady = order.items.length > 0 && itemStatuses.every(s => s === 'ready');
+    const inProgress = !allPending && !allReady;
+
+    const statusCfg = allReady
+        ? { label: 'Siap', color: '#22c55e', dotColor: '#22c55e' }
+        : inProgress
+            ? { label: 'Dimasak', color: '#3b82f6', dotColor: '#3b82f6' }
+            : { label: 'Menunggu', color: '#eab308', dotColor: '#eab308' };
 
     function handleAction(status: 'processing' | 'ready') {
+        if (order.items.length === 0) {
+            return;
+        }
+
         setLoading(true);
         router.patch(
-            `/orders/${order.id}/status`,
-            { status },
+            `/orders/${order.id}/items/status`,
+            {
+                item_ids: order.items.map(i => i.id),
+                status,
+            },
             {
                 preserveState: true,
+                onSuccess: () => {
+                    router.reload({ only: ['stations', 'unassignedOrders', 'readyOrders'] });
+                },
                 onFinish: () => setLoading(false),
             },
         );
@@ -94,19 +114,21 @@ export default function OrderCard({
                         </span>
                     </div>
                     <div className="flex items-center gap-2">
-                        <span
-                            className="flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium"
-                            style={{
-                                backgroundColor: `${statusCfg.color}18`,
-                                color: statusCfg.color,
-                            }}
-                        >
+                        <div className="flex items-center gap-2">
                             <span
-                                className="size-1.5 rounded-full"
-                                style={{ backgroundColor: statusCfg.dotColor }}
-                            />
-                            {statusCfg.label}
-                        </span>
+                                className="flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium"
+                                style={{
+                                    backgroundColor: `${statusCfg.color}18`,
+                                    color: statusCfg.color,
+                                }}
+                            >
+                                <span
+                                    className="size-1.5 rounded-full"
+                                    style={{ backgroundColor: statusCfg.dotColor }}
+                                />
+                                {statusCfg.label}
+                            </span>
+                        </div>
                         {onPrint && (
                             <button
                                 onClick={onPrint}
@@ -118,6 +140,7 @@ export default function OrderCard({
                         )}
                     </div>
                 </div>
+
                 {(floor || order.customer_name || showStation) && (
                     <div className="flex flex-wrap items-center gap-1.5 pb-3 pl-8">
                         {floor && (
@@ -256,7 +279,7 @@ export default function OrderCard({
                     </div>
 
                     <div className="flex gap-2">
-                        {order.status === 'paid' && (
+                        {allPending && (
                             <button
                                 onClick={() => handleAction('processing')}
                                 disabled={loading}
@@ -271,7 +294,7 @@ export default function OrderCard({
                                 Mulai Masak
                             </button>
                         )}
-                        {order.status === 'processing' && (
+                        {inProgress && (
                             <button
                                 onClick={() => handleAction('ready')}
                                 disabled={loading}
@@ -285,6 +308,12 @@ export default function OrderCard({
                                 )}
                                 Selesai
                             </button>
+                        )}
+                        {allReady && (
+                            <span className="flex items-center gap-1.5 rounded-lg bg-emerald-500/15 px-3.5 py-1.5 text-xs font-semibold text-emerald-300">
+                                <Check className="size-3.5" />
+                                Siap
+                            </span>
                         )}
                     </div>
                 </div>

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\OrderItemStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,6 +15,7 @@ class OrderItem extends Model
     protected $fillable = [
         'order_id', 'menu_id', 'qty',
         'base_price', 'total_price', 'notes',
+        'status',
     ];
 
     protected function casts(): array
@@ -21,6 +23,7 @@ class OrderItem extends Model
         return [
             'base_price' => 'decimal:2',
             'total_price' => 'decimal:2',
+            'status' => OrderItemStatus::class,
         ];
     }
 

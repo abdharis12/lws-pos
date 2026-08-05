@@ -51,14 +51,19 @@ export function useKitchenOrders(
             if (printEnabled) {
                 const stationsMap = new Map<string, LabelItem[]>();
 
-                for (const item of order.items) {
+for (const item of order.items) {
                     const station = item.menu.station || '';
+                    let group = '';
 
-                    if (!stationsMap.has(station)) {
-stationsMap.set(station, []);
-}
+                    if (station) {
+                        group = station.toLowerCase() === 'drink' ? 'Drink' : 'Main';
+                    }
 
-                    stationsMap.get(station)!.push({
+                    if (!stationsMap.has(group)) {
+                        stationsMap.set(group, []);
+                    }
+
+                    stationsMap.get(group)!.push({
                         name: item.menu.name,
                         qty: item.qty,
                         notes: item.notes,

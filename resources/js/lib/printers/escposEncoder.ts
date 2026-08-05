@@ -185,8 +185,19 @@ function emptyLineBytes(target: number[]): void {
     target.push(LF);
 }
 
-export function encodeReceipt(data: ReceiptData, charsPerLine = 32): Uint8Array {
+// Open cash drawer on pin 2 (most Epson-compatible printers): ESC p 0x00 0x19 0xFA
+const DRAWER_OPEN: number[] = [0x1b, 0x70, 0x00, 0x19, 0xfa];
+
+export function encodeReceipt(data: ReceiptData, charsPerLine = 48, openDrawer = false): Uint8Array {
     const out: number[] = [];
+
+    const itemNameMax = charsPerLine - 4;
+    const metaMax = charsPerLine - 8;
+    const optMax = Math.round(charsPerLine * 0.7);
+
+    if (openDrawer) {
+        append(out, ...DRAWER_OPEN);
+    }
 
     // Initialize
     append(out, ESC, 0x40);
@@ -211,19 +222,19 @@ export function encodeReceipt(data: ReceiptData, charsPerLine = 32): Uint8Array 
     twoColumn(
         out,
         'Meja',
-        data.tableCode ? `Meja ${truncate(data.tableCode, 24)}` : '—',
+        data.tableCode ? `Meja ${truncate(data.tableCode, metaMax)}` : '—',
         charsPerLine,
     );
 
     if (data.customerName) {
-        twoColumn(out, 'Pelanggan', truncate(data.customerName, 24), charsPerLine);
+        twoColumn(out, 'Pelanggan', truncate(data.customerName, metaMax), charsPerLine);
     }
 
     divider(out, charsPerLine);
 
     // Items
     for (const item of data.receiptItems) {
-        const name = truncate(item.name, 28);
+        const name = truncate(item.name, itemNameMax);
         const qty = item.qty;
         const basePrice = item.basePrice;
 
@@ -234,7 +245,7 @@ export function encodeReceipt(data: ReceiptData, charsPerLine = 32): Uint8Array 
         twoColumn(out, `   @${formatRupiah(basePrice)}`, formatRupiah(item.totalPrice), charsPerLine);
 
         for (const opt of item.options) {
-            const optName = truncate(opt.name, 22);
+            const optName = truncate(opt.name, optMax);
             const optQty = opt.quantity ?? 1;
             const optPrice = opt.price ?? 0;
 
@@ -249,7 +260,7 @@ export function encodeReceipt(data: ReceiptData, charsPerLine = 32): Uint8Array 
         }
 
         if (item.notes) {
-            lineBytes(out, `   Catatan: ${truncate(item.notes, 24)}`);
+            lineBytes(out, `   Catatan: ${truncate(item.notes, metaMax)}`);
         }
     }
 

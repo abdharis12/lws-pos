@@ -148,7 +148,6 @@ export default function MenusEdit({ menu, categories, optionGroups }: Props) {
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                className="border-[#CFC0A4]/40 text-slate-600 hover:bg-[#CFC0A4]/10"
                             >
                                 Batal
                             </Button>

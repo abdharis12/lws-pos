@@ -12,6 +12,7 @@ export interface KitchenOrderItem {
     qty: number;
     notes: string | null;
     options: KitchenOrderItemOption[];
+    status: 'pending' | 'processing' | 'ready' | string;
 }
 
 export interface KitchenOrder {
