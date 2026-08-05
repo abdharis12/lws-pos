@@ -99,21 +99,27 @@ export default function AttendanceIndex({
     const [distanceToOutlet, setDistanceToOutlet] = useState<number | null>(
         null,
     );
-    const [geoError, setGeoError] = useState<string | null>(() => {
-        if (typeof navigator === 'undefined') {
-            return null;
-        }
+    const [geoError, setGeoError] = useState<string | null>(null);
 
-        if (!navigator.geolocation) {
-            return 'Geolocation tidak didukung browser';
-        }
+    useEffect(() => {
+        const t = setTimeout(() => {
+            if (typeof navigator === 'undefined' || typeof location === 'undefined') {
+                return;
+            }
 
-        if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
-            return 'Akses via HTTPS diperlukan. Gunakan https://' + location.host;
-        }
+            if (!navigator.geolocation) {
+                setGeoError('Geolocation tidak didukung browser');
 
-        return null;
-    });
+                return;
+            }
+
+            if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+                setGeoError('Akses via HTTPS diperlukan. Gunakan https://' + location.host);
+            }
+        }, 0);
+
+        return () => clearTimeout(t);
+    }, []);
     const [geofenceAlert, setGeofenceAlert] = useState<{
         open: boolean;
         isClockIn: boolean;
@@ -136,6 +142,19 @@ export default function AttendanceIndex({
         processing: inProcessing,
         errors: inErrors,
         reset: resetIn,
+    } = useForm({
+        employee_id: '',
+        photo: null as File | null,
+        latitude: '',
+        longitude: '',
+    });
+
+    const {
+        data: outData,
+        setData: setOutData,
+        post: postOut,
+        processing: outProcessing,
+        reset: resetOut,
     } = useForm({
         employee_id: '',
         photo: null as File | null,
@@ -604,17 +623,17 @@ export default function AttendanceIndex({
         submitClockOut(employeeId, loc);
     }
 
-    const now = new Date();
-    const dateStr = now.toLocaleDateString('id-ID', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-    });
-    const timeStr = now.toLocaleTimeString('id-ID', {
-        hour: '2-digit',
-        minute: '2-digit',
-    });
+    const [now, setNow] = useState<Date | null>(null);
+
+    useEffect(() => {
+        const t = setTimeout(() => setNow(new Date()), 0);
+        const id = setInterval(() => setNow(new Date()), 30000);
+
+        return () => {
+            clearTimeout(t);
+            clearInterval(id);
+        };
+    }, []);
 
     return (
         <div className="min-h-screen bg-[#FAF8F4] p-6 font-sans text-slate-800">
@@ -631,7 +650,21 @@ export default function AttendanceIndex({
                             Absensi Karyawan
                         </h1>
                         <p className="mt-1 text-sm text-slate-500 italic">
-                            {dateStr} &mdash; {timeStr}
+                            {now && (
+                                <>
+                                    {now.toLocaleDateString('id-ID', {
+                                        weekday: 'long',
+                                        year: 'numeric',
+                                        month: 'long',
+                                        day: 'numeric',
+                                    })}
+                                    {' '}&mdash;{' '}
+                                    {now.toLocaleTimeString('id-ID', {
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                    })}
+                                </>
+                            )}
                         </p>
                     </div>
                 </div>

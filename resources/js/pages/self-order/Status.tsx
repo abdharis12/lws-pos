@@ -68,6 +68,7 @@ const stepIndex: Record<string, number> = {
 export default function OrderStatus({ table, tableToken, order }: Props) {
     const [currentOrder, setCurrentOrder] = useState(order);
     const [elapsed, setElapsed] = useState('0m');
+    const [cancelling, setCancelling] = useState(false);
 
     useEffect(() => {
         const update = () => {
@@ -148,6 +149,33 @@ export default function OrderStatus({ table, tableToken, order }: Props) {
 
     const current = stepIndex[currentOrder.status] ?? 0;
     const isCancelled = currentOrder.status === 'cancelled';
+    const canCancel = ['pending', 'pending_payment'].includes(currentOrder.status);
+
+    async function handleCancel() {
+        if (!window.confirm('Batalkan pesanan ini?')) {
+            return;
+        }
+
+        setCancelling(true);
+
+        try {
+            const res = await fetch(`/t/${tableToken}/orders/${currentOrder.id}/cancel`, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '',
+                },
+            });
+
+            if (res.ok) {
+                setCurrentOrder((prev) => ({ ...prev, status: 'cancelled' }));
+            }
+        } catch {
+            // silent
+        } finally {
+            setCancelling(false);
+        }
+    }
 
     return (
         <div className="min-h-screen bg-[#F6F2E9]">
@@ -354,6 +382,15 @@ export default function OrderStatus({ table, tableToken, order }: Props) {
             </div>
 
             <div className="mx-auto max-w-lg px-6 pb-12">
+                {canCancel && (
+                    <Button
+                        className="mb-3 h-12 w-full rounded-2xl border-2 border-red-500/30 bg-white text-sm font-semibold text-red-500 shadow-sm transition-all hover:bg-red-50 active:scale-[0.98] disabled:opacity-60"
+                        onClick={handleCancel}
+                        disabled={cancelling}
+                    >
+                        {cancelling ? 'Membatalkan...' : 'Batalkan Pesanan'}
+                    </Button>
+                )}
                 <Button
                     className="h-12 w-full rounded-2xl border-2 border-[#4F6B6A]/30 bg-[#4F6B6A] text-sm font-semibold text-white shadow-sm transition-all hover:bg-[#4F6B6A]/80 active:scale-[0.98]"
                     onClick={() => router.visit(`/t/${tableToken}`)}

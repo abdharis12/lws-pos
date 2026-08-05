@@ -315,6 +315,28 @@ class PosController extends Controller
         return redirect()->back();
     }
 
+    public function cancelPayment(Request $request, Order $order, MidtransService $midtrans): RedirectResponse
+    {
+        $this->authorize('update', $order);
+        abort_if(! in_array($order->status, [OrderStatus::Pending, OrderStatus::PendingPayment], true), 403);
+
+        $this->orderService->voidMidtransPayment($order, $midtrans);
+        $this->markOrderFailed($order);
+
+        $this->activityLog->log(
+            $request->user(),
+            'payment.cancelled',
+            'order',
+            $order->id,
+            "Pembayaran online Order #{$order->id} dibatalkan.",
+            ['method' => $order->payment?->method],
+        );
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Pembayaran berhasil dibatalkan.']);
+
+        return redirect()->back();
+    }
+
     // ── index helpers ───────────────────────────────────────────────────────
 
     protected function categories(?int $outletId): Collection
@@ -343,8 +365,7 @@ class PosController extends Controller
     protected function pendingOrders(): Collection
     {
         return Order::whereIn('status', [OrderStatus::Pending, OrderStatus::PendingPayment])
-            ->where('order_type', 'dine_in_qr')
-            ->with(['tableSession.table', 'items.menu', 'items.options.optionItem'])
+            ->with(['tableSession.table', 'items.menu', 'items.options.optionItem', 'payment'])
             ->orderByDesc('created_at')
             ->get();
     }

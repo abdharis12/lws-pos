@@ -58,7 +58,10 @@ export interface PendingOrder {
     subtotal: string;
     total: string;
     created_at: string;
+    status: string;
+    order_type: string;
     table_session: { table: { code: string } } | null;
+    payment: { method: string | null } | null;
     items: {
         id: number;
         qty: number;

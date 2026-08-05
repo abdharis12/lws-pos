@@ -96,6 +96,26 @@ class MidtransService
         return $response->json();
     }
 
+    /**
+     * Cancel/void an initiated but unsettled Midtrans transaction.
+     * Best-effort: returns the raw response (registration/API may reject
+     * already-final transactions, which is fine).
+     */
+    public function cancel(string $orderId): array
+    {
+        $response = Http::withBasicAuth($this->serverKey, '')
+            ->post("{$this->baseUrl}/{$orderId}/cancel");
+
+        if (! $response->successful()) {
+            Log::warning('Midtrans cancel failed', [
+                'order_id' => $orderId,
+                'response' => $response->body(),
+            ]);
+        }
+
+        return $response->json() ?? [];
+    }
+
     public function verifySignature(string $orderId, string $statusCode, string $grossAmount, string $signature): bool
     {
         $expected = hash('sha512', $orderId.$statusCode.$grossAmount.$this->serverKey);

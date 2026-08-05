@@ -1,12 +1,16 @@
 <?php
 
+use App\Enums\OrderStatus;
+use App\Enums\TableStatus;
 use App\Models\Meja;
 use App\Models\Menu;
 use App\Models\MenuCategory;
 use App\Models\OptionGroup;
 use App\Models\OptionItem;
+use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Outlet;
+use App\Models\TableSession;
 use Illuminate\Support\Str;
 
 beforeEach(function () {
@@ -256,4 +260,44 @@ test('self-order fails with invalid table token', function () {
             ['menu_id' => $this->menu->id, 'qty' => 1],
         ],
     ])->assertNotFound();
+});
+
+test('customer can cancel a pending self-order', function () {
+    $session = TableSession::factory()->create([
+        'table_id' => $this->table->id,
+        'status' => 'active',
+    ]);
+    $order = Order::factory()->create([
+        'table_session_id' => $session->id,
+        'status' => 'pending_payment',
+        'order_type' => 'dine_in_qr',
+    ]);
+
+    $this->post(route('self-order.cancel', [$this->table->table_token, $order]))
+        ->assertOk()
+        ->assertJson(['status' => 'cancelled']);
+
+    expect($order->fresh()->status)->toBe(OrderStatus::Cancelled);
+    expect($session->fresh()->status)->toBe('closed');
+    expect($this->table->fresh()->status->value)->toBe(TableStatus::Available->value);
+});
+
+test('self-order cancel rejects foreign table', function () {
+    $otherTable = Meja::factory()->create([
+        'outlet_id' => $this->outlet->id,
+        'table_token' => Str::random(40),
+        'status' => 'available',
+    ]);
+    $session = TableSession::factory()->create([
+        'table_id' => $otherTable->id,
+        'status' => 'active',
+    ]);
+    $order = Order::factory()->create([
+        'table_session_id' => $session->id,
+        'status' => 'pending_payment',
+        'order_type' => 'dine_in_qr',
+    ]);
+
+    $this->post(route('self-order.cancel', [$this->table->table_token, $order]))
+        ->assertNotFound();
 });

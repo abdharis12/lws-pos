@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\OrderStatus;
 use App\Models\Meja;
 use App\Models\Menu;
 use App\Models\MenuCategory;
@@ -600,4 +601,46 @@ test('qris-status settlement marks table as occupied', function () {
 
     expect($response->getStatusCode())->toBe(200);
     expect($meja->fresh()->status->value)->toBe('occupied');
+});
+
+test('cashier can cancel a pending online payment', function () {
+    Http::fake([
+        'https://api.sandbox.midtrans.com/*' => Http::response([
+            'transaction_status' => 'cancel',
+            'status_code' => '200',
+            'order_id' => 'TEST',
+        ], 200),
+    ]);
+
+    $meja = Meja::factory()->create([
+        'outlet_id' => $this->outlet->id,
+        'status' => 'available',
+    ]);
+    $session = TableSession::factory()->create([
+        'table_id' => $meja->id,
+        'status' => 'active',
+    ]);
+    $order = Order::factory()->create([
+        'table_session_id' => $session->id,
+        'status' => 'pending_payment',
+        'order_type' => 'dine_in',
+    ]);
+
+    DB::table('payments')->insert([
+        'order_id' => $order->id,
+        'method' => 'qris',
+        'midtrans_transaction_id' => 'fake-tx-id',
+        'gross_amount' => $order->total,
+        'status' => 'pending',
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    $this->actingAs($this->cashier)
+        ->post(route('pos.orders.cancel-payment', $order))
+        ->assertRedirect();
+
+    expect($order->fresh()->status)->toBe(OrderStatus::Cancelled);
+    expect(DB::table('payments')->where('order_id', $order->id)->value('status'))->toBe('failed');
+    expect($meja->fresh()->status->value)->toBe('available');
 });

@@ -359,6 +359,22 @@ class PosOrderService
         }
     }
 
+    /**
+     * Void an initiated-but-unpaid Midtrans charge and mark its payment record
+     * as failed. Best-effort: if Midtrans already finalised the transaction
+     * the cancel call is a no-op (the webhook/poll will settle it instead).
+     */
+    public function voidMidtransPayment(Order $order, MidtransService $midtrans): void
+    {
+        if (! $order->payment) {
+            return;
+        }
+
+        $midtrans->cancel((string) $order->id);
+
+        $order->payment->update(['status' => 'failed']);
+    }
+
     protected function hasNoOtherPending(TableSession $session, int $orderId): bool
     {
         return ! $session->orders()

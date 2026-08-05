@@ -41,6 +41,34 @@ export default function SelfOrderMenu({ table, tableToken, categories, outlet }:
         [payment, cart.cart, customerName],
     )
 
+    const handleCancelPayment = useCallback(async () => {
+        const orderId = payment.midtransOrderId
+
+        if (!orderId) {
+            return
+        }
+
+        if (!window.confirm('Batalkan pembayaran ini?')) {
+            return
+        }
+
+        try {
+            const res = await fetch(`/t/${tableToken}/orders/${orderId}/cancel`, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '',
+                },
+            })
+
+            if (res.ok) {
+                payment.resetPayment()
+            }
+        } catch {
+            // silent
+        }
+    }, [tableToken, payment])
+
     return (
         <div className="min-h-screen bg-[#F6F2E9]">
             <Head title={`Menu - ${outlet.name}`} />
@@ -165,6 +193,7 @@ export default function SelfOrderMenu({ table, tableToken, categories, outlet }:
                         payment.setMidtransStep('select')
                         payment.resetPayment()
                     }}
+                    onCancel={handleCancelPayment}
                 />
             )}
         </div>

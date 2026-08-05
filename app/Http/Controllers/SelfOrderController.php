@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\OrderStatus;
+use App\Enums\TableStatus;
 use App\Events\OrderCreated;
 use App\Events\OrderPaid;
 use App\Events\OrderStatusUpdated;
@@ -100,6 +101,39 @@ class SelfOrderController extends Controller
         }
 
         return response()->json(['status' => $mapped]);
+    }
+
+    public function cancel(string $tableToken, Order $order, MidtransService $midtrans): JsonResponse
+    {
+        $this->assertTableOwner($tableToken, $order);
+        abort_if(! in_array($order->status, [OrderStatus::Pending, OrderStatus::PendingPayment], true), 403);
+
+        if ($order->payment) {
+            $midtrans->cancel((string) $order->id);
+            $order->payment->update(['status' => 'failed']);
+        }
+
+        $order->update(['status' => OrderStatus::Cancelled]);
+        broadcast(new OrderStatusUpdated($order))->toOthers();
+
+        $session = $order->tableSession;
+        if ($session && ! $session->orders()
+            ->where('id', '!=', $order->id)
+            ->whereIn('status', [
+                OrderStatus::Pending->value,
+                OrderStatus::PendingPayment->value,
+                OrderStatus::Paid->value,
+                OrderStatus::Processing->value,
+                OrderStatus::Ready->value,
+            ])->exists()) {
+            $session->update(['status' => 'closed', 'closed_at' => now()]);
+
+            if ($session->table) {
+                $session->table->update(['status' => TableStatus::Available, 'locked_by' => null]);
+            }
+        }
+
+        return response()->json(['status' => 'cancelled']);
     }
 
     public function orderStatus(string $tableToken, Order $order): Response

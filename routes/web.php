@@ -139,6 +139,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('pos/orders/{order}/confirm-pay', [PosController::class, 'confirmPay'])->name('pos.orders.confirm-pay');
     Route::put('pos/orders/{order}/items', [PosController::class, 'updateItems'])->name('pos.orders.update-items');
     Route::delete('pos/orders/{order}', [PosController::class, 'destroyPending'])->name('pos.orders.destroy-pending');
+    Route::post('pos/orders/{order}/cancel-payment', [PosController::class, 'cancelPayment'])->name('pos.orders.cancel-payment');
     Route::post('pos/orders/initiate-payment', [PosController::class, 'initiatePayment'])->name('pos.orders.initiate-payment');
     Route::get('pos/orders/{order}/qris-status', [PosController::class, 'qrisStatus'])->name('pos.orders.qris-status');
     Route::post('pos/tables/{table}/release', [PosController::class, 'releaseTable'])->name('pos.tables.release');
@@ -175,6 +176,7 @@ Route::post('t/{tableToken}/orders', [SelfOrderController::class, 'store'])
     ->name('self-order.orders.store');
 Route::post('t/{tableToken}/pay', [SelfOrderController::class, 'pay'])->middleware('throttle:5,1')->name('self-order.pay');
 Route::get('t/{tableToken}/orders/{order}/payment-status', [SelfOrderController::class, 'paymentStatus'])->name('self-order.payment-status');
+Route::post('t/{tableToken}/orders/{order}/cancel', [SelfOrderController::class, 'cancel'])->name('self-order.cancel');
 
 Route::post('webhooks/midtrans/notification', [MidtransWebhookController::class, 'notification'])
     ->withoutMiddleware([VerifyCsrfToken::class])

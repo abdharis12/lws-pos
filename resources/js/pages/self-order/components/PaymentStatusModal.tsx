@@ -12,6 +12,7 @@ interface Props {
     onCopy: (v: boolean) => void
     onBack: () => void
     onRetry: () => void
+    onCancel: () => void
 }
 
 function CopyButton({ text, copied, onCopy }: { text: string; copied: boolean; onCopy: (v: boolean) => void }) {
@@ -43,6 +44,7 @@ export function PaymentStatusModal({
     onCopy,
     onBack,
     onRetry,
+    onCancel,
 }: Props) {
     return (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm animate-fade-in sm:items-center sm:p-4">
@@ -229,6 +231,15 @@ export function PaymentStatusModal({
                                 style={{ borderColor: '#CFC0A4', color: '#4F6B6A' }}
                             >
                                 Ganti Metode
+                            </Button>
+
+                            <Button
+                                onClick={onCancel}
+                                variant="outline"
+                                className="w-full rounded-xl"
+                                style={{ borderColor: '#E11D48', color: '#E11D48' }}
+                            >
+                                Batalkan Pembayaran
                             </Button>
                         </div>
                     )}

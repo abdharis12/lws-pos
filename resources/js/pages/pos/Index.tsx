@@ -1,6 +1,7 @@
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { History, LayoutGrid, Printer, Search, ShoppingBag, ShoppingCart, Trash2 } from 'lucide-react';
 import { useState, useMemo, useRef } from 'react';
+import { toast } from 'sonner';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -559,6 +560,32 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder 
         setDeleteConfirmOrder(order);
     }
 
+    async function handleCheckPaymentStatus(order: PendingOrder) {
+        const { ok, data } = await posFetchJson<{ status: string }>(`/pos/orders/${order.id}/qris-status`);
+
+        if (!ok) {
+            toast.error('Gagal memeriksa status pembayaran');
+
+            return;
+        }
+
+        if (data.status === 'settlement') {
+            toast.success('Pembayaran terkonfirmasi.');
+        } else if (data.status === 'failed') {
+            toast.error('Pembayaran gagal / dibatalkan.');
+        } else {
+            toast.info('Masih menunggu pembayaran.');
+        }
+
+        router.reload({ only: ['tables', 'pendingOrders', 'lastOrder'] });
+    }
+
+    function handleCancelPayment(order: PendingOrder) {
+        router.post(`/pos/orders/${order.id}/cancel-payment`, {}, {
+            preserveScroll: true,
+        });
+    }
+
     const cartPanelProps = {
         items: cartItems,
         processing,
@@ -640,7 +667,7 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder 
                         </div>
                     </div>
 
-                    <PendingOrdersInbox orders={pendingOrders} selectedId={selectedPendingOrderId} onSelect={handleSelectPendingOrder} onDelete={handleDeletePendingOrder} />
+                    <PendingOrdersInbox orders={pendingOrders} selectedId={selectedPendingOrderId} onSelect={handleSelectPendingOrder} onDelete={handleDeletePendingOrder} onCheckStatus={handleCheckPaymentStatus} onCancelPayment={handleCancelPayment} />
 
                     <div className="flex gap-2 overflow-x-auto px-5 pt-4 pb-2 scroll-smooth snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                         {categories.map(cat => (
