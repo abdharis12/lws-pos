@@ -6,10 +6,10 @@ use App\Models\Order;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 
-class OrderStatusUpdated implements ShouldBroadcast
+class OrderStatusUpdated implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets;
 
@@ -40,6 +40,7 @@ class OrderStatusUpdated implements ShouldBroadcast
 
     public function broadcastWith(): array
     {
+        $this->order->refresh();
         $order = $this->order->loadMissing([
             'tableSession.table',
             'items.menu',
@@ -52,6 +53,7 @@ class OrderStatusUpdated implements ShouldBroadcast
             'menu' => ['name' => $item->menu->name],
             'qty' => $item->qty,
             'notes' => $item->notes,
+            'status' => $item->status?->value ?? 'pending',
             'options' => $item->options->map(fn ($opt) => [
                 'quantity' => $opt->quantity,
                 'option_item' => ['name' => $opt->optionItem?->name ?? ''],
@@ -61,7 +63,7 @@ class OrderStatusUpdated implements ShouldBroadcast
         return [
             'order' => [
                 'id' => $order->id,
-                'status' => $order->status,
+                'status' => $order->status->value,
                 'table_code' => $order->tableSession?->table?->code,
                 'customer_name' => $order->customer_name,
                 'item_count' => $order->items->sum('qty'),

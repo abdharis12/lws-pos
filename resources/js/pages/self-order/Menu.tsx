@@ -7,6 +7,7 @@ import { CartModal } from '@/pages/self-order/components/CartModal'
 import { Header } from '@/pages/self-order/components/Header'
 import { MenuCard } from '@/pages/self-order/components/MenuCard'
 import { MenuDetailModal } from '@/pages/self-order/components/MenuDetailModal'
+import { MenuHero } from '@/pages/self-order/components/MenuHero'
 import { PaymentSelectModal } from '@/pages/self-order/components/PaymentSelectModal'
 import { PaymentStatusModal } from '@/pages/self-order/components/PaymentStatusModal'
 import type { Category } from '@/types/self-order'
@@ -27,6 +28,10 @@ export default function SelfOrderMenu({ table, tableToken, categories, outlet }:
     const payment = useSelfOrderPayment(tableToken)
 
     const activeMenus = categories.find(c => c.id === activeCategory)?.menus ?? []
+    const allMenus = categories.flatMap(c => c.menus)
+    const totalMenus = allMenus.length
+    const spotlightMenu =
+        allMenus.find(m => m.is_available && m.photo_path) ?? allMenus.find(m => m.is_available)
 
     const handleCashCheckout = useCallback(() => {
         setSubmitting(true)
@@ -70,10 +75,20 @@ export default function SelfOrderMenu({ table, tableToken, categories, outlet }:
     }, [tableToken, payment])
 
     return (
-        <div className="min-h-screen bg-[#F6F2E9]">
-            <Head title={`Menu - ${outlet.name}`} />
+        <div className="font-body min-h-screen bg-[#F6F2E9]">
+            <Head title={`Menu - ${outlet.name}`}>
+                <link rel="preconnect" href="https://fonts.googleapis.com" />
+                <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+                <link
+                    href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+                    rel="stylesheet"
+                />
+            </Head>
 
             <style>{`
+                .font-display { font-family: 'Fraunces', ui-serif, Georgia, serif; }
+                .font-body { font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif; }
+
                 @keyframes slide-up {
                 from { transform: translateY(100%); }
                 to { transform: translateY(0); }
@@ -82,17 +97,34 @@ export default function SelfOrderMenu({ table, tableToken, categories, outlet }:
                 from { opacity: 0; }
                 to { opacity: 1; }
                 }
+                @keyframes steam-rise {
+                0% { transform: translateY(0) scaleY(1); opacity: 0; }
+                15% { opacity: .55; }
+                55% { opacity: .35; }
+                100% { transform: translateY(-14px) scaleY(1.2); opacity: 0; }
+                }
                 .animate-slide-up { animation: slide-up 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
                 .animate-fade-in { animation: fade-in 0.2s ease-out; }
+                .animate-steam { animation: steam-rise 3.2s ease-in-out infinite; }
                 .no-scrollbar::-webkit-scrollbar { display: none; }
                 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+                @media (prefers-reduced-motion: reduce) {
+                    .animate-slide-up, .animate-fade-in, .animate-steam { animation: none; }
+                }
             `}</style>
 
-            <Header
+            <MenuHero
                 outletName={outlet.name}
                 tableCode={table.code}
                 customerName={customerName}
                 onCustomerNameChange={setCustomerName}
+                totalMenus={totalMenus}
+                spotlightMenu={spotlightMenu}
+                onSpotlightSelect={cart.openMenu}
+            />
+
+            <Header
                 categories={categories}
                 activeCategory={activeCategory}
                 onCategoryChange={setActiveCategory}
@@ -100,7 +132,7 @@ export default function SelfOrderMenu({ table, tableToken, categories, outlet }:
                 onCartOpen={() => cart.setIsCartOpen(true)}
             />
 
-            <div className="mx-auto max-w-2xl px-4 pb-28 pt-5 md:pt-8 lg:pt-10">
+            <div className="mx-auto max-w-2xl px-4 pb-28 pt-6">
                 {activeMenus.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-20 text-[#8C8577]">
                         <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#CFC0A4]/25">
@@ -110,8 +142,8 @@ export default function SelfOrderMenu({ table, tableToken, categories, outlet }:
                     </div>
                 ) : (
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                        {activeMenus.map(menu => (
-                            <MenuCard key={menu.id} menu={menu} onSelect={cart.openMenu} />
+                        {activeMenus.map((menu, idx) => (
+                            <MenuCard key={menu.id} menu={menu} onSelect={cart.openMenu} featured={idx === 0} />
                         ))}
                     </div>
                 )}

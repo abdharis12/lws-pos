@@ -26,6 +26,7 @@ class OrderController extends Controller
 
         $oldStatus = $order->status->value;
         $order->update(['status' => OrderStatus::from($validated['status'])]);
+        $order->refresh();
 
         broadcast(new OrderStatusUpdated($order))->toOthers();
 

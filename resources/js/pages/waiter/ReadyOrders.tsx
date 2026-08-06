@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { playBeep, optionDisplayName } from '@/pages/kitchen/lib/utils';
-import { BORDER, CREAM, INK, MUTED, PRIMARY, SAND } from '@/pages/pos/constants';
+import { BORDER, CREAM, INK, MUTED, PRIMARY } from '@/pages/pos/constants';
 
 interface ReadyOrderItemOption {
     id?: number;
@@ -351,11 +351,14 @@ export default function WaiterReadyOrders({ readyOrders, leaderboard }: Props) {
                                     <div className="border-t p-4" style={{ borderColor: BORDER }}>
                                         <Button
                                             onClick={() => setServing(order)}
+                                            disabled={!allChecked}
                                             className="w-full gap-2 font-semibold"
                                             style={{ backgroundColor: '#059669' }}
                                         >
                                             <Check className="size-4" />
-                                            Selesai Antar • {totalQty} item
+                                            {allChecked
+                                                ? `Selesai Antar • ${totalQty} item`
+                                                : 'Centang semua item dulu'}
                                         </Button>
                                     </div>
                                 </div>

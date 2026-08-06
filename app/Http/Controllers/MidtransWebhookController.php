@@ -140,6 +140,7 @@ class MidtransWebhookController extends Controller
     protected function markFailed(Order $order): void
     {
         $order->update(['status' => OrderStatus::Cancelled]);
+        $order->refresh();
         broadcast(new OrderStatusUpdated($order))->toOthers();
 
         if ($order->tableSession?->table && ! $order->tableSession->orders()->whereIn('status', [
