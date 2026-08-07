@@ -170,6 +170,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 Route::get('t/{tableToken}', [SelfOrderController::class, 'show'])->name('self-order.show');
 Route::get('t/{tableToken}/orders/{order}/status', [SelfOrderController::class, 'orderStatus'])->name('self-order.status');
+Route::get('t/{tableToken}/orders/{order}/thank-you', [SelfOrderController::class, 'thankYou'])->name('self-order.thank-you');
 Route::get('t/{tableToken}/orders/{order}/poll-status', [SelfOrderController::class, 'pollStatus'])->name('self-order.poll-status');
 Route::post('t/{tableToken}/orders', [SelfOrderController::class, 'store'])
     ->middleware('throttle:5,1')

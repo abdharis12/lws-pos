@@ -55,6 +55,7 @@ class SelfOrderController extends Controller
 
         $order = $this->buildOrder($session, $validated, 'cash', OrderStatus::Pending);
 
+        $order->refresh();
         broadcast(new OrderCreated($order))->toOthers();
         broadcast(new OrderStatusUpdated($order))->toOthers();
 
@@ -117,6 +118,7 @@ class SelfOrderController extends Controller
         }
 
         $order->update(['status' => OrderStatus::Cancelled]);
+        $order->refresh();
         broadcast(new OrderStatusUpdated($order))->toOthers();
 
         $session = $order->tableSession;
@@ -148,6 +150,18 @@ class SelfOrderController extends Controller
             'table' => $order->tableSession->table,
             'tableToken' => $tableToken,
             'order' => [...$order->toArray(), 'access_token' => $order->access_token],
+        ]);
+    }
+
+    public function thankYou(string $tableToken, Order $order): Response
+    {
+        $this->assertTableOwner($tableToken, $order);
+        $order->load(['items.menu', 'items.options.optionItem', 'servedBy']);
+
+        return Inertia::render('self-order/ThankYou', [
+            'table' => $order->tableSession->table,
+            'tableToken' => $tableToken,
+            'order' => $order,
         ]);
     }
 
@@ -251,6 +265,7 @@ class SelfOrderController extends Controller
             }
         } elseif ($mapped === 'failed') {
             $order->update(['status' => OrderStatus::Cancelled]);
+            $order->refresh();
             broadcast(new OrderStatusUpdated($order))->toOthers();
         }
     }

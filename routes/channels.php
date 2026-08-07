@@ -1,6 +1,5 @@
 <?php
 
-use App\Models\Meja;
 use App\Models\User;
 use Illuminate\Support\Facades\Broadcast;
 
@@ -20,14 +19,7 @@ Broadcast::channel('outlet.{outletId}.attendance', function ($user, $outletId) {
     return $user instanceof User && $user->employee && $user->employee->outlet_id === (int) $outletId;
 });
 
-Broadcast::channel('table.{token}', function ($userOrGuest, $token) {
-    if ($userOrGuest instanceof User) {
-        return true;
-    }
-
-    $table = Meja::where('table_token', $token)->first();
-
-    return $table !== null;
-});
+// table.{token} is a public channel (see OrderStatusUpdated->broadcastOn()).
+// No auth callback is required; Laravel skips channel authorization for public channels.
 
 // public-outlet.{outletId}.menu — public channel, no auth callback needed

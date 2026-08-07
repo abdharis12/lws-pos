@@ -42,6 +42,7 @@ class WaiterController extends Controller
         $user = $request->user();
 
         $this->markServed($order, $user);
+        $order->refresh();
         broadcast(new OrderStatusUpdated($order))->toOthers();
         $this->logServed($user, $order);
 

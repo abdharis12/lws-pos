@@ -51,6 +51,7 @@ class OrderKitchenStatusResolver
 
         if ($order->status !== $status) {
             $order->update(['status' => $status]);
+            $order->refresh();
             broadcast(new OrderStatusUpdated($order))->toOthers();
         }
 

@@ -342,3 +342,57 @@ test('self-order cancel rejects foreign table', function () {
     $this->post(route('self-order.cancel', [$this->table->table_token, $order]))
         ->assertNotFound();
 });
+
+// ─── Thank You Page ─────────────────────────────────────────
+
+test('completed order shows thank-you page', function () {
+    $session = TableSession::factory()->create([
+        'table_id' => $this->table->id,
+        'status' => 'active',
+    ]);
+    $order = Order::factory()->create([
+        'table_session_id' => $session->id,
+        'status' => 'completed',
+        'order_type' => 'dine_in_qr',
+        'customer_name' => 'Budi',
+        'served_by' => 1,
+        'served_at' => now(),
+        'total' => 55000,
+    ]);
+    $order->items()->create([
+        'menu_id' => $this->menu->id,
+        'qty' => 2,
+        'base_price' => 25000,
+        'total_price' => 50000,
+        'status' => 'ready',
+    ]);
+
+    $this->get(route('self-order.thank-you', [$this->table->table_token, $order]))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('self-order/ThankYou')
+            ->where('order.status', 'completed')
+            ->where('order.customer_name', 'Budi')
+            ->has('order.items', 1)
+        );
+});
+
+test('thank-you page rejects foreign table', function () {
+    $otherTable = Meja::factory()->create([
+        'outlet_id' => $this->outlet->id,
+        'table_token' => Str::random(40),
+        'status' => 'available',
+    ]);
+    $session = TableSession::factory()->create([
+        'table_id' => $otherTable->id,
+        'status' => 'active',
+    ]);
+    $order = Order::factory()->create([
+        'table_session_id' => $session->id,
+        'status' => 'completed',
+        'order_type' => 'dine_in_qr',
+    ]);
+
+    $this->get(route('self-order.thank-you', [$this->table->table_token, $order]))
+        ->assertNotFound();
+});
