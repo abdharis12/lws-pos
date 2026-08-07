@@ -7,6 +7,7 @@ export function useSelfOrderPayment(tableToken: string) {
     const [midtransStep, setMidtransStep] = useState<'select' | 'pay'>('select')
     const [midtransResponse, setMidtransResponse] = useState<MidtransResponse | null>(null)
     const [midtransOrderId, setMidtransOrderId] = useState<number | null>(null)
+    const [midtransAccessToken, setMidtransAccessToken] = useState<string | null>(null)
     const [payStatus, setPayStatus] = useState<PaymentStatus>('idle')
     const [payProcessing, setPayProcessing] = useState(false)
     const [payError, setPayError] = useState<string | null>(null)
@@ -26,6 +27,7 @@ export function useSelfOrderPayment(tableToken: string) {
         setMidtransStep('select')
         setMidtransResponse(null)
         setMidtransOrderId(null)
+        setMidtransAccessToken(null)
         setPayStatus('idle')
         setPayProcessing(false)
         setPayError(null)
@@ -100,6 +102,7 @@ export function useSelfOrderPayment(tableToken: string) {
 
                     setMidtransResponse(data as MidtransResponse)
                     setMidtransOrderId(data.order_id)
+                    setMidtransAccessToken(data.access_token ?? null)
                     setPayStatus('pending')
                 })
                 .catch(() => {
@@ -146,6 +149,7 @@ export function useSelfOrderPayment(tableToken: string) {
         setMidtransStep,
         midtransResponse,
         midtransOrderId,
+        midtransAccessToken,
         payStatus,
         payProcessing,
         payError,

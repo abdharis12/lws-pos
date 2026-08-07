@@ -18,6 +18,7 @@ use App\Services\PaymentService;
 use App\Services\SelfOrderService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -77,6 +78,7 @@ class SelfOrderController extends Controller
         return response()->json([
             'order_id' => $order->id,
             'order_number' => $orderNumber,
+            'access_token' => $order->access_token,
             'status' => 'pending',
             'rounding_amount' => (float) $order->rounding_amount,
             'total' => (float) $order->total,
@@ -103,9 +105,10 @@ class SelfOrderController extends Controller
         return response()->json(['status' => $mapped]);
     }
 
-    public function cancel(string $tableToken, Order $order, MidtransService $midtrans): JsonResponse
+    public function cancel(string $tableToken, Order $order, Request $request, MidtransService $midtrans): JsonResponse
     {
         $this->assertTableOwner($tableToken, $order);
+        $this->assertOrderToken($order, (string) $request->input('access_token'));
         abort_if(! in_array($order->status, [OrderStatus::Pending, OrderStatus::PendingPayment], true), 403);
 
         if ($order->payment) {
@@ -144,7 +147,7 @@ class SelfOrderController extends Controller
         return Inertia::render('self-order/Status', [
             'table' => $order->tableSession->table,
             'tableToken' => $tableToken,
-            'order' => $order,
+            'order' => [...$order->toArray(), 'access_token' => $order->access_token],
         ]);
     }
 
@@ -210,6 +213,7 @@ class SelfOrderController extends Controller
         return response()->json([
             'order_id' => $order->id,
             'order_number' => $orderNumber,
+            'access_token' => $order->access_token,
             'subtotal' => (float) $order->subtotal,
             'tax' => (float) $order->tax,
             'service_charge' => (float) ($order->service_charge ?? 0),
@@ -255,5 +259,13 @@ class SelfOrderController extends Controller
     {
         $table = Meja::where('table_token', $tableToken)->firstOrFail();
         abort_if($order->tableSession?->table_id !== $table->id, 404);
+    }
+
+    protected function assertOrderToken(Order $order, string $token): void
+    {
+        abort_if(
+            blank($order->access_token) || ! hash_equals($order->access_token, $token),
+            403,
+        );
     }
 }

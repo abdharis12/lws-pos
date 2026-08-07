@@ -7,6 +7,7 @@ use App\Models\Meja;
 use App\Models\Order;
 use App\Models\TableSession;
 use App\Support\Money;
+use Illuminate\Support\Str;
 
 class SelfOrderService
 {
@@ -82,6 +83,7 @@ class SelfOrderService
             'rounding_amount' => $roundingAmount,
             'discount' => 0,
             'total' => $total,
+            'access_token' => Str::random(40),
         ]);
     }
 

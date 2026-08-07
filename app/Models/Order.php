@@ -13,11 +13,13 @@ class Order extends Model
 {
     use HasFactory;
 
+    protected $hidden = ['access_token'];
+
     protected $fillable = [
         'table_session_id', 'pos_session_id', 'created_by', 'order_type', 'status',
         'subtotal', 'tax', 'service_charge', 'midtrans_charge', 'rounding_amount', 'discount', 'discount_type',
-        'discount_value', 'discount_approved_by', 'served_by', 'served_at', 'total', 'notes',
-        'customer_name', 'grouped_tables',
+        'discount_value',         'discount_approved_by', 'served_by', 'served_at', 'total', 'notes',
+        'customer_name', 'grouped_tables', 'access_token',
     ];
 
     protected function casts(): array

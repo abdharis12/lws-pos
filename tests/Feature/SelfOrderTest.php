@@ -271,15 +271,56 @@ test('customer can cancel a pending self-order', function () {
         'table_session_id' => $session->id,
         'status' => 'pending_payment',
         'order_type' => 'dine_in_qr',
+        'access_token' => 'secret-token',
     ]);
 
-    $this->post(route('self-order.cancel', [$this->table->table_token, $order]))
+    $this->post(
+        route('self-order.cancel', [$this->table->table_token, $order]),
+        ['access_token' => 'secret-token'],
+    )
         ->assertOk()
         ->assertJson(['status' => 'cancelled']);
 
     expect($order->fresh()->status)->toBe(OrderStatus::Cancelled);
     expect($session->fresh()->status)->toBe('closed');
     expect($this->table->fresh()->status->value)->toBe(TableStatus::Available->value);
+});
+
+test('self-order cancel rejects a missing access token', function () {
+    $session = TableSession::factory()->create([
+        'table_id' => $this->table->id,
+        'status' => 'active',
+    ]);
+    $order = Order::factory()->create([
+        'table_session_id' => $session->id,
+        'status' => 'pending_payment',
+        'order_type' => 'dine_in_qr',
+        'access_token' => 'secret-token',
+    ]);
+
+    $this->post(route('self-order.cancel', [$this->table->table_token, $order]))
+        ->assertForbidden();
+});
+
+test('self-order cancel rejects a wrong access token', function () {
+    $session = TableSession::factory()->create([
+        'table_id' => $this->table->id,
+        'status' => 'active',
+    ]);
+    $order = Order::factory()->create([
+        'table_session_id' => $session->id,
+        'status' => 'pending_payment',
+        'order_type' => 'dine_in_qr',
+        'access_token' => 'secret-token',
+    ]);
+
+    $this->post(
+        route('self-order.cancel', [$this->table->table_token, $order]),
+        ['access_token' => 'wrong-token'],
+    )
+        ->assertForbidden();
+
+    expect($order->fresh()->status)->toBe(OrderStatus::PendingPayment);
 });
 
 test('self-order cancel rejects foreign table', function () {
