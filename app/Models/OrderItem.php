@@ -18,6 +18,9 @@ class OrderItem extends Model
         'status',
     ];
 
+    protected $guarded = [
+    ];
+
     protected function casts(): array
     {
         return [

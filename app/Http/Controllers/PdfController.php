@@ -23,13 +23,21 @@ class PdfController extends Controller
 
         @ini_set('memory_limit', '256M');
 
+        $outletId = $this->outletId();
+        $outlet = $outletId ? Outlet::find($outletId) : null;
+
         $pdf = Pdf::loadView('pdfs.payslip', [
             'payslip' => $payslip,
             'employee' => $payslip->employee,
-            'outlet' => Outlet::first(),
+            'outlet' => $outlet,
             'deductionTypeLabels' => self::DEDUCTION_TYPE_LABELS,
         ]);
 
         return $pdf->download('payslip-'.$payslip->employee->user->name.'-'.$payslip->period.'.pdf');
+    }
+
+    protected function outletId(): ?int
+    {
+        return auth()->user()?->employee?->outlet_id;
     }
 }

@@ -12,12 +12,10 @@ class OutletController extends Controller
 {
     public function edit(): Response
     {
-        $outlet = Outlet::firstOrCreate([], [
-            'name' => 'Default Outlet',
-            'latitude' => -3.8467067,
-            'longitude' => 103.9615719,
-            'geofence_radius_meters' => 20,
-        ]);
+        $this->authorize('viewAny', Outlet::class);
+
+        $outletId = $this->outletId();
+        $outlet = Outlet::findOrFail($outletId);
 
         return Inertia::render('admin/outlets/Settings', [
             'outlet' => $outlet,
@@ -26,6 +24,8 @@ class OutletController extends Controller
 
     public function update(Request $request): RedirectResponse
     {
+        $this->authorize('update', Outlet::class);
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'latitude' => 'required|numeric|between:-90,90',
@@ -33,11 +33,17 @@ class OutletController extends Controller
             'geofence_radius_meters' => 'required|integer|min:5|max:1000',
         ]);
 
-        $outlet = Outlet::firstOrFail();
+        $outletId = $this->outletId();
+        $outlet = Outlet::findOrFail($outletId);
         $outlet->update($validated);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Pengaturan outlet berhasil disimpan.']);
 
         return redirect()->route('admin.outlet.edit');
+    }
+
+    protected function outletId(): ?int
+    {
+        return auth()->user()?->employee?->outlet_id;
     }
 }

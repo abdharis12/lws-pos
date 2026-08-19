@@ -24,6 +24,8 @@ class ReportController extends Controller
 {
     public function index(Request $request): Response
     {
+        $this->authorize('viewAny', Order::class);
+
         $period = $request->input('period', 'daily');
         $date = $request->input('date', today()->format('Y-m-d'));
         $weekStart = $request->input('week_start', now()->startOfWeek()->format('Y-m-d'));
@@ -50,6 +52,8 @@ class ReportController extends Controller
 
     public function topMenus(Request $request): Response
     {
+        $this->authorize('viewAny', Order::class);
+
         $startDate = $request->input('start_date', today()->subMonth()->format('Y-m-d'));
         $endDate = $request->input('end_date', today()->format('Y-m-d'));
 
@@ -63,6 +67,8 @@ class ReportController extends Controller
 
     public function reconciliation(Request $request): Response
     {
+        $this->authorize('viewAny', Payment::class);
+
         $startDate = $request->input('start_date', today()->startOfMonth()->format('Y-m-d'));
         $endDate = $request->input('end_date', today()->format('Y-m-d'));
 
@@ -87,6 +93,8 @@ class ReportController extends Controller
 
     public function attendance(Request $request): Response
     {
+        $this->authorize('viewAny', Attendance::class);
+
         [$year, $monthNum, $month, $monthStart, $monthEnd] = $this->monthRange($request);
         $employeeIds = $this->activeEmployeeIds($request);
 
@@ -114,6 +122,8 @@ class ReportController extends Controller
 
     public function overtime(Request $request): Response
     {
+        $this->authorize('viewAny', Attendance::class);
+
         [$year, $monthNum, $month] = $this->yearMonth($request);
 
         $employees = Employee::with('user')
@@ -136,6 +146,7 @@ class ReportController extends Controller
 
     public function waiterPoints(Request $request): Response
     {
+        $this->authorize('viewAny', Order::class);
         [$year, $monthNum, $month] = $this->yearMonth($request);
         $monthStart = Carbon::create($year, $monthNum, 1);
         $monthEnd = $monthStart->copy()->endOfMonth();
@@ -164,6 +175,8 @@ class ReportController extends Controller
 
     public function exportSales(Request $request): BinaryFileResponse
     {
+        $this->authorize('viewAny', Order::class);
+
         $period = $request->input('period', 'daily');
         $date = $request->input('date', today()->format('Y-m-d'));
         $format = $request->input('format', 'xlsx');
@@ -304,7 +317,7 @@ class ReportController extends Controller
 
     protected function outletId(): ?int
     {
-        return Outlet::first()?->id;
+        return auth()->user()?->employee?->outlet_id;
     }
 
     protected function activeEmployees(Request $request): Collection

@@ -10,9 +10,9 @@ class ThrSetting extends Model
 {
     use HasFactory;
 
-    protected $fillable = [
-        'outlet_id', 'calculation_type', 'value', 'is_active', 'notes',
-    ];
+    protected $fillable = ['calculation_type', 'value', 'notes'];
+
+    protected $guarded = ['outlet_id', 'is_active'];
 
     protected function casts(): array
     {

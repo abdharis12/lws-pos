@@ -12,10 +12,17 @@ class PosSession extends Model
     use HasFactory;
 
     protected $fillable = [
-        'outlet_id', 'session_date', 'opening_balance',
-        'opened_at', 'closed_at',
+        'outlet_id', 'session_date', 'opening_balance', 'status', 'opened_at',
+    ];
+
+    protected $guarded = [
+        'closed_at',
         'total_cash', 'total_non_cash', 'total_transactions',
-        'status', 'opened_by', 'closed_by',
+        'opened_by', 'closed_by',
+    ];
+
+    protected $hidden = [
+        'total_cash', 'total_non_cash',
     ];
 
     protected function casts(): array

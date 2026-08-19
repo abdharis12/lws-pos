@@ -20,7 +20,7 @@ class TableController extends Controller
     protected function validateTable(Request $request): array
     {
         return $request->validate([
-            'code' => 'required|string|max:20|unique:tables,code,NULL,id,outlet_id,'.Outlet::first()?->id,
+            'code' => 'required|string|max:20|unique:tables,code,NULL,id,outlet_id,'.$this->outletId(),
             'capacity' => 'required|integer|min:1|max:20',
             'floor' => 'nullable|string|max:50',
         ]);
@@ -29,7 +29,7 @@ class TableController extends Controller
     protected function createTable(array $validated): Meja
     {
         return Meja::create([
-            'outlet_id' => Outlet::first()->id,
+            'outlet_id' => $this->outletId(),
             'code' => $validated['code'],
             'table_token' => Str::random(40),
             'capacity' => $validated['capacity'],
@@ -47,8 +47,8 @@ class TableController extends Controller
 
     public function index(Request $request): Response
     {
-        $outlet = Outlet::first();
-        $tables = Meja::where('outlet_id', $outlet?->id)
+        $outletId = $this->outletId();
+        $tables = Meja::where('outlet_id', $outletId)
             ->orderBy('code')
             ->when($request->floor, fn ($q, $floor) => $q->where('floor', $floor))
             ->paginate(10)
@@ -102,10 +102,15 @@ class TableController extends Controller
     public function regenerateToken(Meja $table): RedirectResponse
     {
         $this->authorize('regenerateToken', $table);
-        $table->update(['table_token' => Str::random(40)]);
+        $table->forceFill(['table_token' => Str::random(40)])->save();
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Token QR meja berhasil diperbarui.']);
 
         return redirect()->back();
+    }
+
+    protected function outletId(): ?int
+    {
+        return auth()->user()?->employee?->outlet_id;
     }
 }

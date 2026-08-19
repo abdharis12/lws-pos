@@ -10,10 +10,9 @@ class ActivityLog extends Model
 {
     use HasFactory;
 
-    protected $fillable = [
-        'user_id', 'action', 'subject_type',
-        'subject_id', 'description', 'metadata',
-    ];
+    protected $fillable = ['action', 'subject_type', 'subject_id', 'description', 'metadata'];
+
+    protected $guarded = ['user_id'];
 
     protected function casts(): array
     {

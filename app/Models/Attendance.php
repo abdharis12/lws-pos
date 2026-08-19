@@ -18,6 +18,13 @@ class Attendance extends Model
         'early_leave',
     ];
 
+    protected $guarded = [
+    ];
+
+    protected $hidden = [
+        'latitude_in', 'longitude_in', 'latitude_out', 'longitude_out',
+    ];
+
     protected function casts(): array
     {
         return [

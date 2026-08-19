@@ -15,6 +15,12 @@ class DiscountService
 
         $value = (float) $value;
 
+        if ($value < 0) {
+            throw ValidationException::withMessages([
+                'discount_value' => 'Diskon tidak boleh negatif.',
+            ]);
+        }
+
         return (float) match ($type) {
             'percentage' => min(round($subtotal * ($value / 100)), $subtotal),
             'nominal' => min($value, $subtotal),
@@ -50,6 +56,15 @@ class DiscountService
         if (! $approver || ! $approver->hasAnyRole(['Admin', 'Owner'])) {
             throw ValidationException::withMessages([
                 'discount' => 'Hanya Admin atau Owner yang dapat menyetujui diskon besar.',
+            ]);
+        }
+
+        // Ensure approver is from the same outlet
+        $userOutletId = auth()->user()?->employee?->outlet_id;
+        $approverOutletId = $approver->employee?->outlet_id;
+        if ($userOutletId && $approverOutletId && $userOutletId !== $approverOutletId) {
+            throw ValidationException::withMessages([
+                'discount' => 'Approver harus dari outlet yang sama.',
             ]);
         }
     }

@@ -2,16 +2,17 @@
 
 namespace App\Policies;
 
+use App\Models\ThrSetting;
 use App\Models\User;
 
-class PayslipPolicy
+class ThrSettingPolicy
 {
     public function viewAny(User $user): bool
     {
         return $user->hasAnyRole(['Owner', 'Admin']);
     }
 
-    public function view(User $user): bool
+    public function view(User $user, ThrSetting $thrSetting): bool
     {
         return $user->hasAnyRole(['Owner', 'Admin']);
     }
@@ -21,12 +22,12 @@ class PayslipPolicy
         return $user->hasAnyRole(['Owner', 'Admin']);
     }
 
-    public function update(User $user): bool
+    public function update(User $user, ThrSetting $thrSetting): bool
     {
         return $user->hasAnyRole(['Owner', 'Admin']);
     }
 
-    public function delete(User $user): bool
+    public function delete(User $user, ThrSetting $thrSetting): bool
     {
         return $user->hasRole('Owner');
     }

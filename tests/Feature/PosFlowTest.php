@@ -6,6 +6,7 @@ use App\Models\Menu;
 use App\Models\MenuCategory;
 use App\Models\OptionGroup;
 use App\Models\OptionItem;
+use App\Models\Employee;
 use App\Models\Order;
 use App\Models\Outlet;
 use App\Models\TableSession;
@@ -44,7 +45,9 @@ beforeEach(function () {
     ]);
 
     $this->cashier = User::factory()->create()->assignRole('Cashier');
+    Employee::factory()->create(['user_id' => $this->cashier->id, 'outlet_id' => $this->outlet->id]);
     $this->admin = User::factory()->create()->assignRole('Admin');
+    Employee::factory()->create(['user_id' => $this->admin->id, 'outlet_id' => $this->outlet->id]);
 });
 
 // ─── POS Index Page ──────────────────────────────────────────
@@ -56,8 +59,9 @@ test('cashier can view POS index', function () {
         ->assertInertia(fn ($page) => $page->component('pos/Index'));
 });
 
-test('authenticated user can view POS index', function () {
-    $user = User::factory()->create();
+test('authenticated user with cashier role can view POS index', function () {
+    $user = User::factory()->create()->assignRole('Cashier');
+    Employee::factory()->create(['user_id' => $user->id, 'outlet_id' => $this->outlet->id]);
     $this->actingAs($user)
         ->get(route('pos.index'))
         ->assertOk();

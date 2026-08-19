@@ -44,7 +44,7 @@ class PosController extends Controller
 
     public function index(Request $request): Response
     {
-        $outletId = Outlet::first()?->id;
+        $outletId = $this->outletId();
 
         return Inertia::render('pos/Index', [
             'categories' => $this->categories($outletId),
@@ -56,7 +56,7 @@ class PosController extends Controller
 
     public function tables(Request $request): Response
     {
-        $outletId = Outlet::first()?->id;
+        $outletId = $this->outletId();
         $this->viewAnyTable($request);
 
         $tables = Meja::with('lockedBy')->where('outlet_id', $outletId)->orderBy('code')->get();
@@ -406,13 +406,13 @@ class PosController extends Controller
 
     protected function currentPosSessionId(): ?int
     {
-        $outlet = Outlet::first();
+        $outletId = $this->outletId();
 
-        if (! $outlet) {
+        if (! $outletId) {
             return null;
         }
 
-        return PosSession::where('outlet_id', $outlet->id)
+        return PosSession::where('outlet_id', $outletId)
             ->whereDate('session_date', today())
             ->where('status', 'open')
             ->first()?->id;
@@ -492,7 +492,7 @@ class PosController extends Controller
         );
 
         $paymentData = $this->paymentService->extractPaymentResponse($midtransResponse);
-        $this->paymentService->createPaymentRecord($order, $midtransResponse, $validated['payment_type'], (float) $order->total);
+        $this->paymentService->createPaymentRecord($order, $midtransResponse, $validated['payment_type']);
 
         return response()->json([
             'order_id' => $order->id,
@@ -594,5 +594,10 @@ class PosController extends Controller
         Inertia::flash('toast', ['type' => 'error', 'message' => $message]);
 
         return redirect()->route('pos.index');
+    }
+
+    protected function outletId(): ?int
+    {
+        return auth()->user()?->employee?->outlet_id;
     }
 }

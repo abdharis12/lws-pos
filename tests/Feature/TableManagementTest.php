@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Employee;
 use App\Models\Meja;
 use App\Models\Outlet;
 use App\Models\User;
@@ -20,6 +21,7 @@ test('table list requires authentication', function () {
 
 test('owner can view tables', function () {
     $owner = User::factory()->create()->assignRole('Owner');
+    Employee::factory()->create(['user_id' => $owner->id, 'outlet_id' => $this->outlet->id]);
     Meja::factory()->create(['outlet_id' => $this->outlet->id]);
 
     $this->actingAs($owner)
@@ -30,6 +32,7 @@ test('owner can view tables', function () {
 
 test('owner can create table', function () {
     $owner = User::factory()->create()->assignRole('Owner');
+    Employee::factory()->create(['user_id' => $owner->id, 'outlet_id' => $this->outlet->id]);
 
     $this->actingAs($owner)->post(route('admin.tables.store'), [
         'code' => 'VIP1',
@@ -49,6 +52,7 @@ test('owner can create table', function () {
 
 test('owner can update table', function () {
     $owner = User::factory()->create()->assignRole('Owner');
+    Employee::factory()->create(['user_id' => $owner->id, 'outlet_id' => $this->outlet->id]);
     $table = Meja::factory()->create(['outlet_id' => $this->outlet->id, 'status' => 'available']);
 
     $this->actingAs($owner)->put(route('admin.tables.update', $table), [
@@ -63,6 +67,7 @@ test('owner can update table', function () {
 
 test('owner can delete table', function () {
     $owner = User::factory()->create()->assignRole('Owner');
+    Employee::factory()->create(['user_id' => $owner->id, 'outlet_id' => $this->outlet->id]);
     $table = Meja::factory()->create(['outlet_id' => $this->outlet->id]);
 
     $this->actingAs($owner)
@@ -74,6 +79,7 @@ test('owner can delete table', function () {
 
 test('admin cannot delete table', function () {
     $admin = User::factory()->create()->assignRole('Admin');
+    Employee::factory()->create(['user_id' => $admin->id, 'outlet_id' => $this->outlet->id]);
     $table = Meja::factory()->create(['outlet_id' => $this->outlet->id]);
 
     $this->actingAs($admin)
@@ -83,6 +89,7 @@ test('admin cannot delete table', function () {
 
 test('owner can regenerate table token', function () {
     $owner = User::factory()->create()->assignRole('Owner');
+    Employee::factory()->create(['user_id' => $owner->id, 'outlet_id' => $this->outlet->id]);
     $originalToken = str_repeat('a', 40);
     $table = Meja::factory()->create([
         'outlet_id' => $this->outlet->id,
@@ -99,6 +106,7 @@ test('owner can regenerate table token', function () {
 
 test('admin can regenerate table token', function () {
     $admin = User::factory()->create()->assignRole('Admin');
+    Employee::factory()->create(['user_id' => $admin->id, 'outlet_id' => $this->outlet->id]);
     $table = Meja::factory()->create(['outlet_id' => $this->outlet->id]);
 
     $this->actingAs($admin)
@@ -116,6 +124,7 @@ test('waiter cannot create table', function () {
 
 test('table capacity validation', function () {
     $owner = User::factory()->create()->assignRole('Owner');
+    Employee::factory()->create(['user_id' => $owner->id, 'outlet_id' => $this->outlet->id]);
 
     $this->actingAs($owner)
         ->post(route('admin.tables.store'), ['code' => 'T99', 'capacity' => 0])
@@ -128,6 +137,7 @@ test('table capacity validation', function () {
 
 test('table code validation requires unique code', function () {
     $owner = User::factory()->create()->assignRole('Owner');
+    Employee::factory()->create(['user_id' => $owner->id, 'outlet_id' => $this->outlet->id]);
     Meja::factory()->create(['outlet_id' => $this->outlet->id, 'code' => 'T01']);
 
     $this->actingAs($owner)

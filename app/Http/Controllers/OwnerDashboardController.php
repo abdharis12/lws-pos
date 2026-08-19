@@ -18,17 +18,17 @@ class OwnerDashboardController extends Controller
 {
     public function index(Request $request): Response
     {
-        $outlet = Outlet::first();
+        $outletId = $this->outletId();
         $today = today();
 
-        return Inertia::render('owner/Dashboard', $this->buildDashboard($outlet, $today));
+        return Inertia::render('owner/Dashboard', $this->buildDashboard($outletId, $today));
     }
 
-    protected function buildDashboard(?Outlet $outlet, $today): array
+    protected function buildDashboard(?int $outletId, $today): array
     {
         $sales = $this->salesMetrics($today);
         $rounding = $this->roundingMetrics($today);
-        $staff = $this->staffMetrics($outlet, $today);
+        $staff = $this->staffMetrics($outletId, $today);
 
         return [
             'avgCookingTime' => $sales['avgCookingTime'],
@@ -109,12 +109,17 @@ class OwnerDashboardController extends Controller
         ];
     }
 
-    protected function staffMetrics(?Outlet $outlet, $today): array
+protected function staffMetrics(?int $outletId, $today): array
     {
         return [
-            'employeeCount' => Employee::where('outlet_id', $outlet?->id)->count(),
+            'employeeCount' => Employee::where('outlet_id', $outletId)->count(),
             'attendanceToday' => Attendance::whereDate('clock_in_at', $today)->count(),
         ];
+    }
+
+    protected function outletId(): ?int
+    {
+        return auth()->user()?->employee?->outlet_id;
     }
 
     protected function activeOrders(): array

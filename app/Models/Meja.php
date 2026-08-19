@@ -16,8 +16,10 @@ class Meja extends Model
     protected $table = 'tables';
 
     protected $fillable = [
-        'outlet_id', 'code', 'table_token', 'capacity', 'floor', 'status', 'locked_by',
+        'outlet_id', 'code', 'capacity', 'floor', 'status', 'locked_by',
     ];
+
+    protected $guarded = ['table_token'];
 
     protected static function booted(): void
     {

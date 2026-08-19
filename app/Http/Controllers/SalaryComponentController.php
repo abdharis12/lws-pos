@@ -13,6 +13,8 @@ class SalaryComponentController extends Controller
 {
     public function index(): Response
     {
+        $this->authorize('viewAny', SalaryComponent::class);
+
         $components = SalaryComponent::with('employee.user')->get();
         $employees = Employee::where('is_active', true)->with('user')->orderBy('position')->get();
 
@@ -24,6 +26,8 @@ class SalaryComponentController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        $this->authorize('create', SalaryComponent::class);
+
         $validated = $request->validate([
             'employee_id' => 'required|exists:employees,id',
             'base_salary' => 'required|numeric|min:0',
@@ -55,6 +59,8 @@ class SalaryComponentController extends Controller
 
     public function update(Request $request, SalaryComponent $salaryComponent): RedirectResponse
     {
+        $this->authorize('update', $salaryComponent);
+
         $validated = $request->validate([
             'base_salary' => 'required|numeric|min:0',
             'salary_type' => 'required|in:monthly,daily',
@@ -76,6 +82,8 @@ class SalaryComponentController extends Controller
 
     public function destroy(SalaryComponent $salaryComponent): RedirectResponse
     {
+        $this->authorize('delete', $salaryComponent);
+
         $salaryComponent->delete();
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Komponen gaji berhasil dihapus.']);

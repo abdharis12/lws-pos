@@ -10,6 +10,8 @@ class PosTableService
 {
     public function release(Meja $table): void
     {
+        $this->assertOutletOwnership($table);
+
         $session = $table->sessions()->where('status', 'active')->first();
         $groupedIds = [];
 
@@ -37,6 +39,9 @@ class PosTableService
 
     public function move(Meja $source, Meja $target): void
     {
+        $this->assertOutletOwnership($source);
+        $this->assertOutletOwnership($target);
+
         $sourceSession = $source->sessions()->where('status', 'active')->first();
 
         $targetSession = $target->sessions()->where('status', 'active')->first()
@@ -56,8 +61,11 @@ class PosTableService
         $target->update(['status' => TableStatus::Occupied]);
     }
 
-    public function merge(Meja $source, Meja $target): void
+    public function merge(MeJa $source, Meja $target): void
     {
+        $this->assertOutletOwnership($source);
+        $this->assertOutletOwnership($target);
+
         $sourceSession = $source->sessions()->where('status', 'active')->first();
         $targetSession = $target->sessions()->where('status', 'active')->first();
 
@@ -82,6 +90,14 @@ class PosTableService
 
         $target->update(['status' => TableStatus::Occupied, 'locked_by' => null]);
         $source->update(['status' => TableStatus::Occupied, 'locked_by' => null]);
+    }
+
+    protected function assertOutletOwnership(Meja $table): void
+    {
+        $userOutletId = auth()->user()?->employee?->outlet_id;
+        if ($userOutletId && $table->outlet_id !== $userOutletId) {
+            abort(403, 'Tidak memiliki akses ke meja outlet lain.');
+        }
     }
 
     protected function mergeOrderGroupedTables(Order $order, Meja $source): void

@@ -86,8 +86,10 @@ class SelfOrderController extends Controller
         ]);
     }
 
-    public function paymentStatus(Order $order, MidtransService $midtrans): JsonResponse
+    public function paymentStatus(string $tableToken, Order $order, MidtransService $midtrans): JsonResponse
     {
+        $this->assertTableOwner($tableToken, $order);
+
         if ($order->status === OrderStatus::Paid) {
             return response()->json(['status' => 'settlement']);
         }
@@ -149,7 +151,7 @@ class SelfOrderController extends Controller
         return Inertia::render('self-order/Status', [
             'table' => $order->tableSession->table,
             'tableToken' => $tableToken,
-            'order' => [...$order->toArray(), 'access_token' => $order->access_token],
+            'order' => $order->only(['id', 'status', 'total', 'items', 'subtotal', 'tax', 'service_charge', 'midtrans_charge', 'rounding_amount', 'discount', 'order_type', 'customer_name', 'created_at']),
         ]);
     }
 
@@ -195,20 +197,14 @@ class SelfOrderController extends Controller
     protected function buildOrder(TableSession $session, array $validated, string $paymentMethod, OrderStatus $status): Order
     {
         $orderItems = $this->orderService->buildOrderItems($validated['items']);
-        $subtotal = array_sum(array_column($orderItems, 'total_price'));
-        $totals = $this->orderService->calculateTotals($subtotal, $paymentMethod);
 
-        $order = $this->orderService->createOrder(
+        $order = $this->orderService->buildOrderServerSide(
             $session,
             $validated['customer_name'] ?? null,
             'dine_in_qr',
             $status,
-            $subtotal,
-            $totals['tax'],
-            $totals['serviceCharge'],
-            $totals['midtransCharge'],
-            $totals['total'],
-            $totals['roundingAmount'] ?? 0,
+            $orderItems,
+            $paymentMethod,
         );
 
         $this->orderService->attachOrderItems($order, $orderItems);
@@ -222,7 +218,7 @@ class SelfOrderController extends Controller
         $midtransResponse = $midtrans->createCharge((string) $order->id, (int) round((float) $order->total), $paymentType);
         $paymentData = $this->paymentService->extractPaymentResponse($midtransResponse);
 
-        $this->paymentService->createPaymentRecord($order, $midtransResponse, $paymentType, (float) $order->total);
+        $this->paymentService->createPaymentRecord($order, $midtransResponse, $paymentType);
 
         return response()->json([
             'order_id' => $order->id,

@@ -11,7 +11,15 @@ class Bonus extends Model
     use HasFactory;
 
     protected $fillable = [
-        'employee_id', 'period', 'amount', 'reason', 'approved_by',
+        'employee_id', 'period', 'reason', 'amount',
+    ];
+
+    protected $guarded = [
+        'approved_by',
+    ];
+
+    protected $hidden = [
+        'amount',
     ];
 
     protected function casts(): array

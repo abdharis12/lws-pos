@@ -16,12 +16,13 @@ class DashboardController extends Controller
     public function index(Request $request): Response
     {
         $today = today();
-        $outlet = Outlet::first();
+        $outletId = $this->outletId();
 
         $paidStatuses = [OrderStatus::Paid->value, OrderStatus::Completed->value];
 
         $todaySales = (float) Order::whereIn('status', $paidStatuses)
             ->whereDate('created_at', $today)
+            ->where('outlet_id', $outletId)
             ->sum('total');
 
         $todayOrdersCount = Order::whereIn('status', $paidStatuses)
@@ -70,7 +71,7 @@ class DashboardController extends Controller
             ->all();
 
         $todayAttendances = Employee::query()
-            ->where('outlet_id', $outlet?->id)
+            ->where('outlet_id', $outletId)
             ->with(['user', 'attendances' => fn ($q) => $q->whereDate('clock_in_at', $today)])
             ->get()
             ->map(fn (Employee $employee) => [
@@ -89,5 +90,10 @@ class DashboardController extends Controller
             'activeOrders' => $activeOrders,
             'todayAttendances' => $todayAttendances,
         ]);
+    }
+
+    protected function outletId(): ?int
+    {
+        return auth()->user()?->employee?->outlet_id;
     }
 }

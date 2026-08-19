@@ -18,7 +18,7 @@ class PosSessionController extends Controller
     {
         $this->authorizeSession($request);
 
-        $outletId = Outlet::first()?->id;
+        $outletId = $this->outletId();
         $currentSession = $this->currentSession($outletId);
         $recentSessions = $this->recentSessions($outletId);
 
@@ -37,7 +37,8 @@ class PosSessionController extends Controller
     {
         $validated = $request->validate(['opening_balance' => 'required|numeric|min:0']);
         $this->authorizeSession($request);
-        $outlet = Outlet::firstOrFail();
+        $outletId = $this->outletId();
+        $outlet = Outlet::findOrFail($outletId);
         $this->assertNoOpenSession($outlet->id);
 
         $session = PosSession::create([
@@ -185,5 +186,10 @@ class PosSessionController extends Controller
         if ($existing) {
             abort(409, 'Sudah ada session yang terbuka untuk hari ini.');
         }
+    }
+
+    protected function outletId(): ?int
+    {
+        return auth()->user()?->employee?->outlet_id;
     }
 }

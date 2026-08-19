@@ -14,6 +14,8 @@ class PayslipController extends Controller
 {
     public function index(Request $request): Response
     {
+        $this->authorize('viewAny', Payslip::class);
+
         $period = $request->input('period', date('Y-m'));
 
         $payslips = Payslip::with([
@@ -38,6 +40,8 @@ class PayslipController extends Controller
 
     public function show(Payslip $payslip): Response
     {
+        $this->authorize('view', $payslip);
+
         $payslip->load([
             'employee.user',
             'employee.deductions' => fn ($q) => $q->where('period', $payslip->period),
@@ -50,6 +54,8 @@ class PayslipController extends Controller
 
     public function generate(Request $request, PayrollService $payrollService): RedirectResponse
     {
+        $this->authorize('create', Payslip::class);
+
         $period = $request->input('period', date('Y-m'));
 
         $payrollService->generatePayslips($period);
@@ -61,6 +67,8 @@ class PayslipController extends Controller
 
     public function generateSingle(Request $request, Employee $employee, PayrollService $payrollService): RedirectResponse
     {
+        $this->authorize('create', Payslip::class);
+
         $period = $request->input('period', date('Y-m'));
 
         $payrollService->generateForEmployee($employee, $period);
@@ -72,6 +80,8 @@ class PayslipController extends Controller
 
     public function approve(Payslip $payslip): RedirectResponse
     {
+        $this->authorize('update', $payslip);
+
         $payslip->update(['status' => 'approved']);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Slip gaji telah disetujui.']);
@@ -81,6 +91,8 @@ class PayslipController extends Controller
 
     public function markPaid(Request $request, Payslip $payslip): RedirectResponse
     {
+        $this->authorize('update', $payslip);
+
         $validated = $request->validate([
             'paid_method' => 'required|string|in:cash,transfer',
         ]);

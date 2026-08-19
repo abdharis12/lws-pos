@@ -35,8 +35,14 @@ class SelfOrderService
         $this->itemBuilder->attach($order, $orderItems);
     }
 
-    public function calculateTotals(float $subtotal, string $paymentMethod): array
+    /**
+     * Server-side total computation from rebuilt order items.
+     * Never trusts client-supplied monetary values.
+     */
+    public function calculateTotals(array $builtItems, string $paymentMethod): array
     {
+        $subtotal = array_sum(array_column($builtItems, 'total_price'));
+
         $taxRate = (float) config('pos.tax_rate', 0.10);
         $serviceChargeRate = (float) config('pos.service_charge_rate', 0.05);
         $chargePercent = (float) config('pos.midtrans.charge_percentage', 2.5);
@@ -57,9 +63,48 @@ class SelfOrderService
             $total = Money::ceilTo500($rawTotal);
         }
 
-        return compact('tax', 'serviceCharge', 'midtransCharge', 'total', 'roundingAmount');
+        return [
+            'subtotal' => $subtotal,
+            'tax' => $tax,
+            'serviceCharge' => $serviceCharge,
+            'midtransCharge' => $midtransCharge,
+            'total' => $total,
+            'roundingAmount' => $roundingAmount,
+        ];
     }
 
+    /**
+     * Build order with server-recomputed totals.
+     * Accepts only items + paymentMethod; recomputes monetary values from menu prices.
+     */
+    public function buildOrderServerSide(
+        TableSession $session,
+        ?string $customerName,
+        string $orderType,
+        OrderStatus $status,
+        array $builtItems,
+        string $paymentMethod,
+    ): Order {
+        $totals = $this->calculateTotals($builtItems, $paymentMethod);
+
+        return $session->orders()->create([
+            'order_type' => $orderType,
+            'status' => $status,
+            'customer_name' => $customerName,
+            'subtotal' => $totals['subtotal'],
+            'tax' => $totals['tax'],
+            'service_charge' => $totals['serviceCharge'],
+            'midtrans_charge' => $totals['midtransCharge'],
+            'rounding_amount' => $totals['roundingAmount'],
+            'discount' => 0,
+            'total' => $totals['total'],
+            'access_token' => Str::random(40),
+        ]);
+    }
+
+    /**
+     * @deprecated Use buildOrderServerSide() instead — never trust client totals.
+     */
     public function createOrder(
         TableSession $session,
         ?string $customerName,
@@ -87,9 +132,9 @@ class SelfOrderService
         ]);
     }
 
-    public function createPayment(Order $order, array $midtransResponse, string $paymentType, float $total): void
+    public function createPayment(Order $order, array $midtransResponse, string $paymentType): void
     {
-        $this->paymentService->createPaymentRecord($order, $midtransResponse, $paymentType, $total);
+        $this->paymentService->createPaymentRecord($order, $midtransResponse, $paymentType, (float) $order->total);
     }
 
     public function extractPaymentResponse(array $response): array

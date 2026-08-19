@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Employee;
 use App\Models\Meja;
 use App\Models\Menu;
 use App\Models\Order;
@@ -17,6 +18,7 @@ beforeEach(function () {
 
     $this->outlet = Outlet::factory()->create();
     $this->owner = User::factory()->create()->assignRole('Owner');
+    Employee::factory()->create(['user_id' => $this->owner->id, 'outlet_id' => $this->outlet->id]);
     $this->table = Meja::factory()->create(['outlet_id' => $this->outlet->id]);
     $this->session = TableSession::factory()->create(['table_id' => $this->table->id]);
 });

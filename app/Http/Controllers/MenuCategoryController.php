@@ -13,9 +13,11 @@ class MenuCategoryController extends Controller
 {
     public function index(Request $request): Response
     {
-        $outlet = Outlet::first();
+        $this->authorize('viewAny', MenuCategory::class);
 
-        $query = MenuCategory::where('outlet_id', $outlet?->id);
+        $outletId = $this->outletId();
+
+        $query = MenuCategory::where('outlet_id', $outletId);
 
         if ($request->filled('search')) {
             $search = $request->input('search');
@@ -42,10 +44,10 @@ class MenuCategoryController extends Controller
             'sort_order' => 'nullable|integer|min:0',
         ]);
 
-        $outlet = Outlet::first();
+        $outletId = $this->outletId();
 
         MenuCategory::create([
-            'outlet_id' => $outlet->id,
+            'outlet_id' => $outletId,
             'name' => $validated['name'],
             'icon' => $validated['icon'] ?? null,
             'sort_order' => $validated['sort_order'] ?? 0,
@@ -81,5 +83,10 @@ class MenuCategoryController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Kategori berhasil dihapus.']);
 
         return redirect()->back();
+    }
+
+    protected function outletId(): ?int
+    {
+        return auth()->user()?->employee?->outlet_id;
     }
 }

@@ -13,8 +13,15 @@ class Employee extends Model
     use HasFactory;
 
     protected $fillable = [
-        'user_id', 'outlet_id', 'phone', 'position',
-        'join_date', 'resign_date', 'base_salary', 'salary_type', 'is_active',
+        'phone', 'position', 'join_date', 'resign_date', 'is_active',
+    ];
+
+    protected $guarded = [
+        'user_id', 'outlet_id', 'base_salary', 'salary_type',
+    ];
+
+    protected $hidden = [
+        'base_salary', 'salary_type', 'user_id',
     ];
 
     protected function casts(): array

@@ -23,8 +23,10 @@ class EmployeeController extends Controller
 
     public function index(Request $request): Response
     {
-        $outlet = Outlet::first();
-        $query = $this->applySearch(Employee::with('user')->where('outlet_id', $outlet?->id), $request);
+        $this->authorize('viewAny', Employee::class);
+
+        $outletId = $this->outletId();
+        $query = $this->applySearch(Employee::with('user')->where('outlet_id', $outletId), $request);
 
         $employees = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
         $this->attachRoles($employees);
@@ -39,11 +41,13 @@ class EmployeeController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        $this->authorize('create', Employee::class);
+
         $validated = $this->validateData($request);
         $user = $this->storeUser($validated);
-        $outlet = Outlet::first();
+        $outletId = $this->outletId();
 
-        $this->storeEmployee($validated, $user, $outlet);
+        $this->storeEmployee($validated, $user, $outletId);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Karyawan berhasil ditambahkan.']);
 
@@ -52,6 +56,8 @@ class EmployeeController extends Controller
 
     public function show(Employee $employee): Response
     {
+        $this->authorize('view', $employee);
+
         $employee->load('user');
         $employee->role = $employee->user->roles->pluck('name')->first();
 
@@ -62,6 +68,8 @@ class EmployeeController extends Controller
 
     public function update(Request $request, Employee $employee): RedirectResponse
     {
+        $this->authorize('update', $employee);
+
         $validated = $this->validateData($request, $employee);
 
         $employee->user->update([
@@ -78,6 +86,8 @@ class EmployeeController extends Controller
 
     public function destroy(Request $request, Employee $employee): RedirectResponse
     {
+        $this->authorize('delete', $employee);
+
         $user = $employee->user;
 
         $this->activityLog->log(
@@ -158,11 +168,11 @@ class EmployeeController extends Controller
         return $user;
     }
 
-    protected function storeEmployee(array $validated, User $user, Outlet $outlet): void
+    protected function storeEmployee(array $validated, User $user, int $outletId): void
     {
         Employee::create([
             'user_id' => $user->id,
-            'outlet_id' => $outlet->id,
+            'outlet_id' => $outletId,
             'phone' => $validated['phone'],
             'position' => $validated['position'],
             'join_date' => $validated['join_date'],
@@ -182,5 +192,10 @@ class EmployeeController extends Controller
             'base_salary' => $validated['base_salary'],
             'salary_type' => $validated['salary_type'],
         ]);
+    }
+
+    protected function outletId(): ?int
+    {
+        return auth()->user()?->employee?->outlet_id;
     }
 }

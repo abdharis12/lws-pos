@@ -24,6 +24,8 @@ class MenuController extends Controller
 
     public function index(Request $request): Response
     {
+        $this->authorize('viewAny', Menu::class);
+
         $outlet = Outlet::first();
         $categories = $this->categories($this->outletId());
         $menus = Menu::with(['category', 'optionGroups.optionItems'])
@@ -43,6 +45,8 @@ class MenuController extends Controller
 
     public function create(): Response
     {
+        $this->authorize('create', Menu::class);
+
         return Inertia::render('admin/menus/Create', [
             'categories' => $this->categories($this->outletId()),
             'optionGroups' => $this->optionGroups($this->outletId()),
@@ -66,6 +70,8 @@ class MenuController extends Controller
 
     public function show(Menu $menu): Response
     {
+        $this->authorize('view', $menu);
+
         $menu->load(['category', 'optionGroups.optionItems']);
 
         return Inertia::render('admin/menus/Show', ['menu' => $menu]);
@@ -73,6 +79,8 @@ class MenuController extends Controller
 
     public function edit(Menu $menu): Response
     {
+        $this->authorize('view', $menu);
+
         $menu->load('optionGroups');
 
         return Inertia::render('admin/menus/Edit', [
@@ -139,7 +147,7 @@ class MenuController extends Controller
 
     protected function outletId(): ?int
     {
-        return Outlet::first()?->id;
+        return auth()->user()?->employee?->outlet_id;
     }
 
     protected function categories(?int $outletId): Collection

@@ -15,6 +15,8 @@ class PayrollController extends Controller
 {
     public function index(Request $request): Response
     {
+        $this->authorize('viewAny', Payslip::class);
+
         $period = $request->input('period', date('Y-m'));
         $payslips = Payslip::with('employee.user')->where('period', $period)->get();
         $periods = Payslip::select('period')->distinct()->orderBy('period', 'desc')->pluck('period');
@@ -29,6 +31,8 @@ class PayrollController extends Controller
 
     public function export(Request $request): BinaryFileResponse
     {
+        $this->authorize('viewAny', Payslip::class);
+
         $period = $request->input('period', date('Y-m'));
 
         return Excel::download(new PayrollReportExport($period), 'laporan-payroll-'.$period.'.xlsx');

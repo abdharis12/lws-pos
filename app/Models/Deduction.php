@@ -11,7 +11,14 @@ class Deduction extends Model
     use HasFactory;
 
     protected $fillable = [
-        'employee_id', 'period', 'type', 'amount', 'notes',
+        'employee_id', 'period', 'type', 'notes', 'amount',
+    ];
+
+    protected $guarded = [
+    ];
+
+    protected $hidden = [
+        'amount',
     ];
 
     protected function casts(): array

@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Employee;
 use App\Models\Menu;
 use App\Models\MenuCategory;
 use App\Models\OptionGroup;
@@ -25,6 +26,7 @@ test('menu categories list requires authentication', function () {
 
 test('owner can view menu categories', function () {
     $owner = User::factory()->create()->assignRole('Owner');
+    Employee::factory()->create(['user_id' => $owner->id, 'outlet_id' => $this->outlet->id]);
     MenuCategory::factory()->create(['outlet_id' => $this->outlet->id]);
 
     $this->actingAs($owner)
@@ -34,6 +36,7 @@ test('owner can view menu categories', function () {
 
 test('owner can create menu category', function () {
     $owner = User::factory()->create()->assignRole('Owner');
+    Employee::factory()->create(['user_id' => $owner->id, 'outlet_id' => $this->outlet->id]);
 
     $this->actingAs($owner)->post(route('admin.menu-categories.store'), [
         'name' => 'Makanan Baru',
@@ -50,6 +53,7 @@ test('owner can create menu category', function () {
 
 test('owner can update menu category', function () {
     $owner = User::factory()->create()->assignRole('Owner');
+    Employee::factory()->create(['user_id' => $owner->id, 'outlet_id' => $this->outlet->id]);
     $category = MenuCategory::factory()->create(['outlet_id' => $this->outlet->id]);
 
     $this->actingAs($owner)->put(route('admin.menu-categories.update', $category), [
@@ -64,6 +68,7 @@ test('owner can update menu category', function () {
 
 test('owner can delete menu category', function () {
     $owner = User::factory()->create()->assignRole('Owner');
+    Employee::factory()->create(['user_id' => $owner->id, 'outlet_id' => $this->outlet->id]);
     $category = MenuCategory::factory()->create(['outlet_id' => $this->outlet->id]);
 
     $this->actingAs($owner)
@@ -85,6 +90,7 @@ test('waiter cannot create menu category', function () {
 
 test('owner can view menu list', function () {
     $owner = User::factory()->create()->assignRole('Owner');
+    Employee::factory()->create(['user_id' => $owner->id, 'outlet_id' => $this->outlet->id]);
     Menu::factory()->create();
 
     $this->actingAs($owner)
@@ -94,6 +100,7 @@ test('owner can view menu list', function () {
 
 test('owner can view menu create page', function () {
     $owner = User::factory()->create()->assignRole('Owner');
+    Employee::factory()->create(['user_id' => $owner->id, 'outlet_id' => $this->outlet->id]);
 
     $this->actingAs($owner)
         ->get(route('admin.menus.create'))
@@ -102,6 +109,7 @@ test('owner can view menu create page', function () {
 
 test('owner can create menu', function () {
     $owner = User::factory()->create()->assignRole('Owner');
+    Employee::factory()->create(['user_id' => $owner->id, 'outlet_id' => $this->outlet->id]);
     $category = MenuCategory::factory()->create(['outlet_id' => $this->outlet->id]);
 
     $this->actingAs($owner)->post(route('admin.menus.store'), [
@@ -120,6 +128,7 @@ test('owner can create menu', function () {
 
 test('menu price validation rejects negative price', function () {
     $owner = User::factory()->create()->assignRole('Owner');
+    Employee::factory()->create(['user_id' => $owner->id, 'outlet_id' => $this->outlet->id]);
     $category = MenuCategory::factory()->create(['outlet_id' => $this->outlet->id]);
 
     $this->actingAs($owner)
@@ -132,6 +141,7 @@ test('menu price validation rejects negative price', function () {
 
 test('owner can update menu', function () {
     $owner = User::factory()->create()->assignRole('Owner');
+    Employee::factory()->create(['user_id' => $owner->id, 'outlet_id' => $this->outlet->id]);
     $menu = Menu::factory()->create();
 
     $this->actingAs($owner)->put(route('admin.menus.update', $menu), [
@@ -146,6 +156,7 @@ test('owner can update menu', function () {
 
 test('owner can update menu station to a valid station', function () {
     $owner = User::factory()->create()->assignRole('Owner');
+    Employee::factory()->create(['user_id' => $owner->id, 'outlet_id' => $this->outlet->id]);
     $menu = Menu::factory()->create();
 
     $this->actingAs($owner)->put(route('admin.menus.update', $menu), [
@@ -161,6 +172,7 @@ test('owner can update menu station to a valid station', function () {
 
 test('owner can clear menu station by sending empty string', function () {
     $owner = User::factory()->create()->assignRole('Owner');
+    Employee::factory()->create(['user_id' => $owner->id, 'outlet_id' => $this->outlet->id]);
     $menu = Menu::factory()->create(['station' => 'Main']);
 
     $this->actingAs($owner)->put(route('admin.menus.update', $menu), [
@@ -176,6 +188,7 @@ test('owner can clear menu station by sending empty string', function () {
 
 test('owner can delete menu', function () {
     $owner = User::factory()->create()->assignRole('Owner');
+    Employee::factory()->create(['user_id' => $owner->id, 'outlet_id' => $this->outlet->id]);
     $menu = Menu::factory()->create();
 
     $this->actingAs($owner)
@@ -187,6 +200,7 @@ test('owner can delete menu', function () {
 
 test('admin cannot delete menu', function () {
     $admin = User::factory()->create()->assignRole('Admin');
+    Employee::factory()->create(['user_id' => $admin->id, 'outlet_id' => $this->outlet->id]);
     $menu = Menu::factory()->create();
 
     $this->actingAs($admin)
@@ -196,6 +210,7 @@ test('admin cannot delete menu', function () {
 
 test('menu can toggle availability', function () {
     $owner = User::factory()->create()->assignRole('Owner');
+    Employee::factory()->create(['user_id' => $owner->id, 'outlet_id' => $this->outlet->id]);
     $menu = Menu::factory()->create(['is_available' => true]);
 
     $this->actingAs($owner)
@@ -207,6 +222,7 @@ test('menu can toggle availability', function () {
 
 test('owner can view menu detail', function () {
     $owner = User::factory()->create()->assignRole('Owner');
+    Employee::factory()->create(['user_id' => $owner->id, 'outlet_id' => $this->outlet->id]);
     $menu = Menu::factory()->create();
 
     $this->actingAs($owner)
@@ -217,6 +233,7 @@ test('owner can view menu detail', function () {
 
 test('cashier can view menu list', function () {
     $cashier = User::factory()->create()->assignRole('Cashier');
+    Employee::factory()->create(['user_id' => $cashier->id, 'outlet_id' => $this->outlet->id]);
 
     $this->actingAs($cashier)
         ->get(route('admin.menus.index'))
@@ -225,6 +242,7 @@ test('cashier can view menu list', function () {
 
 test('cashier can toggle availability', function () {
     $cashier = User::factory()->create()->assignRole('Cashier');
+    Employee::factory()->create(['user_id' => $cashier->id, 'outlet_id' => $this->outlet->id]);
     $menu = Menu::factory()->create(['is_available' => true]);
 
     $this->actingAs($cashier)
@@ -238,6 +256,7 @@ test('cashier can toggle availability', function () {
 
 test('owner can create menu with option groups', function () {
     $owner = User::factory()->create()->assignRole('Owner');
+    Employee::factory()->create(['user_id' => $owner->id, 'outlet_id' => $this->outlet->id]);
     $category = MenuCategory::factory()->create(['outlet_id' => $this->outlet->id]);
     $optionGroup = OptionGroup::factory()->create(['outlet_id' => $this->outlet->id]);
 
@@ -255,6 +274,7 @@ test('owner can create menu with option groups', function () {
 
 test('menu edit page shows option groups', function () {
     $owner = User::factory()->create()->assignRole('Owner');
+    Employee::factory()->create(['user_id' => $owner->id, 'outlet_id' => $this->outlet->id]);
     $menu = Menu::factory()->create();
     $optionGroup = OptionGroup::factory()->create(['outlet_id' => $this->outlet->id]);
     $menu->optionGroups()->sync([$optionGroup->id]);
@@ -272,6 +292,7 @@ test('menu edit page shows option groups', function () {
 
 test('owner can view option groups', function () {
     $owner = User::factory()->create()->assignRole('Owner');
+    Employee::factory()->create(['user_id' => $owner->id, 'outlet_id' => $this->outlet->id]);
     OptionGroup::factory()->create(['outlet_id' => $this->outlet->id]);
 
     $this->actingAs($owner)
@@ -281,6 +302,7 @@ test('owner can view option groups', function () {
 
 test('owner can create option group with items', function () {
     $owner = User::factory()->create()->assignRole('Owner');
+    Employee::factory()->create(['user_id' => $owner->id, 'outlet_id' => $this->outlet->id]);
 
     $this->actingAs($owner)->post(route('admin.option-groups.store'), [
         'name' => 'Level Pedas',
@@ -301,6 +323,7 @@ test('owner can create option group with items', function () {
 
 test('owner can update option group', function () {
     $owner = User::factory()->create()->assignRole('Owner');
+    Employee::factory()->create(['user_id' => $owner->id, 'outlet_id' => $this->outlet->id]);
     $group = OptionGroup::factory()->create(['outlet_id' => $this->outlet->id, 'name' => 'Level Pedas']);
 
     $this->actingAs($owner)->put(route('admin.option-groups.update', $group), [
@@ -316,6 +339,7 @@ test('owner can update option group', function () {
 
 test('owner can delete option group', function () {
     $owner = User::factory()->create()->assignRole('Owner');
+    Employee::factory()->create(['user_id' => $owner->id, 'outlet_id' => $this->outlet->id]);
     $group = OptionGroup::factory()->create(['outlet_id' => $this->outlet->id]);
 
     $this->actingAs($owner)
@@ -335,6 +359,7 @@ test('waiter cannot create option group', function () {
 
 test('option group validation requires selection_type', function () {
     $owner = User::factory()->create()->assignRole('Owner');
+    Employee::factory()->create(['user_id' => $owner->id, 'outlet_id' => $this->outlet->id]);
 
     $this->actingAs($owner)
         ->post(route('admin.option-groups.store'), ['name' => 'Invalid'])

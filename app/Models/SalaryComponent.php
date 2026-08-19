@@ -11,8 +11,14 @@ class SalaryComponent extends Model
     use HasFactory;
 
     protected $fillable = [
-        'employee_id', 'base_salary', 'salary_type',
-        'meal_allowance', 'transport_allowance', 'overtime_rate_per_hour',
+        'employee_id', 'salary_type', 'base_salary', 'meal_allowance', 'transport_allowance', 'overtime_rate_per_hour',
+    ];
+
+    protected $guarded = [
+    ];
+
+    protected $hidden = [
+        'base_salary', 'salary_type', 'meal_allowance', 'transport_allowance', 'overtime_rate_per_hour',
     ];
 
     protected function casts(): array

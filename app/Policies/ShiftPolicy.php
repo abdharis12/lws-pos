@@ -2,16 +2,17 @@
 
 namespace App\Policies;
 
+use App\Models\Shift;
 use App\Models\User;
 
-class PayslipPolicy
+class ShiftPolicy
 {
     public function viewAny(User $user): bool
     {
         return $user->hasAnyRole(['Owner', 'Admin']);
     }
 
-    public function view(User $user): bool
+    public function view(User $user, Shift $shift): bool
     {
         return $user->hasAnyRole(['Owner', 'Admin']);
     }
@@ -21,12 +22,12 @@ class PayslipPolicy
         return $user->hasAnyRole(['Owner', 'Admin']);
     }
 
-    public function update(User $user): bool
+    public function update(User $user, Shift $shift): bool
     {
         return $user->hasAnyRole(['Owner', 'Admin']);
     }
 
-    public function delete(User $user): bool
+    public function delete(User $user, Shift $shift): bool
     {
         return $user->hasRole('Owner');
     }

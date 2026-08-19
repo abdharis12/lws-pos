@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Employee;
 use App\Models\Meja;
 use App\Models\Order;
 use App\Models\Outlet;
@@ -20,18 +21,20 @@ beforeEach(function () {
 
 it('allows owner to open a session', function () {
     $user = User::factory()->create()->assignRole('Owner');
+    Employee::factory()->create(['user_id' => $user->id, 'outlet_id' => $this->outlet->id]);
 
     $response = $this->actingAs($user)->postJson('/pos/sessions', [
         'opening_balance' => 500000,
     ]);
 
     $response->assertCreated();
-    expect((float) $response['opening_balance'])->toBe(500000.0);
-    expect($response['status'])->toBe('open');
+    expect((float) $response->json('opening_balance'))->toBe(500000.0);
+    expect($response->json('status'))->toBe('open');
 });
 
 it('prevents cashier from opening a session', function () {
     $user = User::factory()->create()->assignRole('Cashier');
+    Employee::factory()->create(['user_id' => $user->id, 'outlet_id' => $this->outlet->id]);
 
     $response = $this->actingAs($user)->postJson('/pos/sessions', [
         'opening_balance' => 500000,
@@ -42,6 +45,7 @@ it('prevents cashier from opening a session', function () {
 
 it('prevents duplicate open session', function () {
     $user = User::factory()->create()->assignRole('Owner');
+    Employee::factory()->create(['user_id' => $user->id, 'outlet_id' => $this->outlet->id]);
 
     $this->actingAs($user)->postJson('/pos/sessions', [
         'opening_balance' => 500000,
@@ -56,6 +60,7 @@ it('prevents duplicate open session', function () {
 
 it('allows owner to close a session', function () {
     $user = User::factory()->create()->assignRole('Owner');
+    Employee::factory()->create(['user_id' => $user->id, 'outlet_id' => $this->outlet->id]);
 
     $this->actingAs($user)->postJson('/pos/sessions', [
         'opening_balance' => 500000,
@@ -71,7 +76,9 @@ it('allows owner to close a session', function () {
 
 it('prevents cashier from closing a session', function () {
     $owner = User::factory()->create()->assignRole('Owner');
+    Employee::factory()->create(['user_id' => $owner->id, 'outlet_id' => $this->outlet->id]);
     $cashier = User::factory()->create()->assignRole('Cashier');
+    Employee::factory()->create(['user_id' => $cashier->id, 'outlet_id' => $this->outlet->id]);
 
     $this->actingAs($owner)->postJson('/pos/sessions', [
         'opening_balance' => 500000,
@@ -86,6 +93,7 @@ it('prevents cashier from closing a session', function () {
 
 it('can show session details', function () {
     $user = User::factory()->create()->assignRole('Owner');
+    Employee::factory()->create(['user_id' => $user->id, 'outlet_id' => $this->outlet->id]);
 
     $this->actingAs($user)->postJson('/pos/sessions', [
         'opening_balance' => 500000,

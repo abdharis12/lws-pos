@@ -11,8 +11,11 @@ class Outlet extends Model
     use HasFactory;
 
     protected $fillable = [
-        'name', 'address', 'phone', 'code', 'is_active',
-        'latitude', 'longitude', 'geofence_radius_meters',
+        'name', 'address', 'phone', 'code',
+    ];
+
+    protected $guarded = [
+        'is_active', 'latitude', 'longitude', 'geofence_radius_meters',
     ];
 
     protected function casts(): array

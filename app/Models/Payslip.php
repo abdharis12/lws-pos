@@ -11,10 +11,20 @@ class Payslip extends Model
     use HasFactory;
 
     protected $fillable = [
-        'employee_id', 'period', 'base_salary', 'allowances_total',
+        'employee_id', 'period', 'status', 'paid_method',
+        // Financial fields - set by trusted services only (PayrollService)
+        'base_salary', 'allowances_total',
         'meal_allowance', 'transport_allowance',
         'bonus_total', 'overtime_total', 'deduction_total',
-        'take_home_pay', 'status', 'paid_at', 'paid_method',
+        'take_home_pay', 'paid_at',
+    ];
+
+    protected $guarded = [
+    ];
+
+    protected $hidden = [
+        'base_salary', 'allowances_total', 'meal_allowance', 'transport_allowance',
+        'bonus_total', 'overtime_total', 'deduction_total', 'take_home_pay',
     ];
 
     protected function casts(): array

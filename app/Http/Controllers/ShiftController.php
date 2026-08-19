@@ -17,6 +17,8 @@ class ShiftController extends Controller
 {
     public function index(Request $request): Response
     {
+        $this->authorize('viewAny', Shift::class);
+
         $weekStart = $request->input('week_start', now()->startOfWeek()->format('Y-m-d'));
         $weekEnd = date('Y-m-d', strtotime($weekStart.' +6 days'));
 
@@ -40,6 +42,8 @@ class ShiftController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        $this->authorize('create', Shift::class);
+
         $validated = $this->validateSingle($request);
 
         $error = $this->conflictError($validated);
@@ -64,6 +68,7 @@ class ShiftController extends Controller
 
     public function update(Request $request, Shift $shift): RedirectResponse
     {
+        $this->authorize('update', $shift);
         $validated = $request->validate([
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i|after:start_time',
@@ -78,6 +83,7 @@ class ShiftController extends Controller
 
     public function destroy(Shift $shift): RedirectResponse
     {
+        $this->authorize('delete', $shift);
         $shift->delete();
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Shift berhasil dihapus.']);
@@ -87,6 +93,7 @@ class ShiftController extends Controller
 
     public function bulkStore(Request $request): RedirectResponse
     {
+        $this->authorize('create', Shift::class);
         $validated = $request->validate([
             'shifts' => 'required|array|min:1',
             'shifts.*.employee_id' => 'required|exists:employees,id',
@@ -222,6 +229,6 @@ class ShiftController extends Controller
 
     protected function outletId(): ?int
     {
-        return Outlet::first()?->id;
+        return auth()->user()?->employee?->outlet_id;
     }
 }

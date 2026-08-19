@@ -61,6 +61,21 @@ class PosOrderService
         );
     }
 
+    /**
+     * Calculate discount and enforce approval if needed.
+     * This method cannot be bypassed by controllers forgetting to call validateApproval.
+     */
+    public function calculateDiscountWithApproval(float $subtotal, array $validated): float
+    {
+        $discount = $this->calculateDiscount($subtotal, $validated);
+
+        if ($this->needsApproval($subtotal, $validated)) {
+            $this->validateApproval($validated);
+        }
+
+        return $discount;
+    }
+
     public function needsApproval(float $subtotal, array $validated): bool
     {
         return $this->discountService->needsApproval(

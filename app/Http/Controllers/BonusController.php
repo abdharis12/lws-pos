@@ -13,6 +13,8 @@ class BonusController extends Controller
 {
     public function index(): Response
     {
+        $this->authorize('viewAny', Bonus::class);
+
         $bonuses = Bonus::with('employee.user', 'approvedBy')->latest()->get();
 
         return Inertia::render('admin/payroll/Bonuses', [
@@ -23,6 +25,8 @@ class BonusController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        $this->authorize('create', Bonus::class);
+
         $validated = $request->validate([
             'employee_id' => 'required|exists:employees,id',
             'period' => 'required|string|max:7',
@@ -42,6 +46,8 @@ class BonusController extends Controller
 
     public function update(Request $request, Bonus $bonus): RedirectResponse
     {
+        $this->authorize('update', $bonus);
+
         $validated = $request->validate([
             'amount' => 'required|numeric|min:0',
             'reason' => 'required|string|max:500',
@@ -56,6 +62,8 @@ class BonusController extends Controller
 
     public function destroy(Bonus $bonus): RedirectResponse
     {
+        $this->authorize('delete', $bonus);
+
         $bonus->delete();
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Bonus berhasil dihapus.']);

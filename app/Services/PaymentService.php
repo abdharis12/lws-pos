@@ -6,13 +6,13 @@ use App\Models\Order;
 
 class PaymentService
 {
-    public function createPaymentRecord(Order $order, array $midtransResponse, string $paymentType, float $total): void
+    public function createPaymentRecord(Order $order, array $midtransResponse, string $paymentType, ?float $total = null, ?string $status = null): void
     {
         $order->payment()->create([
             'method' => $paymentType,
             'midtrans_transaction_id' => $midtransResponse['transaction_id'] ?? null,
-            'gross_amount' => $total,
-            'status' => 'pending',
+            'gross_amount' => $total ?? (float) $order->total,
+            'status' => $status ?? ($paymentType === 'cash' ? 'settlement' : 'pending'),
             'raw_payload' => $midtransResponse ? json_encode($midtransResponse) : null,
         ]);
     }

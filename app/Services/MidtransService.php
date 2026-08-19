@@ -31,7 +31,9 @@ class MidtransService
             Log::error('Midtrans charge failed', [
                 'order_id' => $orderId,
                 'payment_type' => $paymentType,
-                'response' => $response->body(),
+                'status' => $response->status(),
+                'error_code' => $response->json('error_code') ?? 'unknown',
+                'error_message' => $response->json('error_messages.0') ?? 'unknown',
             ]);
         }
 
@@ -109,7 +111,8 @@ class MidtransService
         if (! $response->successful()) {
             Log::warning('Midtrans cancel failed', [
                 'order_id' => $orderId,
-                'response' => $response->body(),
+                'status' => $response->status(),
+                'error_code' => $response->json('error_code') ?? 'unknown',
             ]);
         }
 
@@ -120,6 +123,6 @@ class MidtransService
     {
         $expected = hash('sha512', $orderId.$statusCode.$grossAmount.$this->serverKey);
 
-        return $signature === $expected;
+        return hash_equals($expected, $signature);
     }
 }

@@ -17,7 +17,9 @@ beforeEach(function () {
 
     $this->outlet = Outlet::factory()->create();
     $this->owner = User::factory()->create()->assignRole('Owner');
+    Employee::factory()->create(['user_id' => $this->owner->id, 'outlet_id' => $this->outlet->id]);
     $this->admin = User::factory()->create()->assignRole('Admin');
+    Employee::factory()->create(['user_id' => $this->admin->id, 'outlet_id' => $this->outlet->id]);
 
     $this->waiterUser = User::factory()->create()->assignRole('Waiter');
     $this->waiter = Employee::factory()->create([

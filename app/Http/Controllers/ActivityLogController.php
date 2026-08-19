@@ -12,6 +12,8 @@ class ActivityLogController extends Controller
 {
     public function index(Request $request): Response
     {
+        $this->authorize('viewAny', ActivityLog::class);
+
         $query = $this->applyFilters(ActivityLog::with('user'), $request);
         $perPage = min((int) $request->input('per_page', 20), 100);
         $logs = $query->latest()->paginate($perPage)->withQueryString();

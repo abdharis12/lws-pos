@@ -13,8 +13,10 @@ class PayrollSettingController extends Controller
 {
     public function index(): Response
     {
-        $outlet = Outlet::first();
-        $thrSettings = ThrSetting::where('outlet_id', $outlet?->id)->get();
+        $this->authorize('viewAny', ThrSetting::class);
+
+        $outletId = $this->outletId();
+        $thrSettings = ThrSetting::where('outlet_id', $outletId)->get();
 
         return Inertia::render('admin/payroll/Settings', [
             'thrSettings' => $thrSettings,
@@ -23,7 +25,9 @@ class PayrollSettingController extends Controller
 
     public function storeThr(Request $request): RedirectResponse
     {
-        $outlet = Outlet::first();
+        $this->authorize('create', ThrSetting::class);
+
+        $outletId = $this->outletId();
 
         $validated = $request->validate([
             'calculation_type' => 'required|in:flat,percentage,tenure_ratio',
@@ -33,7 +37,7 @@ class PayrollSettingController extends Controller
 
         ThrSetting::create([
             ...$validated,
-            'outlet_id' => $outlet->id,
+            'outlet_id' => $outletId,
             'is_active' => true,
         ]);
 
@@ -44,6 +48,8 @@ class PayrollSettingController extends Controller
 
     public function updateThr(Request $request, ThrSetting $thrSetting): RedirectResponse
     {
+        $this->authorize('update', $thrSetting);
+
         $validated = $request->validate([
             'calculation_type' => 'required|in:flat,percentage,tenure_ratio',
             'value' => 'required|numeric|min:0',
@@ -60,10 +66,17 @@ class PayrollSettingController extends Controller
 
     public function destroyThr(ThrSetting $thrSetting): RedirectResponse
     {
+        $this->authorize('delete', $thrSetting);
+
         $thrSetting->delete();
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Pengaturan THR berhasil dihapus.']);
 
         return redirect()->back();
+    }
+
+    protected function outletId(): ?int
+    {
+        return auth()->user()?->employee?->outlet_id;
     }
 }

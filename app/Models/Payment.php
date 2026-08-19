@@ -11,8 +11,15 @@ class Payment extends Model
     use HasFactory;
 
     protected $fillable = [
-        'order_id', 'method', 'midtrans_transaction_id',
-        'gross_amount', 'status', 'signature_verified_at', 'raw_payload',
+        'order_id', 'method', 'gross_amount', 'status', 'midtrans_transaction_id',
+    ];
+
+    protected $guarded = [
+        'signature_verified_at', 'raw_payload',
+    ];
+
+    protected $hidden = [
+        'gross_amount', 'midtrans_transaction_id', 'raw_payload',
     ];
 
     protected function casts(): array

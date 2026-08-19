@@ -13,6 +13,8 @@ class DeductionController extends Controller
 {
     public function index(): Response
     {
+        $this->authorize('viewAny', Deduction::class);
+
         $deductions = Deduction::with('employee.user')->latest()->get();
 
         return Inertia::render('admin/payroll/Deductions', [
@@ -23,6 +25,8 @@ class DeductionController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        $this->authorize('create', Deduction::class);
+
         $validated = $request->validate([
             'employee_id' => 'required|exists:employees,id',
             'period' => 'required|string|max:7',
@@ -40,6 +44,8 @@ class DeductionController extends Controller
 
     public function update(Request $request, Deduction $deduction): RedirectResponse
     {
+        $this->authorize('update', $deduction);
+
         $validated = $request->validate([
             'type' => 'required|in:late,loan,other',
             'amount' => 'required|numeric|min:0',
@@ -55,6 +61,8 @@ class DeductionController extends Controller
 
     public function destroy(Deduction $deduction): RedirectResponse
     {
+        $this->authorize('delete', $deduction);
+
         $deduction->delete();
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Potongan berhasil dihapus.']);

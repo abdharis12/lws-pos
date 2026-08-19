@@ -65,6 +65,10 @@ beforeEach(function () {
     ]);
 
     $this->cashier = User::factory()->create()->assignRole('Cashier');
+    Employee::factory()->create([
+        'user_id' => $this->cashier->id,
+        'outlet_id' => $this->outlet->id,
+    ]);
 });
 
 // ─── Page Access ─────────────────────────────────────────────
@@ -341,8 +345,10 @@ test('order moves to readyOrders combined only when all items are ready', functi
         'base_price' => 8000,
         'total_price' => 8000,
     ]);
-    $foodItem->update(['status' => OrderItemStatus::Processing]);
+    \Log::info('Test setup - drink item before update', ['id' => $drinkItem->id, 'status' => $drinkItem->status?->value ?? 'null']);
     $drinkItem->update(['status' => OrderItemStatus::Ready]);
+    \Log::info('Test setup - drink item after update', ['id' => $drinkItem->fresh()->id, 'status' => $drinkItem->fresh()->status?->value ?? 'null']);
+    $foodItem->update(['status' => OrderItemStatus::Processing]);
 
     $this->actingAs($this->kitchenStaff)
         ->patch(route('orders.items.update-status', $order), [

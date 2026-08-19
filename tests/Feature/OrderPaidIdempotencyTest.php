@@ -69,23 +69,23 @@ function orderPaidPayload(Order $order, string $status = 'settlement'): array
 }
 
 // ─── Self-Order paymentStatus ────────────────────────────────
-
-test('paymentStatus broadcasts OrderPaid only on first settlement', function () {
-    $midtrans = Mockery::mock(MidtransService::class);
-    $midtrans->shouldReceive('getTransactionStatus')
-        ->with((string) $this->order->id)
-        ->andReturn(['transaction_status' => 'settlement']);
-
-    $controller = app(SelfOrderController::class);
-
-    Event::fake([OrderPaid::class]);
-    $controller->paymentStatus($this->order, $midtrans);
+ 
+ test('paymentStatus broadcasts OrderPaid only on first settlement', function () {
+     $midtrans = Mockery::mock(MidtransService::class);
+     $midtrans->shouldReceive('getTransactionStatus')
+         ->with((string) $this->order->id)
+         ->andReturn(['transaction_status' => 'settlement']);
+ 
+     $controller = app(SelfOrderController::class);
+ 
+     Event::fake([OrderPaid::class]);
+     $controller->paymentStatus($this->table->table_token, $this->order, $midtrans);
 
     expect($this->order->fresh()->status)->toBe(OrderStatus::Paid);
     Event::assertDispatched(OrderPaid::class);
 
-    Event::fake([OrderPaid::class]);
-    $controller->paymentStatus($this->order->fresh(), $midtrans);
+Event::fake([OrderPaid::class]);
+     $controller->paymentStatus($this->table->table_token, $this->order->fresh(), $midtrans);
 
     Event::assertNotDispatched(OrderPaid::class);
 });

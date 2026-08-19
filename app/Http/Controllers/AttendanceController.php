@@ -59,7 +59,13 @@ class AttendanceController extends Controller
 
     private function outlet(): ?Outlet
     {
-        return Outlet::first();
+        $outletId = $this->outletId();
+        return $outletId ? Outlet::find($outletId) : null;
+    }
+
+    protected function outletId(): ?int
+    {
+        return auth()->user()?->employee?->outlet_id;
     }
 
     public function index(Request $request): Response
@@ -97,7 +103,7 @@ class AttendanceController extends Controller
             return redirect()->back()->withErrors(['employee_id' => 'Sudah melakukan clock-in hari ini.']);
         }
 
-        $photoPath = $this->storePhoto($request, 'public');
+        $photoPath = $this->storePhoto($request, 'private');
         $attendance = $this->createAttendance($employee, $validated, $photoPath);
 
         AttendanceUpdated::dispatch($attendance);

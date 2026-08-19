@@ -69,7 +69,18 @@ class OrderController extends Controller
             abort(422, 'Tidak ada item pesanan yang cocok.');
         }
 
+        \Log::info('OrderController::updateItemsStatus', [
+            'order_id' => $order->id,
+            'item_ids' => $validated['item_ids'],
+            'status' => $status->value,
+            'items_before' => $order->items()->whereIn('id', $validated['item_ids'])->get(['id', 'status'])->toArray(),
+        ]);
+
         $order->items()->whereIn('id', $items->pluck('id'))->update(['status' => $status]);
+
+        \Log::info('OrderController::updateItemsStatus - after update', [
+            'items_after' => $order->items()->whereIn('id', $validated['item_ids'])->get(['id', 'status'])->toArray(),
+        ]);
 
         OrderKitchenStatusResolver::apply($order->load('items'));
 

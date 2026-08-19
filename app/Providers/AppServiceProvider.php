@@ -4,8 +4,10 @@ namespace App\Providers;
 
 use App\Models\Meja;
 use Carbon\CarbonImmutable;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
@@ -29,6 +31,7 @@ class AppServiceProvider extends ServiceProvider
         Route::model('target', Meja::class);
 
         $this->configureDefaults();
+        $this->configureRateLimiters();
     }
 
     /**
@@ -51,5 +54,22 @@ class AppServiceProvider extends ServiceProvider
                 ->uncompromised()
             : null,
         );
+    }
+
+    /**
+     * Configure custom rate limiters.
+     */
+    protected function configureRateLimiters(): void
+    {
+        RateLimiter::for('self-order', function (\Illuminate\Http\Request $request) {
+            $tableToken = $request->route('tableToken');
+            return Limit::perMinute(30)
+                ->by($tableToken.'|'.$request->ip());
+        });
+
+        RateLimiter::for('pos-write', function (\Illuminate\Http\Request $request) {
+            return Limit::perMinute(30)
+                ->by($request->user()?->id ?? $request->ip());
+        });
     }
 }

@@ -20,8 +20,11 @@ beforeEach(function () {
 
     $this->outlet = Outlet::factory()->create();
     $this->owner = User::factory()->create()->assignRole('Owner');
+    Employee::factory()->create(['user_id' => $this->owner->id, 'outlet_id' => $this->outlet->id]);
     $this->admin = User::factory()->create()->assignRole('Admin');
+    Employee::factory()->create(['user_id' => $this->admin->id, 'outlet_id' => $this->outlet->id]);
     $this->cashier = User::factory()->create()->assignRole('Cashier');
+    Employee::factory()->create(['user_id' => $this->cashier->id, 'outlet_id' => $this->outlet->id]);
 });
 
 // ─── Salary Components ──────────────────────────────────────

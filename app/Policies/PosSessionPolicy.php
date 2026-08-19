@@ -2,16 +2,17 @@
 
 namespace App\Policies;
 
+use App\Models\PosSession;
 use App\Models\User;
 
-class PayslipPolicy
+class PosSessionPolicy
 {
     public function viewAny(User $user): bool
     {
         return $user->hasAnyRole(['Owner', 'Admin']);
     }
 
-    public function view(User $user): bool
+    public function view(User $user, PosSession $session): bool
     {
         return $user->hasAnyRole(['Owner', 'Admin']);
     }
@@ -21,13 +22,8 @@ class PayslipPolicy
         return $user->hasAnyRole(['Owner', 'Admin']);
     }
 
-    public function update(User $user): bool
+    public function close(User $user, PosSession $session): bool
     {
         return $user->hasAnyRole(['Owner', 'Admin']);
-    }
-
-    public function delete(User $user): bool
-    {
-        return $user->hasRole('Owner');
     }
 }

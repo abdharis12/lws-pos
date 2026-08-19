@@ -28,6 +28,20 @@ class OrderKitchenStatusResolver
             return OrderStatus::Paid;
         }
 
+        // Debug logging
+        \Log::info('OrderKitchenStatusResolver::resolve', [
+            'order_id' => $order->id,
+            'items_count' => $items->count(),
+            'items' => $items->map(fn ($item) => [
+                'id' => $item->id,
+                'status' => $item->status?->value ?? 'null',
+            ])->toArray(),
+        ]);
+
+        if ($items->isEmpty()) {
+            return OrderStatus::Paid;
+        }
+
         if ($items->every(fn ($item) => $item->status === OrderItemStatus::Ready)) {
             return OrderStatus::Ready;
         }

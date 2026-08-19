@@ -13,9 +13,10 @@ class OptionGroup extends Model
     use HasFactory;
 
     protected $fillable = [
-        'outlet_id', 'name', 'selection_type',
-        'is_required', 'min_select', 'max_select', 'is_active',
+        'outlet_id', 'name', 'selection_type', 'is_required', 'min_select', 'max_select',
     ];
+
+    protected $guarded = ['is_active'];
 
     protected function casts(): array
     {

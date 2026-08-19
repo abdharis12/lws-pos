@@ -13,6 +13,8 @@ class OptionGroupController extends Controller
 {
     public function index(Request $request): Response
     {
+        $this->authorize('viewAny', OptionGroup::class);
+
         $groups = OptionGroup::where('outlet_id', $this->outletId())
             ->with('optionItems')
             ->orderBy('name')
@@ -70,7 +72,7 @@ class OptionGroupController extends Controller
 
     protected function outletId(): ?int
     {
-        return Outlet::first()?->id;
+        return auth()->user()?->employee?->outlet_id;
     }
 
     protected function validateGroup(Request $request): array
