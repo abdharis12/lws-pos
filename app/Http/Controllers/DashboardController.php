@@ -5,8 +5,8 @@ namespace App\Http\Controllers;
 use App\Enums\OrderStatus;
 use App\Models\Employee;
 use App\Models\Order;
-use App\Models\Outlet;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -18,23 +18,32 @@ class DashboardController extends Controller
         $today = today();
         $outletId = $this->outletId();
 
+        $dashboard = Cache::flexible(
+            "dashboard:today:{$outletId}:{$today->toDateString()}",
+            [60, 300],
+            fn () => $this->buildDashboard($today, $outletId),
+        );
+
+        return Inertia::render('dashboard', $dashboard);
+    }
+
+    protected function buildDashboard($today, ?int $outletId): array
+    {
         $paidStatuses = [OrderStatus::Paid->value, OrderStatus::Completed->value];
+        $nextDay = $today->addDay();
 
-        $todaySales = (float) Order::whereIn('status', $paidStatuses)
-            ->whereDate('created_at', $today)
+        $todayStats = Order::whereIn('status', $paidStatuses)
+            ->where('created_at', '>=', $today)
+            ->where('created_at', '<', $nextDay)
             ->forOutlet($outletId)
-            ->sum('total');
-
-        $todayOrdersCount = Order::whereIn('status', $paidStatuses)
-            ->whereDate('created_at', $today)
-            ->forOutlet($outletId)
-            ->count();
+            ->selectRaw('COALESCE(SUM(total),0) as sales, COUNT(*) as cnt')
+            ->first();
 
         $topMenus = DB::table('order_items')
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
             ->join('menus', 'menus.id', '=', 'order_items.menu_id')
             ->whereIn('orders.status', $paidStatuses)
-            ->whereDate('orders.created_at', $today)
+            ->whereBetween('orders.created_at', [$today, $nextDay])
             ->select(
                 'menus.id',
                 'menus.name',
@@ -58,7 +67,9 @@ class DashboardController extends Controller
             OrderStatus::Processing->value,
             OrderStatus::Ready->value,
         ])
-            ->with(['tableSession.table', 'items'])
+            ->forOutlet($outletId)
+            ->with('tableSession.table')
+            ->withCount('items')
             ->latest('created_at')
             ->limit(10)
             ->get()
@@ -66,14 +77,17 @@ class DashboardController extends Controller
                 'id' => $o->id,
                 'table_code' => $o->tableSession?->table?->code ?? '-',
                 'status' => $o->status->value,
-                'items_count' => $o->items->count(),
+                'items_count' => $o->items_count,
                 'created_at' => $o->created_at->format('H:i'),
             ])
             ->all();
 
         $todayAttendances = Employee::query()
             ->where('outlet_id', $outletId)
-            ->with(['user', 'attendances' => fn ($q) => $q->whereDate('clock_in_at', $today)])
+            ->with(['user', 'attendances' => fn ($q) => $q
+                ->where('clock_in_at', '>=', $today)
+                ->where('clock_in_at', '<', $nextDay),
+            ])
             ->get()
             ->map(fn (Employee $employee) => [
                 'id' => $employee->id,
@@ -84,13 +98,13 @@ class DashboardController extends Controller
             ])
             ->all();
 
-        return Inertia::render('dashboard', [
-            'todaySales' => $todaySales,
-            'todayOrdersCount' => $todayOrdersCount,
+        return [
+            'todaySales' => (float) $todayStats->sales,
+            'todayOrdersCount' => (int) $todayStats->cnt,
             'topMenus' => $topMenus,
             'activeOrders' => $activeOrders,
             'todayAttendances' => $todayAttendances,
-        ]);
+        ];
     }
 
     protected function outletId(): ?int

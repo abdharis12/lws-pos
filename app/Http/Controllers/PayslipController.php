@@ -7,6 +7,7 @@ use App\Models\Payslip;
 use App\Services\PayrollService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -26,10 +27,10 @@ class PayslipController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        $periods = Payslip::select('period')
+        $periods = Cache::remember('payslip_periods', 3600, fn () => Payslip::select('period')
             ->distinct()
             ->orderBy('period', 'desc')
-            ->pluck('period');
+            ->pluck('period'));
 
         return Inertia::render('admin/payroll/Payslips', [
             'payslips' => $payslips,
@@ -59,6 +60,7 @@ class PayslipController extends Controller
         $period = $request->input('period', date('Y-m'));
 
         $payrollService->generatePayslips($period);
+        Cache::forget('payslip_periods');
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Slip gaji periode '.$period.' berhasil digenerate.']);
 
@@ -72,6 +74,7 @@ class PayslipController extends Controller
         $period = $request->input('period', date('Y-m'));
 
         $payrollService->generateForEmployee($employee, $period);
+        Cache::forget('payslip_periods');
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Slip gaji berhasil digenerate.']);
 

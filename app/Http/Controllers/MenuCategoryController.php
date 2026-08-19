@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\MenuCategory;
-use App\Models\Outlet;
+use App\Services\MenuCatalogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -53,6 +53,8 @@ class MenuCategoryController extends Controller
             'sort_order' => $validated['sort_order'] ?? 0,
         ]);
 
+        MenuCatalogService::forget($outletId);
+
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Kategori berhasil ditambahkan.']);
 
         return redirect()->back();
@@ -70,6 +72,8 @@ class MenuCategoryController extends Controller
 
         $menuCategory->update($validated);
 
+        MenuCatalogService::forget($this->outletId());
+
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Kategori berhasil diperbarui.']);
 
         return redirect()->back();
@@ -79,6 +83,8 @@ class MenuCategoryController extends Controller
     {
         $this->authorize('delete', $menuCategory);
         $menuCategory->delete();
+
+        MenuCatalogService::forget($this->outletId());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Kategori berhasil dihapus.']);
 

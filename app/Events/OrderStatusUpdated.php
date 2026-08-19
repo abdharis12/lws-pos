@@ -17,7 +17,11 @@ class OrderStatusUpdated implements ShouldBroadcastNow
 
     public function __construct(Order $order)
     {
-        $this->order = $order;
+        $this->order = $order->load([
+            'tableSession.table',
+            'items.menu',
+            'items.options.optionItem',
+        ]);
     }
 
     public function broadcastOn(): array
@@ -40,13 +44,7 @@ class OrderStatusUpdated implements ShouldBroadcastNow
 
     public function broadcastWith(): array
     {
-        $this->order->refresh();
-        $order = $this->order->loadMissing([
-            'tableSession.table',
-            'items.menu',
-            'items.options.optionItem',
-            'items.options',
-        ]);
+        $order = $this->order;
 
         $items = $order->items->map(fn ($item) => [
             'id' => $item->id,

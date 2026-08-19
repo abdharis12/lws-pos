@@ -6,7 +6,6 @@ use App\Events\MenuAvailabilityChanged;
 use App\Models\Menu;
 use App\Models\MenuCategory;
 use App\Models\OptionGroup;
-use App\Models\Outlet;
 use App\Models\User;
 use App\Services\ActivityLogService;
 use Illuminate\Http\RedirectResponse;
@@ -26,7 +25,6 @@ class MenuController extends Controller
     {
         $this->authorize('viewAny', Menu::class);
 
-        $outlet = Outlet::first();
         $categories = $this->categories($this->outletId());
         $menus = Menu::with(['category', 'optionGroups.optionItems'])
             ->whereHas('category', fn ($q) => $q->where('outlet_id', $this->outletId()))

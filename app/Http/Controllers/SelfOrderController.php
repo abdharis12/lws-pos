@@ -13,6 +13,7 @@ use App\Models\Meja;
 use App\Models\MenuCategory;
 use App\Models\Order;
 use App\Models\TableSession;
+use App\Services\MenuCatalogService;
 use App\Services\MidtransService;
 use App\Services\PaymentService;
 use App\Services\SelfOrderService;
@@ -27,17 +28,24 @@ class SelfOrderController extends Controller
     public function __construct(
         private readonly SelfOrderService $orderService,
         private readonly PaymentService $paymentService,
+        private readonly MenuCatalogService $menuCatalog,
     ) {}
 
     public function show(string $tableToken): Response
     {
         $table = Meja::where('table_token', $tableToken)->firstOrFail();
         $outlet = $table->outlet;
-        $categories = MenuCategory::where('outlet_id', $outlet->id)
-            ->where('is_active', true)
-            ->with(['menus' => fn ($q) => $q->where('is_available', true)->with('optionGroups.optionItems')])
-            ->orderBy('sort_order')
-            ->get();
+        $categories = $this->menuCatalog
+            ->getForOutlet($outlet->id)
+            ->map(function (MenuCategory $category) {
+                $category->setRelation(
+                    'menus',
+                    $category->menus?->where('is_available', true)->values() ?? collect(),
+                );
+
+                return $category;
+            })
+            ->values();
 
         return Inertia::render('self-order/Menu', [
             'table' => $table,
@@ -146,7 +154,7 @@ class SelfOrderController extends Controller
     public function orderStatus(string $tableToken, Order $order): Response
     {
         $this->assertTableOwner($tableToken, $order);
-        $order->load(['items.menu', 'items.options.optionItem']);
+        $order->load(['items.menu', 'items.options.optionItem', 'tableSession.table']);
 
         return Inertia::render('self-order/Status', [
             'table' => $order->tableSession->table,
@@ -158,7 +166,7 @@ class SelfOrderController extends Controller
     public function thankYou(string $tableToken, Order $order): Response
     {
         $this->assertTableOwner($tableToken, $order);
-        $order->load(['items.menu', 'items.options.optionItem', 'servedBy']);
+        $order->load(['items.menu', 'items.options.optionItem', 'tableSession.table', 'servedBy']);
 
         return Inertia::render('self-order/ThankYou', [
             'table' => $order->tableSession->table,
@@ -170,7 +178,7 @@ class SelfOrderController extends Controller
     public function pollStatus(string $tableToken, Order $order): JsonResponse
     {
         $this->assertTableOwner($tableToken, $order);
-        $order->load(['items.menu', 'items.options.optionItem']);
+        $order->load(['items.menu', 'items.options.optionItem', 'tableSession.table']);
 
         return response()->json([
             'id' => $order->id,

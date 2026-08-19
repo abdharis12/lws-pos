@@ -7,7 +7,6 @@ use App\Exports\SalesReportExport;
 use App\Models\Attendance;
 use App\Models\Employee;
 use App\Models\Order;
-use App\Models\Outlet;
 use App\Models\Payment;
 use App\Models\Shift;
 use Carbon\Carbon;
@@ -72,20 +71,16 @@ class ReportController extends Controller
         $startDate = $request->input('start_date', today()->startOfMonth()->format('Y-m-d'));
         $endDate = $request->input('end_date', today()->format('Y-m-d'));
 
-        $allPayments = Payment::whereDate('created_at', '>=', $startDate)
-            ->whereDate('created_at', '<=', $endDate)
-            ->get();
-
         $payments = Payment::with('order')
             ->select('id', 'order_id', 'method', 'gross_amount', 'status', 'created_at')
-            ->whereDate('created_at', '>=', $startDate)
-            ->whereDate('created_at', '<=', $endDate)
+            ->where('created_at', '>=', Carbon::parse($startDate)->startOfDay())
+            ->where('created_at', '<=', Carbon::parse($endDate)->endOfDay())
             ->orderByDesc('created_at')
             ->paginate(20);
 
         return Inertia::render('admin/reports/Reconciliation', [
             'payments' => $payments,
-            'summary' => $this->reconciliationSummary($allPayments),
+            'summary' => $this->reconciliationSummarySql($startDate, $endDate),
             'startDate' => $startDate,
             'endDate' => $endDate,
         ]);
@@ -96,11 +91,11 @@ class ReportController extends Controller
         $this->authorize('viewAny', Attendance::class);
 
         [$year, $monthNum, $month, $monthStart, $monthEnd] = $this->monthRange($request);
-        $employeeIds = $this->activeEmployeeIds($request);
+        $employees = $this->activeEmployees($request);
+        $employeeIds = $employees->pluck('id');
 
         $attendances = Attendance::whereIn('employee_id', $employeeIds)
-            ->whereYear('clock_in_at', $year)
-            ->whereMonth('clock_in_at', $monthNum)
+            ->whereBetween('clock_in_at', [Carbon::parse($monthStart)->startOfDay(), Carbon::parse($monthEnd)->endOfDay()])
             ->get()
             ->groupBy('employee_id');
 
@@ -109,7 +104,6 @@ class ReportController extends Controller
             ->get()
             ->groupBy('employee_id');
 
-        $employees = $this->activeEmployees($request);
         $summary = $this->attendanceSummary($employees, $attendances, $shifts);
 
         return Inertia::render('admin/reports/Attendance', [
@@ -125,12 +119,14 @@ class ReportController extends Controller
         $this->authorize('viewAny', Attendance::class);
 
         [$year, $monthNum, $month] = $this->yearMonth($request);
+        $monthStart = Carbon::create($year, $monthNum, 1);
+        $monthEnd = $monthStart->copy()->endOfMonth();
 
         $employees = Employee::with('user')
             ->where('outlet_id', $this->outletId())
             ->with([
-                'shifts' => fn ($q) => $q->whereYear('shift_date', $year)->whereMonth('shift_date', $monthNum),
-                'attendances' => fn ($q) => $q->whereYear('clock_in_at', $year)->whereMonth('clock_in_at', $monthNum),
+                'shifts' => fn ($q) => $q->whereBetween('shift_date', [$monthStart, $monthEnd]),
+                'attendances' => fn ($q) => $q->whereBetween('clock_in_at', [$monthStart, $monthEnd]),
             ])
             ->get();
 
@@ -151,14 +147,16 @@ class ReportController extends Controller
         $monthStart = Carbon::create($year, $monthNum, 1);
         $monthEnd = $monthStart->copy()->endOfMonth();
 
-        $servedUserIds = Order::where('status', OrderStatus::Completed)
+        $points = Order::where('status', OrderStatus::Completed)
             ->whereNotNull('served_by')
             ->whereBetween('served_at', [$monthStart, $monthEnd])
-            ->get(['served_by'])
-            ->pluck('served_by')
-            ->unique();
+            ->selectRaw('served_by, COUNT(*) as total')
+            ->groupBy('served_by')
+            ->pluck('total', 'served_by')
+            ->map(fn ($total) => (int) $total);
 
-        $points = $this->waiterPointsMap($monthStart, $monthEnd);
+        $servedUserIds = $points->keys();
+
         $waiters = $this->waiterWithActivity($servedUserIds);
         $summary = $this->waiterSummary($waiters, $points);
 
@@ -191,11 +189,16 @@ class ReportController extends Controller
         $query = Order::whereIn('orders.status', [OrderStatus::Paid, OrderStatus::Completed]);
 
         return match ($period) {
-            'weekly' => $query->whereDate('orders.created_at', '>=', $weekStart)
-                ->whereDate('orders.created_at', '<=', date('Y-m-d', strtotime($weekStart.' +6 days'))),
-            'monthly' => $query->whereYear('orders.created_at', substr($month, 0, 4))
-                ->whereMonth('orders.created_at', substr($month, 5, 2)),
-            default => $query->whereDate('orders.created_at', $date),
+            'weekly' => $query->where('orders.created_at', '>=', Carbon::parse($weekStart)->startOfDay())
+                ->where('orders.created_at', '<=', Carbon::parse($weekStart)->addDays(6)->endOfDay()),
+            'monthly' => $query->whereBetween('orders.created_at', [
+                Carbon::createFromFormat('Y-m', $month)->startOfMonth(),
+                Carbon::createFromFormat('Y-m', $month)->endOfMonth(),
+            ]),
+            default => $query->whereBetween('orders.created_at', [
+                Carbon::parse($date)->startOfDay(),
+                Carbon::parse($date)->endOfDay(),
+            ]),
         };
     }
 
@@ -215,27 +218,25 @@ class ReportController extends Controller
 
     protected function hourlyData(string $date): Collection
     {
-        $hourlyOrders = Order::whereIn('status', [OrderStatus::Paid, OrderStatus::Completed])
-            ->whereDate('created_at', $date)
-            ->select('id', 'total', 'created_at')
-            ->get();
+        $start = Carbon::parse($date)->startOfDay();
 
-        return collect(range(0, 23))->map(function ($hour) use ($hourlyOrders) {
-            $orders = $hourlyOrders->filter(fn ($o) => (int) $o->created_at->format('H') === $hour);
+        $rows = Order::whereIn('status', [OrderStatus::Paid, OrderStatus::Completed])
+            ->where('created_at', '>=', $start)
+            ->where('created_at', '<', $start->copy()->addDay())
+            ->selectRaw('CAST(strftime("%H", created_at) AS INTEGER) as hour, COUNT(*) as count, COALESCE(SUM(total),0) as total')
+            ->groupBy('hour')
+            ->get()
+            ->keyBy('hour');
+
+        return collect(range(0, 23))->map(function ($hour) use ($rows) {
+            $row = $rows->get($hour);
 
             return [
                 'hour' => sprintf('%02d:00', $hour),
-                'count' => $orders->count(),
-                'total' => (float) $orders->sum('total'),
+                'count' => (int) ($row->count ?? 0),
+                'total' => (float) ($row->total ?? 0),
             ];
         });
-    }
-
-    protected function hourlyForHour($orders, $hour): array
-    {
-        $count = $orders->filter(fn ($o) => (int) $o->created_at->format('H') === $hour);
-
-        return ['hour' => sprintf('%02d:00', $hour), 'count' => $count->count(), 'total' => (float) $count->sum('total')];
     }
 
     protected function topMenusForDate(string $date): Collection
@@ -244,7 +245,10 @@ class ReportController extends Controller
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
             ->join('menus', 'menus.id', '=', 'order_items.menu_id')
             ->whereIn('orders.status', [OrderStatus::Paid, OrderStatus::Completed])
-            ->whereDate('orders.created_at', $date)
+            ->whereBetween('orders.created_at', [
+                Carbon::parse($date)->startOfDay(),
+                Carbon::parse($date)->endOfDay(),
+            ])
             ->select('menus.id', 'menus.name', DB::raw('SUM(order_items.qty) as total_qty'), DB::raw('SUM(order_items.total_price) as total_revenue'))
             ->groupBy('menus.id', 'menus.name')
             ->orderByDesc('total_qty')
@@ -258,8 +262,10 @@ class ReportController extends Controller
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
             ->join('menus', 'menus.id', '=', 'order_items.menu_id')
             ->whereIn('orders.status', [OrderStatus::Paid, OrderStatus::Completed])
-            ->whereDate('orders.created_at', '>=', $startDate)
-            ->whereDate('orders.created_at', '<=', $endDate)
+            ->whereBetween('orders.created_at', [
+                Carbon::parse($startDate)->startOfDay(),
+                Carbon::parse($endDate)->endOfDay(),
+            ])
             ->select('menus.id', 'menus.name', DB::raw('SUM(order_items.qty) as total_qty'), DB::raw('SUM(order_items.total_price) as total_revenue'))
             ->groupBy('menus.id', 'menus.name')
             ->orderByDesc('total_qty')
@@ -275,8 +281,10 @@ class ReportController extends Controller
             ->join('option_items', 'option_items.id', '=', 'order_item_options.option_item_id')
             ->join('option_groups', 'option_groups.id', '=', 'option_items.option_group_id')
             ->whereIn('orders.status', [OrderStatus::Paid, OrderStatus::Completed])
-            ->whereDate('orders.created_at', '>=', $startDate)
-            ->whereDate('orders.created_at', '<=', $endDate)
+            ->whereBetween('orders.created_at', [
+                Carbon::parse($startDate)->startOfDay(),
+                Carbon::parse($endDate)->endOfDay(),
+            ])
             ->select('option_items.id', 'option_items.name', 'option_groups.name as group_name', DB::raw('COUNT(*) as total_used'), DB::raw('SUM(order_item_options.price_adjustment) as total_adjustment'))
             ->groupBy('option_items.id', 'option_items.name', 'option_groups.name')
             ->orderByDesc('total_used')
@@ -284,15 +292,27 @@ class ReportController extends Controller
             ->get();
     }
 
-    protected function reconciliationSummary(Collection $payments): array
+    protected function reconciliationSummarySql(string $startDate, string $endDate): array
     {
+        $row = Payment::where('created_at', '>=', Carbon::parse($startDate)->startOfDay())
+            ->where('created_at', '<=', Carbon::parse($endDate)->endOfDay())
+            ->selectRaw("
+                COALESCE(SUM(CASE WHEN status IN ('settlement','success') THEN gross_amount ELSE 0 END),0) as total_system,
+                COALESCE(SUM(CASE WHEN status = 'pending' THEN gross_amount ELSE 0 END),0) as total_pending,
+                COALESCE(SUM(CASE WHEN status IN ('failed','expire','cancel','deny','failure') THEN gross_amount ELSE 0 END),0) as total_failed,
+                COALESCE(SUM(CASE WHEN method = 'qris' THEN 1 ELSE 0 END),0) as qris_count,
+                COALESCE(SUM(CASE WHEN method = 'cash' THEN 1 ELSE 0 END),0) as cash_count,
+                COALESCE(SUM(CASE WHEN method = 'debit' THEN 1 ELSE 0 END),0) as debit_count
+            ")
+            ->first();
+
         return [
-            'total_system' => (float) $payments->whereIn('status', ['settlement', 'success'])->sum('gross_amount'),
-            'total_pending' => (float) $payments->where('status', 'pending')->sum('gross_amount'),
-            'total_failed' => (float) $payments->whereIn('status', ['failed', 'expire', 'cancel', 'deny', 'failure'])->sum('gross_amount'),
-            'qris_count' => $payments->where('method', 'qris')->count(),
-            'cash_count' => $payments->where('method', 'cash')->count(),
-            'debit_count' => $payments->where('method', 'debit')->count(),
+            'total_system' => (float) $row->total_system,
+            'total_pending' => (float) $row->total_pending,
+            'total_failed' => (float) $row->total_failed,
+            'qris_count' => (int) $row->qris_count,
+            'cash_count' => (int) $row->cash_count,
+            'debit_count' => (int) $row->debit_count,
         ];
     }
 
@@ -326,11 +346,6 @@ class ReportController extends Controller
             ->where('outlet_id', $this->outletId())
             ->where('is_active', true)
             ->get();
-    }
-
-    protected function activeEmployeeIds(Request $request): Collection
-    {
-        return $this->activeEmployees($request)->pluck('id');
     }
 
     protected function attendanceSummary(Collection $employees, Collection $attendances, Collection $shifts): Collection
@@ -430,16 +445,6 @@ class ReportController extends Controller
 
             return $carry;
         }, [0, 0]);
-    }
-
-    protected function waiterPointsMap(Carbon $monthStart, Carbon $monthEnd): Collection
-    {
-        return Order::where('status', OrderStatus::Completed)
-            ->whereNotNull('served_by')
-            ->whereBetween('served_at', [$monthStart, $monthEnd])
-            ->get(['served_by'])
-            ->groupBy('served_by')
-            ->map->count();
     }
 
     protected function waiterWithActivity(Collection $servedUserIds): Collection

@@ -81,11 +81,15 @@ class Order extends Model
         return $this->hasOne(Payment::class);
     }
 
-    public function scopeForOutlet($query, int $outletId)
+    public function scopeForOutlet($query, ?int $outletId)
     {
+        if ($outletId === null) {
+            return $query->whereRaw('0 = 1');
+        }
+
         return $query->where(function ($q) use ($outletId) {
             $q->whereHas('tableSession.table', fn ($t) => $t->where('outlet_id', $outletId))
-              ->orWhereHas('posSession', fn ($p) => $p->where('outlet_id', $outletId));
+                ->orWhereHas('posSession', fn ($p) => $p->where('outlet_id', $outletId));
         });
     }
 }

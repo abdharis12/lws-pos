@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\OptionGroup;
-use App\Models\Outlet;
+use App\Services\MenuCatalogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -36,6 +36,8 @@ class OptionGroupController extends Controller
         $group = OptionGroup::create($this->groupPayload($validated));
         $this->syncItems($group, $validated['items'] ?? null);
 
+        MenuCatalogService::forget($this->outletId());
+
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Grup opsi berhasil ditambahkan.']);
 
         return redirect()->back();
@@ -53,6 +55,8 @@ class OptionGroupController extends Controller
             $this->syncItems($optionGroup, $validated['items'] ?? null);
         }
 
+        MenuCatalogService::forget($this->outletId());
+
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Grup opsi berhasil diperbarui.']);
 
         return redirect()->back();
@@ -62,6 +66,8 @@ class OptionGroupController extends Controller
     {
         $this->authorize('delete', $optionGroup);
         $optionGroup->delete();
+
+        MenuCatalogService::forget($this->outletId());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Grup opsi berhasil dihapus.']);
 

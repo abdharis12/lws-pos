@@ -32,7 +32,9 @@ class KitchenDisplayController extends Controller
     {
         return Order::with(['items.menu', 'items.options.optionItem', 'tableSession.table'])
             ->whereIn('status', [OrderStatus::Paid, OrderStatus::Processing, OrderStatus::Ready])
+            ->where('created_at', '>=', today()->startOfDay()->subDay())
             ->orderBy('created_at', 'asc')
+            ->limit(100)
             ->get();
     }
 

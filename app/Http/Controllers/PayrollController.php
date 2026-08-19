@@ -6,6 +6,7 @@ use App\Exports\PayrollReportExport;
 use App\Models\Payslip;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Inertia\Response;
 use Maatwebsite\Excel\Facades\Excel;
@@ -19,7 +20,7 @@ class PayrollController extends Controller
 
         $period = $request->input('period', date('Y-m'));
         $payslips = Payslip::with('employee.user')->where('period', $period)->get();
-        $periods = Payslip::select('period')->distinct()->orderBy('period', 'desc')->pluck('period');
+        $periods = Cache::remember('payslip_periods', 3600, fn () => Payslip::select('period')->distinct()->orderBy('period', 'desc')->pluck('period'));
 
         return Inertia::render('admin/payroll/Report', [
             'payslips' => $payslips,

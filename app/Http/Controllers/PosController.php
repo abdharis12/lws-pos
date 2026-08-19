@@ -12,13 +12,12 @@ use App\Http\Requests\Pos\StoreOrderRequest;
 use App\Http\Requests\Pos\UpdateItemsRequest;
 use App\Http\Requests\Pos\VerifyApprovalRequest;
 use App\Models\Meja;
-use App\Models\MenuCategory;
 use App\Models\Order;
-use App\Models\Outlet;
 use App\Models\PosSession;
 use App\Models\TableSession;
 use App\Models\User;
 use App\Services\ActivityLogService;
+use App\Services\MenuCatalogService;
 use App\Services\MidtransService;
 use App\Services\PaymentService;
 use App\Services\PosOrderService;
@@ -40,6 +39,7 @@ class PosController extends Controller
         private readonly PosTableService $tableService,
         private readonly ActivityLogService $activityLog,
         private readonly PaymentService $paymentService,
+        private readonly MenuCatalogService $menuCatalog,
     ) {}
 
     public function index(Request $request): Response
@@ -74,7 +74,8 @@ class PosController extends Controller
         $this->authorize('viewAny', Order::class);
 
         $orders = Order::whereIn('status', [OrderStatus::Paid, OrderStatus::Completed])
-            ->whereDate('created_at', today())
+            ->where('created_at', '>=', today()->startOfDay())
+            ->where('created_at', '<', today()->addDay()->startOfDay())
             ->with(['items.menu', 'items.options.optionItem', 'payment', 'tableSession.table', 'createdBy'])
             ->orderByDesc('created_at')
             ->limit(100)
@@ -341,11 +342,7 @@ class PosController extends Controller
 
     protected function categories(?int $outletId): Collection
     {
-        return MenuCategory::where('outlet_id', $outletId)
-            ->where('is_active', true)
-            ->with(['menus' => fn ($q) => $q->with('optionGroups.optionItems')])
-            ->orderBy('sort_order')
-            ->get();
+        return $this->menuCatalog->getForOutlet($outletId);
     }
 
     protected function selectableTables(Request $request, ?int $outletId): Collection
@@ -365,8 +362,10 @@ class PosController extends Controller
     protected function pendingOrders(): Collection
     {
         return Order::whereIn('status', [OrderStatus::Pending, OrderStatus::PendingPayment])
+            ->when($this->outletId(), fn ($q, $outletId) => $q->forOutlet($outletId))
             ->with(['tableSession.table', 'items.menu', 'items.options.optionItem', 'payment'])
             ->orderByDesc('created_at')
+            ->limit(50)
             ->get();
     }
 
@@ -413,7 +412,7 @@ class PosController extends Controller
         }
 
         return PosSession::where('outlet_id', $outletId)
-            ->whereDate('session_date', today())
+            ->where('session_date', today())
             ->where('status', 'open')
             ->first()?->id;
     }

@@ -21,13 +21,23 @@ class PayrollService
             'bonuses' => fn ($q) => $q->where('period', $period),
             'deductions' => fn ($q) => $q->where('period', $period),
             'attendances' => fn ($q) => $q->whereBetween('clock_in_at', [$startDate, $endDate]),
-            'shifts' => fn ($q) => $q->whereYear('shift_date', (int) $year)->whereMonth('shift_date', (int) $month),
+            'shifts' => fn ($q) => $q->whereBetween('shift_date', [$startDate, $endDate]),
         ])
             ->where('is_active', true)
             ->get();
 
+        $existingStatuses = Payslip::where('period', $period)
+            ->whereIn('employee_id', $employees->pluck('id'))
+            ->pluck('status', 'employee_id');
+
         return $employees
-            ->map(fn (Employee $employee) => $this->buildForEmployee($employee, $period, $startDate, $endDate))
+            ->map(fn (Employee $employee) => $this->buildForEmployee(
+                $employee,
+                $period,
+                $startDate,
+                $endDate,
+                $existingStatuses[$employee->id] ?? null,
+            ))
             ->filter();
     }
 
@@ -44,13 +54,13 @@ class PayrollService
             'bonuses' => fn ($q) => $q->where('period', $period),
             'deductions' => fn ($q) => $q->where('period', $period),
             'attendances' => fn ($q) => $q->whereBetween('clock_in_at', [$startDate, $endDate]),
-            'shifts' => fn ($q) => $q->whereYear('shift_date', (int) $startDate->year)->whereMonth('shift_date', (int) $startDate->month),
+            'shifts' => fn ($q) => $q->whereBetween('shift_date', [$startDate, $endDate]),
         ]);
 
         return $this->buildForEmployee($employee, $period, $startDate, $endDate);
     }
 
-    protected function buildForEmployee(Employee $employee, string $period, Carbon $startDate, Carbon $endDate): ?Payslip
+    protected function buildForEmployee(Employee $employee, string $period, Carbon $startDate, Carbon $endDate, ?string $existingStatus = null): ?Payslip
     {
         $component = $employee->salaryComponent;
         if (! $component) {
@@ -66,7 +76,7 @@ class PayrollService
         $bonus = (float) $employee->bonuses->sum('amount');
         $deduction = (float) $employee->deductions->sum('amount');
         $takeHome = max(0, $baseSalary + $allowances['total'] + $overtime + $bonus - $deduction);
-        $status = $this->payslipStatus($employee, $period);
+        $status = $existingStatus ?? $this->payslipStatus($employee, $period);
 
         return Payslip::updateOrCreate(
             ['employee_id' => $employee->id, 'period' => $period],

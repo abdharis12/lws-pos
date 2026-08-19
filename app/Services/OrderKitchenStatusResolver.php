@@ -28,15 +28,17 @@ class OrderKitchenStatusResolver
             return OrderStatus::Paid;
         }
 
-        // Debug logging
-        \Log::info('OrderKitchenStatusResolver::resolve', [
-            'order_id' => $order->id,
-            'items_count' => $items->count(),
-            'items' => $items->map(fn ($item) => [
-                'id' => $item->id,
-                'status' => $item->status?->value ?? 'null',
-            ])->toArray(),
-        ]);
+        // Debug logging (hanya di environment local — bukan production)
+        if (app()->environment('local')) {
+            \Log::info('OrderKitchenStatusResolver::resolve', [
+                'order_id' => $order->id,
+                'items_count' => $items->count(),
+                'items' => $items->map(fn ($item) => [
+                    'id' => $item->id,
+                    'status' => $item->status?->value ?? 'null',
+                ])->toArray(),
+            ]);
+        }
 
         if ($items->isEmpty()) {
             return OrderStatus::Paid;

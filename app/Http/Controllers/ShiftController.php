@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Employee;
-use App\Models\Outlet;
 use App\Models\Shift;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
@@ -212,7 +211,7 @@ class ShiftController extends Controller
     protected function existsConflict(array $validated): bool
     {
         return Shift::where('employee_id', $validated['employee_id'])
-            ->whereDate('shift_date', $validated['shift_date'])
+            ->where('shift_date', $validated['shift_date'])
             ->where('shift_number', $validated['shift_number'])
             ->exists();
     }

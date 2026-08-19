@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\ActivityLog;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -18,7 +20,7 @@ class ActivityLogController extends Controller
         $perPage = min((int) $request->input('per_page', 20), 100);
         $logs = $query->latest()->paginate($perPage)->withQueryString();
 
-        $actions = ActivityLog::select('action')->distinct()->orderBy('action')->pluck('action');
+        $actions = Cache::remember('activity_log_actions', 3600, fn () => ActivityLog::select('action')->distinct()->orderBy('action')->pluck('action'));
 
         return Inertia::render('admin/activity-logs/Index', [
             'logs' => $logs,
@@ -38,11 +40,11 @@ class ActivityLogController extends Controller
         }
 
         if ($request->filled('start_date')) {
-            $query->whereDate('created_at', '>=', $request->input('start_date'));
+            $query->where('created_at', '>=', Carbon::parse($request->input('start_date'))->startOfDay());
         }
 
         if ($request->filled('end_date')) {
-            $query->whereDate('created_at', '<=', $request->input('end_date'));
+            $query->where('created_at', '<=', Carbon::parse($request->input('end_date'))->endOfDay());
         }
 
         return $query;

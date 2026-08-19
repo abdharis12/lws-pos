@@ -6,6 +6,7 @@ use App\Events\AttendanceUpdated;
 use App\Models\Attendance;
 use App\Models\Employee;
 use App\Models\Outlet;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -14,6 +15,8 @@ use Inertia\Response;
 
 class AttendanceController extends Controller
 {
+    private ?Outlet $outletCache = null;
+
     private function isAdmin(Request $request): bool
     {
         return $request->user()->hasAnyRole(['Owner', 'Admin']);
@@ -60,7 +63,12 @@ class AttendanceController extends Controller
     private function outlet(): ?Outlet
     {
         $outletId = $this->outletId();
-        return $outletId ? Outlet::find($outletId) : null;
+
+        if ($this->outletCache === null && $outletId) {
+            $this->outletCache = Outlet::find($outletId);
+        }
+
+        return $this->outletCache;
     }
 
     protected function outletId(): ?int
@@ -76,7 +84,6 @@ class AttendanceController extends Controller
         $attendances = $this->todayAttendances($request, $today);
         $todayAttendance = $attendances->keyBy('employee_id');
         $outlet = $this->outlet();
-        $outlet?->load('employees');
 
         return Inertia::render('admin/attendance/Index', [
             'attendances' => $attendances,
@@ -232,7 +239,8 @@ class AttendanceController extends Controller
     protected function alreadyClockedIn(int $employeeId): bool
     {
         return Attendance::where('employee_id', $employeeId)
-            ->whereDate('clock_in_at', today())
+            ->where('clock_in_at', '>=', today()->startOfDay())
+            ->where('clock_in_at', '<', today()->addDay()->startOfDay())
             ->whereNull('clock_out_at')
             ->exists();
     }
@@ -240,7 +248,8 @@ class AttendanceController extends Controller
     protected function openAttendance(int $employeeId): ?Attendance
     {
         return Attendance::where('employee_id', $employeeId)
-            ->whereDate('clock_in_at', today())
+            ->where('clock_in_at', '>=', today()->startOfDay())
+            ->where('clock_in_at', '<', today()->addDay()->startOfDay())
             ->whereNull('clock_out_at')
             ->first();
     }
@@ -252,7 +261,9 @@ class AttendanceController extends Controller
 
     protected function createAttendance(Employee $employee, array $validated, ?string $photoPath): Attendance
     {
-        $scheduledStart = now()->setTimeFromTimeString($employee->shifts()->whereDate('shift_date', today())->first()?->start_time ?? '08:00');
+        $scheduledStart = now()->setTimeFromTimeString($employee->shifts()
+            ->whereBetween('shift_date', [today()->startOfDay(), today()->endOfDay()])
+            ->first()?->start_time ?? '08:00');
         $isLate = now()->gt($scheduledStart->addMinutes(15));
 
         return Attendance::create([
@@ -267,7 +278,9 @@ class AttendanceController extends Controller
 
     protected function markEarlyLeave(Attendance $attendance): void
     {
-        $shift = $attendance->employee->shifts()->whereDate('shift_date', today())->first();
+        $shift = $attendance->employee->shifts()
+            ->whereBetween('shift_date', [today()->startOfDay(), today()->endOfDay()])
+            ->first();
 
         if ($shift) {
             $scheduledEnd = now()->setTimeFromTimeString($shift->end_time);
@@ -318,8 +331,10 @@ class AttendanceController extends Controller
     {
         $query = Attendance::with('employee.user')
             ->whereHas('employee', fn ($q) => $q->where('outlet_id', $this->outlet()?->id))
-            ->whereYear('clock_in_at', $year)
-            ->whereMonth('clock_in_at', $monthNum);
+            ->whereBetween('clock_in_at', [
+                Carbon::create($year, $monthNum, 1)->startOfDay(),
+                Carbon::create($year, $monthNum, 1)->endOfMonth(),
+            ]);
 
         if ($employeeId) {
             $query->where('employee_id', $employeeId);

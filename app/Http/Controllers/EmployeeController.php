@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Employee;
-use App\Models\Outlet;
 use App\Models\User;
 use App\Services\ActivityLogService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -26,7 +25,7 @@ class EmployeeController extends Controller
         $this->authorize('viewAny', Employee::class);
 
         $outletId = $this->outletId();
-        $query = $this->applySearch(Employee::with('user')->where('outlet_id', $outletId), $request);
+        $query = $this->applySearch(Employee::with('user.roles')->where('outlet_id', $outletId), $request);
 
         $employees = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
         $this->attachRoles($employees);
@@ -58,7 +57,7 @@ class EmployeeController extends Controller
     {
         $this->authorize('view', $employee);
 
-        $employee->load('user');
+        $employee->load('user.roles');
         $employee->role = $employee->user->roles->pluck('name')->first();
 
         return Inertia::render('admin/employees/Show', [

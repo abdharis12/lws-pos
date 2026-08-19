@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use App\Models\Order;
+use Carbon\Carbon;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
@@ -20,11 +21,16 @@ class SalesReportExport implements FromCollection, WithHeadings, WithMapping
             ->whereIn('status', ['paid', 'completed', 'settled']);
 
         match ($this->period) {
-            'weekly' => $query->whereDate('created_at', '>=', $this->date)
-                ->whereDate('created_at', '<=', date('Y-m-d', strtotime($this->date.' +6 days'))),
-            'monthly' => $query->whereYear('created_at', substr($this->date, 0, 4))
-                ->whereMonth('created_at', substr($this->date, 5, 2)),
-            default => $query->whereDate('created_at', $this->date),
+            'weekly' => $query->where('created_at', '>=', Carbon::parse($this->date)->startOfDay())
+                ->where('created_at', '<=', Carbon::parse($this->date)->addDays(6)->endOfDay()),
+            'monthly' => $query->whereBetween('created_at', [
+                Carbon::createFromFormat('Y-m', $this->date)->startOfMonth(),
+                Carbon::createFromFormat('Y-m', $this->date)->endOfMonth(),
+            ]),
+            default => $query->whereBetween('created_at', [
+                Carbon::parse($this->date)->startOfDay(),
+                Carbon::parse($this->date)->endOfDay(),
+            ]),
         };
 
         return $query->orderByDesc('created_at')->get();

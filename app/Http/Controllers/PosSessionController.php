@@ -55,7 +55,8 @@ class PosSessionController extends Controller
 
     public function show(PosSession $posSession): JsonResponse
     {
-        $posSession->load(['orders.payment', 'openedBy', 'closedBy']);
+        $posSession->load(['openedBy', 'closedBy']);
+        $posSession->load(['orders' => fn ($q) => $this->slimOrders($q), 'orders.payment' => fn ($q) => $q->select('id', 'order_id', 'method')]);
 
         return response()->json([
             'session' => $posSession,
@@ -71,7 +72,7 @@ class PosSessionController extends Controller
             abort(409, 'Session sudah ditutup.');
         }
 
-        $posSession->load('orders.payment');
+        $posSession->load(['orders' => fn ($q) => $this->slimOrders($q), 'orders.payment' => fn ($q) => $q->select('id', 'order_id', 'method')]);
         $posSession->update([
             'closed_at' => now(),
             'closed_by' => $request->user()->id,
@@ -95,11 +96,17 @@ class PosSessionController extends Controller
 
     protected function currentSession(?int $outletId): ?PosSession
     {
-        return PosSession::with(['openedBy', 'closedBy', 'orders.payment'])
+        return PosSession::with(['openedBy', 'closedBy'])
+            ->with(['orders' => fn ($q) => $this->slimOrders($q), 'orders.payment' => fn ($q) => $q->select('id', 'order_id', 'method')])
             ->where('outlet_id', $outletId)
-            ->whereDate('session_date', today())
+            ->where('session_date', today())
             ->where('status', 'open')
             ->first();
+    }
+
+    protected function slimOrders($query)
+    {
+        return $query->select('id', 'pos_session_id', 'total', 'created_at');
     }
 
     protected function recentSessions(?int $outletId): Collection
@@ -179,7 +186,7 @@ class PosSessionController extends Controller
     protected function assertNoOpenSession(int $outletId): void
     {
         $existing = PosSession::where('outlet_id', $outletId)
-            ->whereDate('session_date', today())
+            ->where('session_date', today())
             ->where('status', 'open')
             ->exists();
 

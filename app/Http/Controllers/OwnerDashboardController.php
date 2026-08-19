@@ -6,10 +6,10 @@ use App\Enums\OrderStatus;
 use App\Models\Attendance;
 use App\Models\Employee;
 use App\Models\Order;
-use App\Models\Outlet;
 use App\Models\Payment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -21,7 +21,13 @@ class OwnerDashboardController extends Controller
         $outletId = $this->outletId();
         $today = today();
 
-        return Inertia::render('owner/Dashboard', $this->buildDashboard($outletId, $today));
+        $dashboard = Cache::flexible(
+            "owner_dashboard:{$outletId}:{$today->toDateString()}",
+            [60, 300],
+            fn () => $this->buildDashboard($outletId, $today),
+        );
+
+        return Inertia::render('owner/Dashboard', $dashboard);
     }
 
     protected function buildDashboard(?int $outletId, $today): array
@@ -58,7 +64,10 @@ class OwnerDashboardController extends Controller
 
         return [
             'todaySales' => $this->paidOn($paidStatuses, $today),
-            'todayOrdersCount' => Order::whereIn('status', $paidStatuses)->whereDate('created_at', $today)->count(),
+            'todayOrdersCount' => Order::whereIn('status', $paidStatuses)
+                ->where('created_at', '>=', $today->startOfDay())
+                ->where('created_at', '<', $today->copy()->addDay()->startOfDay())
+                ->count(),
             'yesterdaySales' => $this->paidOn($paidStatuses, $today->copy()->subDay()),
             'thisWeekSales' => $this->paidSince($paidStatuses, $today->copy()->startOfWeek()),
             'lastWeekSales' => $this->paidBetween($paidStatuses, $today->copy()->subWeek()->startOfWeek(), $today->copy()->startOfWeek()),
@@ -73,22 +82,24 @@ class OwnerDashboardController extends Controller
 
     protected function paidSince(array $statuses, $from): float
     {
-        return (float) Order::whereIn('status', $statuses)->whereDate('created_at', '>=', $from)->sum('total');
+        return (float) Order::whereIn('status', $statuses)
+            ->where('created_at', '>=', $from->startOfDay())
+            ->sum('total');
     }
 
     protected function paidBetween(array $statuses, $from, $to): float
     {
         return (float) Order::whereIn('status', $statuses)
-            ->whereDate('created_at', '>=', $from)
-            ->whereDate('created_at', '<', $to)
+            ->where('created_at', '>=', $from->startOfDay())
+            ->where('created_at', '<', $to->startOfDay())
             ->sum('total');
     }
 
     protected function sumRange(array $statuses, $from, $to): float
     {
         return (float) Order::whereIn('status', $statuses)
-            ->whereDate('created_at', '>=', $from)
-            ->whereDate('created_at', '<=', $to)
+            ->where('created_at', '>=', $from->startOfDay())
+            ->where('created_at', '<', $to->copy()->addDay()->startOfDay())
             ->sum('total');
     }
 
@@ -99,21 +110,27 @@ class OwnerDashboardController extends Controller
 
         return [
             'monthlyRounding' => (float) Order::whereIn('status', $paidStatuses)
-                ->whereYear('created_at', $today->year)
-                ->whereMonth('created_at', $today->month)
+                ->whereBetween('created_at', [
+                    $today->copy()->startOfMonth(),
+                    $today->copy()->endOfMonth(),
+                ])
                 ->sum('rounding_amount'),
             'lastMonthRounding' => (float) Order::whereIn('status', $paidStatuses)
-                ->whereYear('created_at', $lastMonthStart->year)
-                ->whereMonth('created_at', $lastMonthStart->month)
+                ->whereBetween('created_at', [
+                    $lastMonthStart->copy()->startOfMonth(),
+                    $lastMonthStart->copy()->endOfMonth(),
+                ])
                 ->sum('rounding_amount'),
         ];
     }
 
-protected function staffMetrics(?int $outletId, $today): array
+    protected function staffMetrics(?int $outletId, $today): array
     {
         return [
             'employeeCount' => Employee::where('outlet_id', $outletId)->count(),
-            'attendanceToday' => Attendance::whereDate('clock_in_at', $today)->count(),
+            'attendanceToday' => Attendance::where('clock_in_at', '>=', $today->startOfDay())
+                ->where('clock_in_at', '<', $today->copy()->addDay()->startOfDay())
+                ->count(),
         ];
     }
 
@@ -125,13 +142,17 @@ protected function staffMetrics(?int $outletId, $today): array
     protected function activeOrders(): array
     {
         return Order::whereIn('status', [OrderStatus::Paid, OrderStatus::Processing])
+            ->when($this->outletId(), fn ($q, $outletId) => $q->forOutlet($outletId))
             ->with('tableSession.table')
+            ->withCount('items')
+            ->latest('created_at')
+            ->limit(50)
             ->get()
             ->map(fn ($o) => [
                 'id' => $o->id,
                 'table_code' => $o->tableSession?->table?->code ?? '-',
                 'status' => $o->status,
-                'items_count' => $o->items()->count(),
+                'items_count' => $o->items_count,
                 'created_at' => $o->created_at->format('H:i'),
             ])
             ->all();
@@ -143,7 +164,7 @@ protected function staffMetrics(?int $outletId, $today): array
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
             ->join('menus', 'menus.id', '=', 'order_items.menu_id')
             ->whereIn('orders.status', [OrderStatus::Paid, OrderStatus::Completed])
-            ->whereDate('orders.created_at', $today)
+            ->whereBetween('orders.created_at', [$today->startOfDay(), $today->copy()->endOfDay()])
             ->select('menus.name', DB::raw('SUM(order_items.qty) as total_qty'))
             ->groupBy('menus.name')
             ->orderByDesc('total_qty')
@@ -153,17 +174,22 @@ protected function staffMetrics(?int $outletId, $today): array
 
     protected function avgCookingTime(): ?float
     {
+        $expression = DB::getDriverName() === 'mysql'
+            ? 'AVG(TIMESTAMPDIFF(MINUTE, created_at, updated_at))'
+            : 'AVG((julianday(updated_at) - julianday(created_at)) * 1440)';
+
         $avg = Order::whereIn('status', [OrderStatus::Ready, OrderStatus::Completed])
             ->whereNotNull('updated_at')
-            ->get(['created_at', 'updated_at'])
-            ->avg(fn (Order $o) => $o->created_at->diffInMinutes($o->updated_at));
+            ->selectRaw("{$expression} as avg_min")
+            ->value('avg_min');
 
-        return $avg ? round((float) $avg) : null;
+        return $avg !== null ? round((float) $avg) : null;
     }
 
     protected function paymentBreakdown($today): array
     {
-        return Payment::whereDate('created_at', $today)
+        return Payment::where('created_at', '>=', $today->startOfDay())
+            ->where('created_at', '<', $today->copy()->addDay()->startOfDay())
             ->select('method', DB::raw('COUNT(*) as count'), DB::raw('SUM(gross_amount) as total'))
             ->groupBy('method')
             ->get()
@@ -172,13 +198,17 @@ protected function staffMetrics(?int $outletId, $today): array
 
     protected function salesTrend(): array
     {
-        return collect(range(6, 0))->map(function ($daysAgo) {
-            $date = today()->subDays($daysAgo);
-            $total = (float) Order::whereIn('status', [OrderStatus::Paid, OrderStatus::Completed])
-                ->whereDate('created_at', $date)
-                ->sum('total');
+        $start = today()->subDays(6)->startOfDay();
+        $totals = Order::whereIn('status', [OrderStatus::Paid, OrderStatus::Completed])
+            ->where('created_at', '>=', $start)
+            ->selectRaw('DATE(created_at) as d, SUM(total) as total')
+            ->groupBy('d')
+            ->pluck('total', 'd')
+            ->map(fn ($v) => (float) $v);
 
-            return ['date' => $date->format('D'), 'total' => $total];
-        })->all();
+        return collect(range(6, 0))->map(fn ($daysAgo) => [
+            'date' => today()->subDays($daysAgo)->format('D'),
+            'total' => $totals[today()->subDays($daysAgo)->toDateString()] ?? 0.0,
+        ])->all();
     }
 }
