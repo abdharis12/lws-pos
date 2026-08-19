@@ -80,4 +80,12 @@ class Order extends Model
     {
         return $this->hasOne(Payment::class);
     }
+
+    public function scopeForOutlet($query, int $outletId)
+    {
+        return $query->where(function ($q) use ($outletId) {
+            $q->whereHas('tableSession.table', fn ($t) => $t->where('outlet_id', $outletId))
+              ->orWhereHas('posSession', fn ($p) => $p->where('outlet_id', $outletId));
+        });
+    }
 }

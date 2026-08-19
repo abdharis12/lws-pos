@@ -1,4 +1,5 @@
 import { Flame, Search, Sparkles } from 'lucide-react'
+import type { RefObject } from 'react'
 import { fmt } from '@/lib/currency'
 import type { MenuItem } from '@/types/self-order'
 
@@ -10,6 +11,7 @@ interface Props {
     totalMenus: number
     spotlightMenu?: MenuItem
     onSpotlightSelect: (menu: MenuItem) => void
+    inputRef?: RefObject<HTMLInputElement | null>
 }
 
 export function MenuHero({
@@ -20,6 +22,7 @@ export function MenuHero({
     totalMenus,
     spotlightMenu,
     onSpotlightSelect,
+    inputRef,
 }: Props) {
     return (
         <div className="relative">
@@ -55,6 +58,7 @@ export function MenuHero({
                     <div className="relative mt-5">
                         <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#CFC0A4]" />
                         <input
+                            ref={inputRef}
                             type="text"
                             value={customerName}
                             onChange={e => onCustomerNameChange(e.target.value)}

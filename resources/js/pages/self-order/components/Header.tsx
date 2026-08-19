@@ -18,6 +18,7 @@ export function Header({ categories, activeCategory, onCategoryChange, cartCount
                     <div className="no-scrollbar flex flex-1 gap-2 overflow-x-auto">
                         {categories.map(cat => {
                             const active = cat.id === activeCategory
+
                             return (
                                 <button
                                     key={cat.id}

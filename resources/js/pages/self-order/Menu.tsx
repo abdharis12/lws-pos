@@ -1,6 +1,7 @@
 import { Head } from '@inertiajs/react'
 import { Clock } from 'lucide-react'
-import { useState, useCallback } from 'react'
+import { useRef, useState, useCallback } from 'react'
+import { toast } from 'sonner'
 import { useSelfOrderCart } from '@/hooks/useSelfOrderCart'
 import { useSelfOrderPayment } from '@/hooks/useSelfOrderPayment'
 import { CartModal } from '@/pages/self-order/components/CartModal'
@@ -23,6 +24,7 @@ export default function SelfOrderMenu({ table, tableToken, categories, outlet }:
     const [activeCategory, setActiveCategory] = useState(categories[0]?.id ?? 0)
     const [customerName, setCustomerName] = useState('')
     const [submitting, setSubmitting] = useState(false)
+    const nameInputRef = useRef<HTMLInputElement>(null)
 
     const cart = useSelfOrderCart()
     const payment = useSelfOrderPayment(tableToken)
@@ -45,6 +47,15 @@ export default function SelfOrderMenu({ table, tableToken, categories, outlet }:
         },
         [payment, cart.cart, customerName],
     )
+
+    const promptForName = useCallback(() => {
+        toast.error('Mohon isi nama kamu terlebih dahulu', {
+            description: 'Nama digunakan untuk identifikasi pesanan kamu',
+        })
+
+        nameInputRef.current?.focus()
+        nameInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, [])
 
     const handleCancelPayment = useCallback(async () => {
         const orderId = payment.midtransOrderId
@@ -124,6 +135,7 @@ export default function SelfOrderMenu({ table, tableToken, categories, outlet }:
                 totalMenus={totalMenus}
                 spotlightMenu={spotlightMenu}
                 onSpotlightSelect={cart.openMenu}
+                inputRef={nameInputRef}
             />
 
             <Header
@@ -184,12 +196,19 @@ export default function SelfOrderMenu({ table, tableToken, categories, outlet }:
                     customerName={customerName}
                     onSetPaymentMethod={payment.setPaymentMethod}
                     onCheckout={() => {
+                        if (!customerName.trim()) {
+                            promptForName()
+
+                            return
+                        }
+
                         if (payment.paymentMethod === 'online') {
                             cart.setIsCartOpen(false)
                         } else {
                             handleCashCheckout()
                         }
                     }}
+                    onPromptName={promptForName}
                     onRemoveItem={cart.removeFromCart}
                     onClose={() => {
                         cart.setIsCartOpen(false)

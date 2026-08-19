@@ -1,4 +1,5 @@
 import { ShoppingCart, X, LoaderCircle } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { fmt } from '@/lib/currency'
 import { cn } from '@/lib/utils'
@@ -20,6 +21,7 @@ interface Props {
     customerName: string
     onSetPaymentMethod: (method: 'cash' | 'online' | null) => void
     onCheckout: () => void
+    onPromptName: () => void
     onRemoveItem: (index: number) => void
     onClose: () => void
     calcItemTotal: (item: CartItem) => number
@@ -41,6 +43,7 @@ export function CartModal({
     customerName,
     onSetPaymentMethod,
     onCheckout,
+    onPromptName,
     onRemoveItem,
     onClose,
     calcItemTotal,
@@ -192,8 +195,22 @@ export function CartModal({
 
                         <Button
                             className="h-12 w-full rounded-2xl bg-[#4F6B6A] text-base font-semibold shadow-lg shadow-[#4F6B6A]/20 transition-all hover:bg-[#3d5554] active:scale-[0.98] disabled:opacity-50"
-                            onClick={onCheckout}
-                            disabled={submitting || !customerName.trim() || !paymentMethod}
+                            onClick={() => {
+                                if (!customerName.trim()) {
+                                    onPromptName()
+
+                                    return
+                                }
+
+                                if (!paymentMethod) {
+                                    toast.error('Pilih metode pembayaran terlebih dahulu')
+
+                                    return
+                                }
+
+                                onCheckout()
+                            }}
+                            disabled={submitting}
                         >
                             {submitting ? (
                                 <span className="flex items-center gap-2">

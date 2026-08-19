@@ -22,11 +22,12 @@ class DashboardController extends Controller
 
         $todaySales = (float) Order::whereIn('status', $paidStatuses)
             ->whereDate('created_at', $today)
-            ->where('outlet_id', $outletId)
+            ->forOutlet($outletId)
             ->sum('total');
 
         $todayOrdersCount = Order::whereIn('status', $paidStatuses)
             ->whereDate('created_at', $today)
+            ->forOutlet($outletId)
             ->count();
 
         $topMenus = DB::table('order_items')
