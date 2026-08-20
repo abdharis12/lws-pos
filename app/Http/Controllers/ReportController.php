@@ -223,7 +223,7 @@ class ReportController extends Controller
         $rows = Order::whereIn('status', [OrderStatus::Paid, OrderStatus::Completed])
             ->where('created_at', '>=', $start)
             ->where('created_at', '<', $start->copy()->addDay())
-            ->selectRaw('CAST(strftime("%H", created_at) AS INTEGER) as hour, COUNT(*) as count, COALESCE(SUM(total),0) as total')
+            ->selectRaw('EXTRACT(HOUR FROM created_at)::int as hour, COUNT(*) as count, COALESCE(SUM(total),0) as total')
             ->groupBy('hour')
             ->get()
             ->keyBy('hour');

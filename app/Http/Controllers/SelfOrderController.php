@@ -10,7 +10,6 @@ use App\Events\OrderStatusUpdated;
 use App\Http\Requests\SelfOrder\PayRequest;
 use App\Http\Requests\SelfOrder\StoreRequest;
 use App\Models\Meja;
-use App\Models\MenuCategory;
 use App\Models\Order;
 use App\Models\TableSession;
 use App\Services\MenuCatalogService;
@@ -35,17 +34,17 @@ class SelfOrderController extends Controller
     {
         $table = Meja::where('table_token', $tableToken)->firstOrFail();
         $outlet = $table->outlet;
-        $categories = $this->menuCatalog
-            ->getForOutlet($outlet->id)
-            ->map(function (MenuCategory $category) {
-                $category->setRelation(
-                    'menus',
-                    $category->menus?->where('is_available', true)->values() ?? collect(),
-                );
+        $categories = collect($this->menuCatalog->getForOutlet($outlet->id))
+            ->map(function (array $category) {
+                $category['menus'] = collect($category['menus'] ?? [])
+                    ->where('is_available', true)
+                    ->values()
+                    ->all();
 
                 return $category;
             })
-            ->values();
+            ->values()
+            ->all();
 
         return Inertia::render('self-order/Menu', [
             'table' => $table,

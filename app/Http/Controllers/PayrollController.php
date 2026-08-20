@@ -20,7 +20,7 @@ class PayrollController extends Controller
 
         $period = $request->input('period', date('Y-m'));
         $payslips = Payslip::with('employee.user')->where('period', $period)->get();
-        $periods = Cache::remember('payslip_periods', 3600, fn () => Payslip::select('period')->distinct()->orderBy('period', 'desc')->pluck('period'));
+        $periods = Cache::remember('payslip_periods', 3600, fn () => Payslip::select('period')->distinct()->orderBy('period', 'desc')->pluck('period')->toArray());
 
         return Inertia::render('admin/payroll/Report', [
             'payslips' => $payslips,

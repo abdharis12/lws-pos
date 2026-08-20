@@ -20,7 +20,7 @@ class ActivityLogController extends Controller
         $perPage = min((int) $request->input('per_page', 20), 100);
         $logs = $query->latest()->paginate($perPage)->withQueryString();
 
-        $actions = Cache::remember('activity_log_actions', 3600, fn () => ActivityLog::select('action')->distinct()->orderBy('action')->pluck('action'));
+        $actions = Cache::remember('activity_log_actions', 3600, fn () => ActivityLog::select('action')->distinct()->orderBy('action')->pluck('action')->toArray());
 
         return Inertia::render('admin/activity-logs/Index', [
             'logs' => $logs,

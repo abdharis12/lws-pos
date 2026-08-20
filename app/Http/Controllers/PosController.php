@@ -340,7 +340,7 @@ class PosController extends Controller
 
     // ── index helpers ───────────────────────────────────────────────────────
 
-    protected function categories(?int $outletId): Collection
+    protected function categories(?int $outletId): array
     {
         return $this->menuCatalog->getForOutlet($outletId);
     }

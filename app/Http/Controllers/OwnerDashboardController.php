@@ -174,9 +174,12 @@ class OwnerDashboardController extends Controller
 
     protected function avgCookingTime(): ?float
     {
-        $expression = DB::getDriverName() === 'mysql'
-            ? 'AVG(TIMESTAMPDIFF(MINUTE, created_at, updated_at))'
-            : 'AVG((julianday(updated_at) - julianday(created_at)) * 1440)';
+        $driver = DB::getDriverName();
+        $expression = match ($driver) {
+            'mysql' => 'AVG(TIMESTAMPDIFF(MINUTE, created_at, updated_at))',
+            'pgsql' => 'AVG(EXTRACT(EPOCH FROM (updated_at - created_at)) / 60)',
+            default => 'AVG((julianday(updated_at) - julianday(created_at)) * 1440)',
+        };
 
         $avg = Order::whereIn('status', [OrderStatus::Ready, OrderStatus::Completed])
             ->whereNotNull('updated_at')
