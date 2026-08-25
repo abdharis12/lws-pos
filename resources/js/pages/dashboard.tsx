@@ -7,6 +7,10 @@ import {
     Users,
     Clock,
     Layers,
+    AlertTriangle,
+    Trash2,
+    PackageSearch,
+    Target,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -44,6 +48,15 @@ interface Props {
     topMenus?: TopMenu[];
     activeOrders?: ActiveOrder[];
     todayAttendances?: EmployeeAttendance[];
+    // Cost Control (Phase 2)
+    lowStockCount?: number;
+    lowMarginCount?: number;
+    wasteCostToday?: number;
+    topMarginErosion?: Array<{
+        menu_name: string;
+        margin_percent: number;
+        variance_percent: number;
+    }>;
 }
 
 export default function Dashboard({
@@ -52,6 +65,10 @@ export default function Dashboard({
     topMenus = [],
     activeOrders = [],
     todayAttendances = [],
+    lowStockCount = 0,
+    lowMarginCount = 0,
+    wasteCostToday = 0,
+    topMarginErosion = [],
 }: Props) {
     return (
         <div className="min-h-screen bg-[#FAF8F4] p-6 font-sans text-slate-800">
@@ -161,6 +178,102 @@ export default function Dashboard({
                         <p className="mt-1.5 text-xs text-slate-500">
                             Dari {todayAttendances.length} karyawan
                         </p>
+                    </CardContent>
+                </Card>
+
+                {/* Cost Control Widgets (Phase 2) */}
+                <Card className="group relative overflow-hidden border-amber-200 bg-amber-50/30 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-amber-200/30">
+                    <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-amber-500 to-amber-300" />
+                    <CardHeader className="flex flex-row items-start justify-between pt-5">
+                        <CardTitle className="text-[15px] font-semibold tracking-[0.12em] text-amber-700 uppercase">
+                            Stok Menipis
+                        </CardTitle>
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-100">
+                            <AlertTriangle
+                                className="h-4.5 w-4.5 text-amber-600"
+                                strokeWidth={2}
+                            />
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="font-serif text-4xl font-bold tracking-tight text-amber-700">
+                            {lowStockCount}
+                        </p>
+                        <p className="mt-1.5 text-xs text-amber-600">
+                            Bahan baku di bawah minimum
+                        </p>
+                    </CardContent>
+                </Card>
+                <Card className="group relative overflow-hidden border-rose-200 bg-rose-50/30 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-rose-200/30">
+                    <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-rose-500 to-rose-300" />
+                    <CardHeader className="flex flex-row items-start justify-between pt-5">
+                        <CardTitle className="text-[15px] font-semibold tracking-[0.12em] text-rose-700 uppercase">
+                            Margin Rendah (bawah 60%)
+                        </CardTitle>
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-rose-100">
+                            <Target
+                                className="h-4.5 w-4.5 text-rose-600"
+                                strokeWidth={2}
+                            />
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="font-serif text-4xl font-bold tracking-tight text-rose-700">
+                            {lowMarginCount}
+                        </p>
+                        <p className="mt-1.5 text-xs text-rose-600">
+                            Menu dengan margin erosi
+                        </p>
+                    </CardContent>
+                </Card>
+                <Card className="group relative overflow-hidden border-red-200 bg-red-50/30 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-red-200/30">
+                    <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-red-500 to-red-300" />
+                    <CardHeader className="flex flex-row items-start justify-between pt-5">
+                        <CardTitle className="text-[15px] font-semibold tracking-[0.12em] text-red-700 uppercase">
+                            Biaya Waste Hari Ini
+                        </CardTitle>
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-red-100">
+                            <Trash2
+                                className="h-4.5 w-4.5 text-red-600"
+                                strokeWidth={2}
+                            />
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="font-serif text-2xl font-bold tracking-tight text-red-700">
+                            Rp {Number(wasteCostToday).toLocaleString('id-ID', { maximumFractionDigits: 0 })}
+                        </p>
+                        <p className="mt-1.5 text-xs text-red-600">
+                            Kerugian bahan baku
+                        </p>
+                    </CardContent>
+                </Card>
+                <Card className="group relative overflow-hidden border-[#CFC0A4]/40 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#4F6B6A]/10">
+                    <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#4F6B6A] to-[#CFC0A4]" />
+                    <CardHeader className="flex flex-row items-start justify-between pt-5">
+                        <CardTitle className="text-[15px] font-semibold tracking-[0.12em] text-[#4F6B6A]/70 uppercase">
+                            Margin Erosion Teratas
+                        </CardTitle>
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4F6B6A]/10">
+                            <PackageSearch
+                                className="h-4.5 w-4.5 text-[#4F6B6A]"
+                                strokeWidth={2}
+                            />
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        {topMarginErosion.length === 0 ? (
+                            <p className="font-serif text-2xl font-bold text-[#4F6B6A]">—</p>
+                        ) : (
+                            <>
+                                <p className="font-serif text-xl font-bold text-rose-600">
+                                    {topMarginErosion[0].menu_name}
+                                </p>
+                                <p className="mt-1.5 text-xs text-slate-500">
+                                    Margin: {topMarginErosion[0].margin_percent.toFixed(1)}% · Variance: {topMarginErosion[0].variance_percent > 0 ? '+' : ''}{topMarginErosion[0].variance_percent.toFixed(1)}%
+                                </p>
+                            </>
+                        )}
                     </CardContent>
                 </Card>
             </div>

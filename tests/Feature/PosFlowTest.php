@@ -1,12 +1,12 @@
 <?php
 
 use App\Enums\OrderStatus;
+use App\Models\Employee;
 use App\Models\Meja;
 use App\Models\Menu;
 use App\Models\MenuCategory;
 use App\Models\OptionGroup;
 use App\Models\OptionItem;
-use App\Models\Employee;
 use App\Models\Order;
 use App\Models\Outlet;
 use App\Models\TableSession;

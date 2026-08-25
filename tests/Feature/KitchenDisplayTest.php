@@ -345,9 +345,9 @@ test('order moves to readyOrders combined only when all items are ready', functi
         'base_price' => 8000,
         'total_price' => 8000,
     ]);
-    \Log::info('Test setup - drink item before update', ['id' => $drinkItem->id, 'status' => $drinkItem->status?->value ?? 'null']);
+    Log::info('Test setup - drink item before update', ['id' => $drinkItem->id, 'status' => $drinkItem->status?->value ?? 'null']);
     $drinkItem->update(['status' => OrderItemStatus::Ready]);
-    \Log::info('Test setup - drink item after update', ['id' => $drinkItem->fresh()->id, 'status' => $drinkItem->fresh()->status?->value ?? 'null']);
+    Log::info('Test setup - drink item after update', ['id' => $drinkItem->fresh()->id, 'status' => $drinkItem->fresh()->status?->value ?? 'null']);
     $foodItem->update(['status' => OrderItemStatus::Processing]);
 
     $this->actingAs($this->kitchenStaff)

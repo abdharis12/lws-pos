@@ -3,12 +3,20 @@
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\BonusController;
+use App\Http\Controllers\ChecklistController;
+use App\Http\Controllers\ConsolidatedReportController;
+use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeductionController;
 use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\GoodsReceivedNoteController;
+use App\Http\Controllers\HppReportController;
+use App\Http\Controllers\IngredientController;
+use App\Http\Controllers\JournalEntryController;
 use App\Http\Controllers\KitchenDisplayController;
 use App\Http\Controllers\MenuCategoryController;
 use App\Http\Controllers\MenuController;
+use App\Http\Controllers\MenuRecipeController;
 use App\Http\Controllers\MidtransWebhookController;
 use App\Http\Controllers\OptionGroupController;
 use App\Http\Controllers\OrderController;
@@ -20,11 +28,19 @@ use App\Http\Controllers\PayslipController;
 use App\Http\Controllers\PdfController;
 use App\Http\Controllers\PosController;
 use App\Http\Controllers\PosSessionController;
+use App\Http\Controllers\ProductionOrderController;
+use App\Http\Controllers\PromoController;
+use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\ReservationController;
 use App\Http\Controllers\SalaryComponentController;
 use App\Http\Controllers\SelfOrderController;
 use App\Http\Controllers\ShiftController;
+use App\Http\Controllers\StockMovementController;
+use App\Http\Controllers\StockTransferController;
 use App\Http\Controllers\TableController;
+use App\Http\Controllers\TaskController;
+use App\Http\Controllers\TaxReportController;
 use App\Http\Controllers\WaiterController;
 use App\Http\Middleware\VerifyMidtransIp;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -101,6 +117,110 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::get('activity-logs', [ActivityLogController::class, 'index'])->name('admin.activity-logs.index');
 
+        Route::get('ingredients', [IngredientController::class, 'index'])->name('admin.ingredients.index');
+        Route::post('ingredients', [IngredientController::class, 'store'])->name('admin.ingredients.store');
+        Route::get('ingredients/{ingredient}', [IngredientController::class, 'show'])->name('admin.ingredients.show');
+        Route::put('ingredients/{ingredient}', [IngredientController::class, 'update'])->name('admin.ingredients.update');
+        Route::delete('ingredients/{ingredient}', [IngredientController::class, 'destroy'])->name('admin.ingredients.destroy');
+        Route::post('ingredients/stock-opname', [IngredientController::class, 'stockOpname'])->name('admin.ingredients.stock-opname');
+
+        Route::get('menus/{menu}/recipe', [MenuRecipeController::class, 'index'])->name('admin.menus.recipe.index');
+        Route::post('menus/{menu}/recipe', [MenuRecipeController::class, 'store'])->name('admin.menus.recipe.store');
+        Route::put('recipes/{recipe}', [MenuRecipeController::class, 'update'])->name('admin.recipes.update');
+        Route::delete('recipes/{recipe}', [MenuRecipeController::class, 'destroy'])->name('admin.recipes.destroy');
+        Route::post('menus/{menu}/recipe/recalculate', [MenuRecipeController::class, 'recalculate'])->name('admin.menus.recipe.recalculate');
+
+        Route::get('stock/movements', [StockMovementController::class, 'index'])->name('admin.stock.movements');
+        Route::post('stock/adjustment', [StockMovementController::class, 'storeAdjustment'])->name('admin.stock.adjustment');
+        Route::post('stock/waste', [StockMovementController::class, 'storeWaste'])->name('admin.stock.waste');
+
+        Route::get('procurement/pos', [PurchaseOrderController::class, 'index'])->name('admin.procurement.pos.index');
+        Route::get('procurement/pos/{po}', [PurchaseOrderController::class, 'show'])->name('admin.procurement.pos.show');
+        Route::post('procurement/pos', [PurchaseOrderController::class, 'store'])->name('admin.procurement.pos.store');
+        Route::post('procurement/pos/{po}/send', [PurchaseOrderController::class, 'send'])->name('admin.procurement.pos.send');
+        Route::post('procurement/pos/{po}/cancel', [PurchaseOrderController::class, 'cancel'])->name('admin.procurement.pos.cancel');
+
+        Route::get('procurement/grns', [GoodsReceivedNoteController::class, 'index'])->name('admin.procurement.grns.index');
+        Route::get('procurement/grns/{grnId}', [GoodsReceivedNoteController::class, 'show'])->whereNumber('grnId')->name('admin.procurement.grns.show');
+        Route::post('procurement/grns', [GoodsReceivedNoteController::class, 'store'])->name('admin.procurement.grns.store');
+
+        Route::get('procurement/suppliers', [SupplierController::class, 'index'])->name('admin.procurement.suppliers.index');
+        Route::post('procurement/suppliers', [SupplierController::class, 'store'])->name('admin.procurement.suppliers.store');
+        Route::put('procurement/suppliers/{supplier}', [SupplierController::class, 'update'])->name('admin.procurement.suppliers.update');
+        Route::delete('procurement/suppliers/{supplier}', [SupplierController::class, 'destroy'])->name('admin.procurement.suppliers.destroy');
+        Route::post('procurement/suppliers/{supplier}/recalculate', [SupplierController::class, 'recalculatePerformance'])->name('admin.procurement.suppliers.recalculate');
+
+        Route::get('procurement/ap', [AccountsPayableController::class, 'index'])->name('admin.procurement.ap.index');
+        Route::post('procurement/ap/invoice', [AccountsPayableController::class, 'storeInvoice'])->name('admin.procurement.ap.invoice.store');
+        Route::post('procurement/ap/payment', [AccountsPayableController::class, 'recordPayment'])->name('admin.procurement.ap.payment.store');
+        Route::post('procurement/ap/match/{invoice}', [AccountsPayableController::class, 'threeWayMatch'])->name('admin.procurement.ap.match');
+
+        Route::get('reports/hpp', [HppReportController::class, 'index'])->name('admin.reports.hpp');
+        Route::get('reports/hpp/export/variance', [HppReportController::class, 'exportVariance'])->name('admin.reports.hpp.export-variance');
+        Route::get('reports/hpp/export/stock-opname', [HppReportController::class, 'exportStockOpname'])->name('admin.reports.hpp.export-stock-opname');
+        Route::get('reports/hpp/export/waste', [HppReportController::class, 'exportWaste'])->name('admin.reports.hpp.export-waste');
+        Route::get('reports/hpp/export/cogs', [HppReportController::class, 'exportCogs'])->name('admin.reports.hpp.export-cogs');
+
+        // Phase 5 — Multi-Outlet
+        Route::get('stock/transfers', [StockTransferController::class, 'index'])->name('admin.stock.transfers.index');
+        Route::post('stock/transfers', [StockTransferController::class, 'store'])->name('admin.stock.transfers.store');
+        Route::get('stock/transfers/{transfer}', [StockTransferController::class, 'show'])->name('admin.stock.transfers.show');
+        Route::post('stock/transfers/{transfer}/approve', [StockTransferController::class, 'approve'])->name('admin.stock.transfers.approve');
+        Route::post('stock/transfers/{transfer}/ship', [StockTransferController::class, 'ship'])->name('admin.stock.transfers.ship');
+        Route::post('stock/transfers/{transfer}/receive', [StockTransferController::class, 'receive'])->name('admin.stock.transfers.receive');
+        Route::post('stock/transfers/{transfer}/cancel', [StockTransferController::class, 'cancel'])->name('admin.stock.transfers.cancel');
+
+        Route::get('kitchen/production', [ProductionOrderController::class, 'index'])->name('admin.kitchen.production.index');
+        Route::post('kitchen/production', [ProductionOrderController::class, 'store'])->name('admin.kitchen.production.store');
+        Route::get('kitchen/production/{order}', [ProductionOrderController::class, 'show'])->name('admin.kitchen.production.show');
+        Route::post('kitchen/production/{order}/status', [ProductionOrderController::class, 'updateStatus'])->name('admin.kitchen.production.status');
+        Route::post('kitchen/production/{order}/distribute', [ProductionOrderController::class, 'distribute'])->name('admin.kitchen.production.distribute');
+
+        Route::get('reports/consolidated', [ConsolidatedReportController::class, 'index'])->name('admin.reports.consolidated');
+
+        // Phase 4 — Customer & Loyalty
+        Route::get('customers', [CustomerController::class, 'index'])->name('admin.customers.index');
+        Route::post('customers', [CustomerController::class, 'store'])->name('admin.customers.store');
+        Route::get('customers/{customer}', [CustomerController::class, 'show'])->name('admin.customers.show');
+        Route::put('customers/{customer}', [CustomerController::class, 'update'])->name('admin.customers.update');
+        Route::delete('customers/{customer}', [CustomerController::class, 'destroy'])->name('admin.customers.destroy');
+        Route::post('customers/{customer}/redeem-points', [CustomerController::class, 'redeemPoints'])->name('admin.customers.redeem-points');
+        Route::post('customers/lookup', [CustomerController::class, 'lookup'])->name('admin.customers.lookup');
+
+        Route::get('promos', [PromoController::class, 'index'])->name('admin.promos.index');
+        Route::post('promos', [PromoController::class, 'store'])->name('admin.promos.store');
+        Route::put('promos/{promo}', [PromoController::class, 'update'])->name('admin.promos.update');
+        Route::post('promos/{promo}/toggle', [PromoController::class, 'toggle'])->name('admin.promos.toggle');
+
+        // Phase 6 — Operations
+        Route::get('operations/checklists/templates', [ChecklistController::class, 'templateIndex'])->name('admin.operations.checklists.templates');
+        Route::post('operations/checklists/templates', [ChecklistController::class, 'templateStore'])->name('admin.operations.checklists.templates.store');
+        Route::get('operations/checklists/executions', [ChecklistController::class, 'executionIndex'])->name('admin.operations.checklists.executions');
+        Route::post('operations/checklists/executions/start', [ChecklistController::class, 'executionStart'])->name('admin.operations.checklists.executions.start');
+        Route::post('operations/checklists/executions/{execution}/complete', [ChecklistController::class, 'executionComplete'])->name('admin.operations.checklists.executions.complete');
+
+        Route::get('operations/tasks', [TaskController::class, 'index'])->name('admin.operations.tasks.index');
+        Route::post('operations/tasks', [TaskController::class, 'store'])->name('admin.operations.tasks.store');
+        Route::post('operations/tasks/{task}/status', [TaskController::class, 'updateStatus'])->name('admin.operations.tasks.status');
+        Route::post('operations/tasks/{task}/assign', [TaskController::class, 'assign'])->name('admin.operations.tasks.assign');
+
+        Route::get('operations/reservations', [ReservationController::class, 'index'])->name('admin.operations.reservations.index');
+        Route::post('operations/reservations', [ReservationController::class, 'store'])->name('admin.operations.reservations.store');
+        Route::post('operations/reservations/{reservation}/confirm', [ReservationController::class, 'confirm'])->name('admin.operations.reservations.confirm');
+        Route::post('operations/reservations/{reservation}/seat', [ReservationController::class, 'seat'])->name('admin.operations.reservations.seat');
+        Route::post('operations/reservations/{reservation}/cancel', [ReservationController::class, 'cancel'])->name('admin.operations.reservations.cancel');
+        Route::get('operations/reservations/available-slots', [ReservationController::class, 'availableSlots'])->name('admin.operations.reservations.slots');
+
+        // Phase 7 — Accounting
+        Route::get('accounting/journal', [JournalEntryController::class, 'index'])->name('admin.accounting.journal.index');
+        Route::post('accounting/journal', [JournalEntryController::class, 'store'])->name('admin.accounting.journal.store');
+        Route::post('accounting/journal/{entry}/reverse', [JournalEntryController::class, 'reverse'])->name('admin.accounting.journal.reverse');
+        Route::get('accounting/trial-balance', [JournalEntryController::class, 'trialBalance'])->name('admin.accounting.trial-balance');
+        Route::get('accounting/pnl', [JournalEntryController::class, 'pnl'])->name('admin.accounting.pnl');
+        Route::post('accounting/coa/seed', [JournalEntryController::class, 'seedCoa'])->name('admin.accounting.coa.seed');
+
+        Route::get('accounting/tax', [TaxReportController::class, 'index'])->name('admin.accounting.tax');
+
         Route::get('outlet-settings', [OutletController::class, 'edit'])->name('admin.outlet.edit');
         Route::put('outlet-settings', [OutletController::class, 'update'])->name('admin.outlet.update');
     });
@@ -132,31 +252,32 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('owner/dashboard', [OwnerDashboardController::class, 'index'])->name('owner.dashboard')->middleware('can:viewOwnerDashboard');
 
-Route::middleware('can:accessPos')->group(function () {
-    Route::get('pos', [PosController::class, 'index'])->name('pos.index');
-    Route::get('pos/history', [PosController::class, 'history'])->name('pos.history');
-    Route::get('pos/tables', [PosController::class, 'tables'])->name('pos.tables');
-    Route::post('pos/orders', [PosController::class, 'store'])->middleware('throttle:pos-write')->name('pos.orders.store');
-    Route::put('pos/orders/{order}/confirm-pay', [PosController::class, 'confirmPay'])->middleware('throttle:pos-write')->name('pos.orders.confirm-pay');
-    Route::put('pos/orders/{order}/items', [PosController::class, 'updateItems'])->middleware('throttle:pos-write')->name('pos.orders.update-items');
-    Route::delete('pos/orders/{order}', [PosController::class, 'destroyPending'])->middleware('throttle:pos-write')->name('pos.orders.destroy-pending');
-    Route::post('pos/orders/{order}/cancel-payment', [PosController::class, 'cancelPayment'])->middleware('throttle:pos-write')->name('pos.orders.cancel-payment');
-    Route::post('pos/orders/initiate-payment', [PosController::class, 'initiatePayment'])->middleware('throttle:pos-write')->name('pos.orders.initiate-payment');
-    Route::get('pos/orders/{order}/qris-status', [PosController::class, 'qrisStatus'])->name('pos.orders.qris-status');
-    Route::post('pos/tables/{table}/release', [PosController::class, 'releaseTable'])->middleware('throttle:pos-write')->name('pos.tables.release');
-    Route::post('pos/tables/{table}/move/{target}', [PosController::class, 'moveTable'])->middleware('throttle:pos-write')->name('pos.tables.move');
-    Route::post('pos/tables/{table}/merge/{target}', [PosController::class, 'mergeTable'])->middleware('throttle:pos-write')->name('pos.tables.merge');
-    Route::post('pos/tables/{table}/lock', [PosController::class, 'lockTable'])->middleware('throttle:pos-write')->name('pos.tables.lock');
-    Route::post('pos/tables/{table}/unlock', [PosController::class, 'unlockTable'])->middleware('throttle:pos-write')->name('pos.tables.unlock');
-    Route::post('pos/verify-approval', [PosController::class, 'verifyApproval'])->middleware('throttle:5,1')->name('pos.verify-approval');
+    Route::middleware('can:accessPos')->group(function () {
+        Route::get('pos', [PosController::class, 'index'])->name('pos.index');
+        Route::get('pos/history', [PosController::class, 'history'])->name('pos.history');
+        Route::get('pos/tables', [PosController::class, 'tables'])->name('pos.tables');
+        Route::post('pos/orders', [PosController::class, 'store'])->middleware('throttle:pos-write')->name('pos.orders.store');
+        Route::put('pos/orders/{order}/confirm-pay', [PosController::class, 'confirmPay'])->middleware('throttle:pos-write')->name('pos.orders.confirm-pay');
+        Route::put('pos/orders/{order}/items', [PosController::class, 'updateItems'])->middleware('throttle:pos-write')->name('pos.orders.update-items');
+        Route::post('pos/orders/{order}/promo', [PosController::class, 'applyPromo'])->middleware('throttle:pos-write')->name('pos.orders.apply-promo');
+        Route::delete('pos/orders/{order}', [PosController::class, 'destroyPending'])->middleware('throttle:pos-write')->name('pos.orders.destroy-pending');
+        Route::post('pos/orders/{order}/cancel-payment', [PosController::class, 'cancelPayment'])->middleware('throttle:pos-write')->name('pos.orders.cancel-payment');
+        Route::post('pos/orders/initiate-payment', [PosController::class, 'initiatePayment'])->middleware('throttle:pos-write')->name('pos.orders.initiate-payment');
+        Route::get('pos/orders/{order}/qris-status', [PosController::class, 'qrisStatus'])->name('pos.orders.qris-status');
+        Route::post('pos/tables/{table}/release', [PosController::class, 'releaseTable'])->middleware('throttle:pos-write')->name('pos.tables.release');
+        Route::post('pos/tables/{table}/move/{target}', [PosController::class, 'moveTable'])->middleware('throttle:pos-write')->name('pos.tables.move');
+        Route::post('pos/tables/{table}/merge/{target}', [PosController::class, 'mergeTable'])->middleware('throttle:pos-write')->name('pos.tables.merge');
+        Route::post('pos/tables/{table}/lock', [PosController::class, 'lockTable'])->middleware('throttle:pos-write')->name('pos.tables.lock');
+        Route::post('pos/tables/{table}/unlock', [PosController::class, 'unlockTable'])->middleware('throttle:pos-write')->name('pos.tables.unlock');
+        Route::post('pos/verify-approval', [PosController::class, 'verifyApproval'])->middleware('throttle:5,1')->name('pos.verify-approval');
 
-    Route::get('pos/sessions', [PosSessionController::class, 'index'])->name('pos.sessions.index');
-    Route::post('pos/sessions', [PosSessionController::class, 'store'])->middleware('throttle:pos-write')->name('pos.sessions.store');
-    Route::get('pos/sessions/{posSession}', [PosSessionController::class, 'show'])->name('pos.sessions.show');
-    Route::post('pos/sessions/{posSession}/close', [PosSessionController::class, 'close'])->middleware('throttle:pos-write')->name('pos.sessions.close');
-});
+        Route::get('pos/sessions', [PosSessionController::class, 'index'])->name('pos.sessions.index');
+        Route::post('pos/sessions', [PosSessionController::class, 'store'])->middleware('throttle:pos-write')->name('pos.sessions.store');
+        Route::get('pos/sessions/{posSession}', [PosSessionController::class, 'show'])->name('pos.sessions.show');
+        Route::post('pos/sessions/{posSession}/close', [PosSessionController::class, 'close'])->middleware('throttle:pos-write')->name('pos.sessions.close');
+    });
 
-Route::get('kitchen', [KitchenDisplayController::class, 'index'])->middleware('can:accessKitchen')->name('kitchen.index');
+    Route::get('kitchen', [KitchenDisplayController::class, 'index'])->middleware('can:accessKitchen')->name('kitchen.index');
     Route::patch('orders/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.update-status');
     Route::patch('orders/{order}/items/status', [OrderController::class, 'updateItemsStatus'])->name('orders.items.update-status');
 

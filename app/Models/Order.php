@@ -22,6 +22,8 @@ class Order extends Model
         'subtotal', 'tax', 'service_charge', 'midtrans_charge', 'rounding_amount',
         'discount', 'discount_type', 'discount_value', 'total',
         'discount_approved_by',
+        // Customer & Loyalty (Phase 4)
+        'customer_id', 'promo_id', 'promo_discount',
         'served_by', 'served_at',
     ];
 
@@ -39,11 +41,22 @@ class Order extends Model
             'rounding_amount' => 'decimal:2',
             'discount' => 'decimal:2',
             'discount_value' => 'decimal:2',
+            'promo_discount' => 'decimal:2',
             'total' => 'decimal:2',
             'served_at' => 'datetime',
             'grouped_tables' => 'array',
             'status' => OrderStatus::class,
         ];
+    }
+
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class);
+    }
+
+    public function promo(): BelongsTo
+    {
+        return $this->belongsTo(Promo::class);
     }
 
     public function tableSession(): BelongsTo

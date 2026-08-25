@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Enums\OrderStatus;
 use App\Models\Employee;
 use App\Models\Order;
+use App\Services\HppCalculationService;
+use App\Services\IngredientService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -13,6 +15,11 @@ use Inertia\Response;
 
 class DashboardController extends Controller
 {
+    public function __construct(
+        private readonly HppCalculationService $hppService,
+        private readonly IngredientService $ingredientService,
+    ) {}
+
     public function index(Request $request): Response
     {
         $today = today();
@@ -98,12 +105,30 @@ class DashboardController extends Controller
             ])
             ->all();
 
+        // Phase 2: Cost Control widgets
+        $lowStock = $this->ingredientService->checkLowStock($outletId);
+        $lowMargin = $this->hppService->getLowMarginMenus($outletId, 60, 5);
+        $todayWaste = $this->hppService->getWasteReport($outletId, [
+            'date_from' => $today->toDateString(),
+            'date_to' => $today->toDateString(),
+        ]);
+        $wasteCostToday = $todayWaste->sum('total_cost');
+
         return [
             'todaySales' => (float) $todayStats->sales,
             'todayOrdersCount' => (int) $todayStats->cnt,
             'topMenus' => $topMenus,
             'activeOrders' => $activeOrders,
             'todayAttendances' => $todayAttendances,
+            // Cost Control
+            'lowStockCount' => $lowStock->count(),
+            'lowMarginCount' => $lowMargin->count(),
+            'wasteCostToday' => round($wasteCostToday, 2),
+            'topMarginErosion' => $lowMargin->map(fn ($m) => [
+                'menu_name' => $m['menu_name'],
+                'margin_percent' => $m['margin_percent'],
+                'variance_percent' => $m['variance_percent'],
+            ])->all(),
         ];
     }
 

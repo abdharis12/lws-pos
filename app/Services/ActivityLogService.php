@@ -39,6 +39,7 @@ class ActivityLogService
             if (is_array($value)) {
                 return $this->sanitizeMetadata($value);
             }
+
             return $value;
         }, $metadata);
     }

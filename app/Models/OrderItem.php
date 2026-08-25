@@ -15,7 +15,7 @@ class OrderItem extends Model
     protected $fillable = [
         'order_id', 'menu_id', 'qty',
         'base_price', 'total_price', 'notes',
-        'status',
+        'status', 'base_cost', 'total_cost',
     ];
 
     protected $guarded = [
@@ -26,6 +26,8 @@ class OrderItem extends Model
         return [
             'base_price' => 'decimal:2',
             'total_price' => 'decimal:2',
+            'base_cost' => 'decimal:4',
+            'total_cost' => 'decimal:4',
             'status' => OrderItemStatus::class,
         ];
     }

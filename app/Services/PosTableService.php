@@ -61,7 +61,7 @@ class PosTableService
         $target->update(['status' => TableStatus::Occupied]);
     }
 
-    public function merge(MeJa $source, Meja $target): void
+    public function merge(Meja $source, Meja $target): void
     {
         $this->assertOutletOwnership($source);
         $this->assertOutletOwnership($target);

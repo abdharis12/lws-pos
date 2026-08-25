@@ -11,9 +11,11 @@ use App\Http\Requests\Pos\InitiatePaymentRequest;
 use App\Http\Requests\Pos\StoreOrderRequest;
 use App\Http\Requests\Pos\UpdateItemsRequest;
 use App\Http\Requests\Pos\VerifyApprovalRequest;
+use App\Models\Customer;
 use App\Models\Meja;
 use App\Models\Order;
 use App\Models\PosSession;
+use App\Models\Promo;
 use App\Models\TableSession;
 use App\Models\User;
 use App\Services\ActivityLogService;
@@ -22,6 +24,7 @@ use App\Services\MidtransService;
 use App\Services\PaymentService;
 use App\Services\PosOrderService;
 use App\Services\PosTableService;
+use App\Services\PromoService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -301,6 +304,37 @@ class PosController extends Controller
 
         $this->orderService->updateOrderItems($order, $request->validated()['items']);
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Pesanan berhasil diperbarui.']);
+
+        return redirect()->back();
+    }
+
+    public function applyPromo(Request $request, Order $order, PromoService $promoService): RedirectResponse
+    {
+        $this->authorize('update', $order);
+        abort_if(! in_array($order->status, [OrderStatus::Pending, OrderStatus::PendingPayment], true), 403);
+
+        $validated = $request->validate([
+            'code' => 'required|string|max:64',
+        ]);
+
+        try {
+            [$promo, $discount] = $promoService->validate(
+                (int) $this->outletId(),
+                $validated['code'],
+                (float) $order->subtotal,
+                $order->customer_id ? Customer::find($order->customer_id) : null,
+                Promo::CHANNEL_POS,
+            );
+
+            $promoService->applyToOrder($promo, $order);
+
+            Inertia::flash('toast', [
+                'type' => 'success',
+                'message' => "Promo {$promo->code} diterapkan. Diskon: Rp ".number_format($discount, 0, ',', '.'),
+            ]);
+        } catch (\InvalidArgumentException $e) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => $e->getMessage()]);
+        }
 
         return redirect()->back();
     }

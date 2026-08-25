@@ -2,6 +2,11 @@
 
 namespace App\Providers;
 
+use App\Events\IngredientCostChanged;
+use App\Events\OrderPaid;
+use App\Jobs\DeductStockOnOrderPaid;
+use App\Listeners\RecordCustomerLoyaltyOnOrderPaid;
+use App\Listeners\UpdateMenuCostOnIngredientCostChange;
 use App\Models\Meja;
 use Carbon\CarbonImmutable;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -9,6 +14,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
@@ -36,6 +42,18 @@ class AppServiceProvider extends ServiceProvider
 
         $this->configureDefaults();
         $this->configureRateLimiters();
+        $this->configureEventListeners();
+    }
+
+    protected function configureEventListeners(): void
+    {
+        Event::listen(IngredientCostChanged::class, UpdateMenuCostOnIngredientCostChange::class);
+
+        Event::listen(OrderPaid::class, function (OrderPaid $event): void {
+            DeductStockOnOrderPaid::dispatch($event->order);
+        });
+
+        Event::listen(OrderPaid::class, RecordCustomerLoyaltyOnOrderPaid::class);
     }
 
     /**
