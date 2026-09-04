@@ -1,0 +1,130 @@
+x-app-environment: &app-environment
+  APP_ENV: local
+  APP_DEBUG: "true"
+  APP_KEY: "base64:Li32m/NI4w6vVt+aDdpw0i5VHyV0XuiLgHoN3TQRdko="
+  APP_URL: "http://localhost"
+  APP_NAME: "LW's by Bubur Kang LW"
+  APP_LOCALE: id
+  APP_FALLBACK_LOCALE: id
+  LOG_CHANNEL: stack
+  BCRYPT_ROUNDS: "12"
+  DB_CONNECTION: mysql
+  DB_HOST: mysql
+  DB_PORT: 3306
+  DB_DATABASE: db_lws
+  DB_USERNAME: root
+  DB_PASSWORD: secret
+  REDIS_HOST: redis
+  REDIS_CLIENT: phpredis
+  REDIS_PORT: 6379
+  QUEUE_CONNECTION: redis
+  CACHE_STORE: redis
+  SESSION_DRIVER: redis
+  BROADCAST_CONNECTION: reverb
+  REVERB_APP_KEY: lws_pos_reverb_key
+  REVERB_APP_SECRET: b604402b90faa618690423c5cc8d2eae
+  REVERB_APP_ID: 174391b7c0feed86
+  REVERB_SCHEME: http
+  REVERB_PORT: "8080"
+  MAIL_MAILER: log
+  MAIL_HOST: 127.0.0.1
+  MAIL_PORT: 2525
+  FILESYSTEM_DISK: local
+  VITE_APP_NAME: "LW's by Bubur Kang LW"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: lws-pos-app
+    container_name: lws-app
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    environment:
+      <<: *app-environment
+      SERVER_NAME: ":80"
+      SERVER_ROOT: "public/"
+      REVERB_HOST: reverb
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  queue:
+    image: lws-pos-app
+    container_name: lws-queue
+    restart: unless-stopped
+    entrypoint: ["php"]
+    command: ["artisan", "queue:work", "--sleep=3", "--tries=3", "--max-time=3600"]
+    environment:
+      <<: *app-environment
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  reverb:
+    image: lws-pos-app
+    container_name: lws-reverb
+    restart: unless-stopped
+    entrypoint: ["php"]
+    command: ["artisan", "reverb:start", "--port=8080"]
+    ports:
+      - "8082:8080"
+    environment:
+      <<: *app-environment
+      REVERB_HOST: "0.0.0.0"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  scheduler:
+    image: lws-pos-app
+    container_name: lws-scheduler
+    restart: unless-stopped
+    entrypoint: ["php"]
+    command: ["artisan", "schedule:work"]
+    environment:
+      <<: *app-environment
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  mysql:
+    image: mysql:8
+    container_name: lws-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: secret
+      MYSQL_DATABASE: db_lws
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: lws-redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mysql_data:
+  redis_data:
