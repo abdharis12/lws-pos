@@ -26,6 +26,18 @@ export default defineConfig({
         tailwindcss(),
         wayfinder({
             formVariants: true,
+            command:
+                process.env.WAYFINDER_GENERATE_COMMAND ??
+                'php artisan wayfinder:generate',
         }),
     ],
+
+    server: {
+        host: '0.0.0.0',
+        port: 5173,
+
+        hmr: {
+            host: 'localhost',
+        },
+    },
 });

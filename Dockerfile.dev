@@ -1,0 +1,18 @@
+FROM dunglas/frankenphp:php8.4
+
+RUN install-php-extensions \
+    bcmath \
+    intl \
+    opcache \
+    pcntl \
+    pdo_pgsql \
+    pgsql \
+    redis \
+    zip \
+    gd
+
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+WORKDIR /app
+
+EXPOSE 80

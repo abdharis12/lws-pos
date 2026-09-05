@@ -1,130 +1,305 @@
-x-app-environment: &app-environment
-  APP_ENV: local
-  APP_DEBUG: "true"
-  APP_KEY: "base64:Li32m/NI4w6vVt+aDdpw0i5VHyV0XuiLgHoN3TQRdko="
-  APP_URL: "http://localhost"
-  APP_NAME: "LW's by Bubur Kang LW"
-  APP_LOCALE: id
-  APP_FALLBACK_LOCALE: id
-  LOG_CHANNEL: stack
-  BCRYPT_ROUNDS: "12"
-  DB_CONNECTION: mysql
-  DB_HOST: mysql
-  DB_PORT: 3306
-  DB_DATABASE: db_lws
-  DB_USERNAME: root
-  DB_PASSWORD: secret
-  REDIS_HOST: redis
-  REDIS_CLIENT: phpredis
-  REDIS_PORT: 6379
-  QUEUE_CONNECTION: redis
-  CACHE_STORE: redis
-  SESSION_DRIVER: redis
-  BROADCAST_CONNECTION: reverb
-  REVERB_APP_KEY: lws_pos_reverb_key
-  REVERB_APP_SECRET: b604402b90faa618690423c5cc8d2eae
-  REVERB_APP_ID: 174391b7c0feed86
-  REVERB_SCHEME: http
-  REVERB_PORT: "8080"
-  MAIL_MAILER: log
-  MAIL_HOST: 127.0.0.1
-  MAIL_PORT: 2525
-  FILESYSTEM_DISK: local
-  VITE_APP_NAME: "LW's by Bubur Kang LW"
-
 services:
+
+  # ==========================================================
+  # Laravel + FrankenPHP
+  # ==========================================================
   app:
     build:
       context: .
-      dockerfile: Dockerfile
-    image: lws-pos-app
-    container_name: lws-app
-    restart: unless-stopped
-    ports:
-      - "80:80"
-    environment:
-      <<: *app-environment
-      SERVER_NAME: ":80"
-      SERVER_ROOT: "public/"
-      REVERB_HOST: reverb
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      dockerfile: Dockerfile.dev
 
-  queue:
-    image: lws-pos-app
-    container_name: lws-queue
-    restart: unless-stopped
-    entrypoint: ["php"]
-    command: ["artisan", "queue:work", "--sleep=3", "--tries=3", "--max-time=3600"]
-    environment:
-      <<: *app-environment
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+    container_name: laravel_app
 
-  reverb:
-    image: lws-pos-app
-    container_name: lws-reverb
-    restart: unless-stopped
-    entrypoint: ["php"]
-    command: ["artisan", "reverb:start", "--port=8080"]
-    ports:
-      - "8082:8080"
-    environment:
-      <<: *app-environment
-      REVERB_HOST: "0.0.0.0"
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+    working_dir: /app
 
-  scheduler:
-    image: lws-pos-app
-    container_name: lws-scheduler
-    restart: unless-stopped
-    entrypoint: ["php"]
-    command: ["artisan", "schedule:work"]
-    environment:
-      <<: *app-environment
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-
-  mysql:
-    image: mysql:8
-    container_name: lws-mysql
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: secret
-      MYSQL_DATABASE: db_lws
     volumes:
-      - mysql_data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - .:/app
 
+    ports:
+      - "8000:80"
+
+    command: sh -c "php artisan wayfinder:generate --with-form --no-interaction && php artisan octane:frankenphp --host=0.0.0.0 --port=80"
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+      redis:
+        condition: service_healthy
+
+      minio:
+        condition: service_healthy
+
+    networks:
+      - laravel
+
+
+  # ==========================================================
+  # Queue Worker
+  # ==========================================================
+  queue:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+
+    container_name: laravel_queue
+
+    working_dir: /app
+
+    volumes:
+      - .:/app
+
+    command:
+      - php
+      - artisan
+      - queue:work
+      - redis
+      - --sleep=1
+      - --tries=3
+      - --timeout=120
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+      redis:
+        condition: service_healthy
+
+    networks:
+      - laravel
+
+
+  # ==========================================================
+  # Scheduler
+  # ==========================================================
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+
+    container_name: laravel_scheduler
+
+    working_dir: /app
+
+    volumes:
+      - .:/app
+
+    command:
+      - php
+      - artisan
+      - schedule:work
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+      redis:
+        condition: service_healthy
+
+    networks:
+      - laravel
+
+
+  # ==========================================================
+  # Laravel Reverb
+  # ==========================================================
+  reverb:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+
+    container_name: laravel_reverb
+
+    working_dir: /app
+
+    volumes:
+      - .:/app
+
+    command:
+      - php
+      - artisan
+      - reverb:start
+      - --host=0.0.0.0
+      - --port=8080
+
+    ports:
+      - "8080:8080"
+
+    depends_on:
+      redis:
+        condition: service_healthy
+
+    networks:
+      - laravel
+
+
+  # ==========================================================
+  # Vite
+  # ==========================================================
+  vite:
+    image: node:22-alpine
+
+    container_name: laravel_vite
+
+    working_dir: /app
+
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
+
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+
+    ports:
+      - "5173:5173"
+
+    environment:
+      WAYFINDER_GENERATE_COMMAND: "true"
+
+    depends_on:
+      app:
+        condition: service_started
+
+    networks:
+      - laravel
+
+
+  # ==========================================================
+  # PostgreSQL
+  # ==========================================================
+  postgres:
+    image: postgres:18-alpine
+
+    container_name: laravel_postgres
+
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-laravel}
+      POSTGRES_USER: ${DB_USERNAME:-laravel}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    ports:
+      - "5432:5432"
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${DB_USERNAME:-laravel} -d ${DB_DATABASE:-laravel}"
+        ]
+
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+    networks:
+      - laravel
+
+
+  # ==========================================================
+  # Redis
+  # ==========================================================
   redis:
     image: redis:7-alpine
-    container_name: lws-redis
+
+    container_name: laravel_redis
+
     restart: unless-stopped
+
+    command:
+      - redis-server
+      - --appendonly
+      - yes
+
     volumes:
       - redis_data:/data
+
+    ports:
+      - "6379:6379"
+
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test:
+        [
+          "CMD",
+          "redis-cli",
+          "ping"
+        ]
+
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+    networks:
+      - laravel
+
+
+  # ==========================================================
+  # MinIO
+  # ==========================================================
+  minio:
+    image: minio/minio:latest
+
+    container_name: laravel_minio
+
+    restart: unless-stopped
+
+    command:
+      - server
+      - /data
+      - --console-address
+      - ":9001"
+
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-admin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-change-this-password}
+
+    volumes:
+      - minio_data:/data
+
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "curl",
+          "-f",
+          "http://localhost:9000/minio/health/live"
+        ]
+
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+
+    networks:
+      - laravel
+
+
+# ============================================================
+# Volumes
+# ============================================================
 
 volumes:
-  mysql_data:
+
+  postgres_data:
+
   redis_data:
+
+  minio_data:
+
+  node_modules:
+
+
+# ============================================================
+# Network
+# ============================================================
+
+networks:
+
+  laravel:
+    driver: bridge
