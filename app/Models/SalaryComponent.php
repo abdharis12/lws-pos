@@ -18,7 +18,6 @@ class SalaryComponent extends Model
     ];
 
     protected $hidden = [
-        'base_salary', 'salary_type', 'meal_allowance', 'transport_allowance', 'overtime_rate_per_hour',
     ];
 
     protected function casts(): array

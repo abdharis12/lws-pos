@@ -24,7 +24,10 @@ class OutletController extends Controller
 
     public function update(Request $request): RedirectResponse
     {
-        $this->authorize('update', Outlet::class);
+        $outletId = $this->outletId();
+        $outlet = Outlet::findOrFail($outletId);
+
+        $this->authorize('update', $outlet);
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -33,8 +36,6 @@ class OutletController extends Controller
             'geofence_radius_meters' => 'required|integer|min:5|max:1000',
         ]);
 
-        $outletId = $this->outletId();
-        $outlet = Outlet::findOrFail($outletId);
         $outlet->update($validated);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Pengaturan outlet berhasil disimpan.']);

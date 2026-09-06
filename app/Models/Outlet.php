@@ -12,10 +12,11 @@ class Outlet extends Model
 
     protected $fillable = [
         'name', 'address', 'phone', 'code',
+        'latitude', 'longitude', 'geofence_radius_meters',
     ];
 
     protected $guarded = [
-        'is_active', 'latitude', 'longitude', 'geofence_radius_meters',
+        'is_active',
     ];
 
     protected function casts(): array

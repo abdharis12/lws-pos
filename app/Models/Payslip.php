@@ -23,8 +23,6 @@ class Payslip extends Model
     ];
 
     protected $hidden = [
-        'base_salary', 'allowances_total', 'meal_allowance', 'transport_allowance',
-        'bonus_total', 'overtime_total', 'deduction_total', 'take_home_pay',
     ];
 
     protected function casts(): array

@@ -18,7 +18,6 @@ class Deduction extends Model
     ];
 
     protected $hidden = [
-        'amount',
     ];
 
     protected function casts(): array

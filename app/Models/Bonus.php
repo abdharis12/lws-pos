@@ -19,7 +19,6 @@ class Bonus extends Model
     ];
 
     protected $hidden = [
-        'amount',
     ];
 
     protected function casts(): array

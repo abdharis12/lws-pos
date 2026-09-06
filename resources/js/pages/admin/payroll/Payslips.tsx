@@ -175,7 +175,7 @@ export default function Payslips({ payslips, period, periods }: Props) {
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="border-[#CFC0A4]/40 bg-[#F6F2E9]">
-                                {periods.map((p) => (
+                                {(Array.isArray(periods) ? periods : []).map((p) => (
                                     <SelectItem key={p} value={p}>
                                         {p}
                                     </SelectItem>

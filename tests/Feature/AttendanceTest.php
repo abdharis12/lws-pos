@@ -5,8 +5,10 @@ use App\Models\Attendance;
 use App\Models\Employee;
 use App\Models\Outlet;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
 
 beforeEach(function () {
@@ -238,4 +240,20 @@ test('inactive employee cannot clock in', function () {
     $this->actingAs($this->owner)->post(route('attendance.clock-in'), [
         'employee_id' => $this->employee->id,
     ])->assertSessionHasErrors(['employee_id']);
+});
+
+test('clock in stores photo on the private disk', function () {
+    Storage::fake('private');
+
+    $this->travelTo(now()->setHours(8)->setMinutes(5)->setSeconds(0));
+
+    $this->actingAs($this->owner)->post(route('attendance.clock-in'), [
+        'employee_id' => $this->employee->id,
+        'photo' => UploadedFile::fake()->image('selfie.jpg'),
+    ])->assertSessionHas('inertia.flash_data');
+
+    $attendance = Attendance::where('employee_id', $this->employee->id)->first();
+
+    expect($attendance->photo_path_in)->not->toBeNull();
+    Storage::disk('private')->assertExists($attendance->photo_path_in);
 });

@@ -348,12 +348,12 @@ test('payslips index includes deduction reasons', function () {
         'is_active' => true,
     ]);
 
-    Payslip::factory()->create([
+    $payslip = Payslip::factory()->create([
         'employee_id' => $employee->id,
         'period' => '2026-07',
     ]);
 
-    Deduction::factory()->create([
+    $deduction = Deduction::factory()->create([
         'employee_id' => $employee->id,
         'period' => '2026-07',
         'type' => 'loan',
@@ -367,9 +367,14 @@ test('payslips index includes deduction reasons', function () {
         ->assertInertia(fn ($page) => $page
             ->component('admin/payroll/Payslips')
             ->has('payslips', 1)
+            ->where('payslips.0.take_home_pay', $payslip->take_home_pay)
+            ->where('payslips.0.base_salary', $payslip->base_salary)
+            ->has('periods', 1)
+            ->where('periods.0', '2026-07')
             ->has('payslips.0.employee.deductions', 1)
             ->where('payslips.0.employee.deductions.0.type', 'loan')
             ->where('payslips.0.employee.deductions.0.notes', 'Pinjaman karyawan')
+            ->where('payslips.0.employee.deductions.0.amount', (string) $deduction->amount)
         );
 });
 

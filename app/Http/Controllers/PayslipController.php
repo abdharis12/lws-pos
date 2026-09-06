@@ -30,7 +30,8 @@ class PayslipController extends Controller
         $periods = Cache::remember('payslip_periods', 3600, fn () => Payslip::select('period')
             ->distinct()
             ->orderBy('period', 'desc')
-            ->pluck('period'));
+            ->pluck('period')
+            ->toArray());
 
         return Inertia::render('admin/payroll/Payslips', [
             'payslips' => $payslips,
