@@ -219,7 +219,7 @@ export const MenuSection: React.FC<MenuSectionProps> = ({
 
         {/* Search Bar & Category Filters */}
         <div className="mt-10 space-y-6">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+          <div className="flex flex-col md:flex-row justify-between items-start gap-4 bg-accent/10 p-4 rounded-xl border border-[#CFC0A4]/20 shadow-lg">
             
             {/* Category Pills */}
             <div className="flex flex-wrap justify-center md:justify-start gap-2 w-full md:w-auto">

@@ -10,6 +10,8 @@ services:
 
     container_name: laravel_app
 
+    restart: unless-stopped
+
     working_dir: /app
 
     volumes:
@@ -19,6 +21,17 @@ services:
       - "8000:80"
 
     command: sh -c "php artisan wayfinder:generate --with-form --no-interaction && php artisan octane:frankenphp --host=0.0.0.0 --port=80"
+
+    environment:
+      APP_ENV: local
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_DATABASE: ${DB_DATABASE:-laravel}
+      DB_USERNAME: ${DB_USERNAME:-laravel}
+      DB_PASSWORD: ${DB_PASSWORD:-secret}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
 
     depends_on:
       postgres:
@@ -44,6 +57,8 @@ services:
 
     container_name: laravel_queue
 
+    restart: unless-stopped
+
     working_dir: /app
 
     volumes:
@@ -58,12 +73,26 @@ services:
       - --tries=3
       - --timeout=120
 
+    environment:
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_DATABASE: ${DB_DATABASE:-laravel}
+      DB_USERNAME: ${DB_USERNAME:-laravel}
+      DB_PASSWORD: ${DB_PASSWORD:-secret}
+      REDIS_CLIENT: predis
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+
     depends_on:
       postgres:
         condition: service_healthy
 
       redis:
         condition: service_healthy
+
+    healthcheck:
+      test: ["NONE"]
 
     networks:
       - laravel
@@ -79,6 +108,8 @@ services:
 
     container_name: laravel_scheduler
 
+    restart: unless-stopped
+
     working_dir: /app
 
     volumes:
@@ -89,12 +120,26 @@ services:
       - artisan
       - schedule:work
 
+    environment:
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_DATABASE: ${DB_DATABASE:-laravel}
+      DB_USERNAME: ${DB_USERNAME:-laravel}
+      DB_PASSWORD: ${DB_PASSWORD:-secret}
+      REDIS_CLIENT: predis
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+
     depends_on:
       postgres:
         condition: service_healthy
 
       redis:
         condition: service_healthy
+
+    healthcheck:
+      test: ["NONE"]
 
     networks:
       - laravel
@@ -109,6 +154,8 @@ services:
       dockerfile: Dockerfile.dev
 
     container_name: laravel_reverb
+
+    restart: unless-stopped
 
     working_dir: /app
 
@@ -125,43 +172,29 @@ services:
     ports:
       - "8080:8080"
 
+    environment:
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_DATABASE: ${DB_DATABASE:-laravel}
+      DB_USERNAME: ${DB_USERNAME:-laravel}
+      DB_PASSWORD: ${DB_PASSWORD:-secret}
+      REDIS_CLIENT: predis
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+
     depends_on:
       redis:
         condition: service_healthy
 
-    networks:
-      - laravel
-
-
-  # ==========================================================
-  # Vite
-  # ==========================================================
-  vite:
-    image: node:22-alpine
-
-    container_name: laravel_vite
-
-    working_dir: /app
-
-    volumes:
-      - .:/app
-      - node_modules:/app/node_modules
-
-    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
-
-    ports:
-      - "5173:5173"
-
-    environment:
-      WAYFINDER_GENERATE_COMMAND: "true"
-
-    depends_on:
-      app:
-        condition: service_started
+    healthcheck:
+      test: ["CMD", "php", "-r", "$$fp=@fsockopen('localhost',8080,$$e,$$s,2); exit($$fp?0:1);"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
     networks:
       - laravel
-
 
   # ==========================================================
   # PostgreSQL
@@ -179,7 +212,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
 
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
 
     ports:
       - "5432:5432"
@@ -291,8 +324,6 @@ volumes:
   redis_data:
 
   minio_data:
-
-  node_modules:
 
 
 # ============================================================
