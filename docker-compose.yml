@@ -268,6 +268,34 @@ services:
     networks:
       - laravel
 
+  # ==========================================================
+  # Vite
+  # ==========================================================
+  vite:
+    image: node:22-alpine
+
+    container_name: laravel_vite
+
+    working_dir: /app
+
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
+
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+
+    ports:
+      - "5173:5173"
+
+    environment:
+      WAYFINDER_GENERATE_COMMAND: "true"
+
+    depends_on:
+      app:
+        condition: service_started
+
+    networks:
+      - laravel
 
   # ==========================================================
   # MinIO
@@ -324,6 +352,8 @@ volumes:
   redis_data:
 
   minio_data:
+
+  node_modules:
 
 
 # ============================================================
