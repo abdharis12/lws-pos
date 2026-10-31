@@ -56,6 +56,7 @@ export interface MidtransResponse {
     payment_type: string
     transaction_id: string | null
     qr_code?: string
+    manual_qr?: boolean
     deeplink_url?: string
     va_number?: string
     bank?: string

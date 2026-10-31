@@ -16,6 +16,7 @@ use App\Models\Meja;
 use App\Models\Order;
 use App\Models\PosSession;
 use App\Models\Promo;
+use App\Models\QrCode;
 use App\Models\TableSession;
 use App\Models\User;
 use App\Services\ActivityLogService;
@@ -518,6 +519,25 @@ class PosController extends Controller
 
     protected function midtransInitiatedResponse(Order $order, array $validated, MidtransService $midtrans): JsonResponse
     {
+        if ($validated['payment_type'] === 'qris' && ($qrCode = QrCode::activeQr())) {
+            $this->paymentService->createPaymentRecord($order, [], 'qris');
+
+            return response()->json([
+                'order_id' => $order->id,
+                'order_number' => config('pos.order_number_prefix', 'TRX-LW-').$order->id,
+                'subtotal' => $order->subtotal,
+                'tax' => $order->tax,
+                'service_charge' => $order->service_charge,
+                'midtrans_charge' => $order->midtrans_charge,
+                'rounding_amount' => $order->rounding_amount,
+                'total' => $order->total,
+                'payment_type' => 'qris',
+                'transaction_id' => null,
+                'qr_code' => $qrCode->image_url,
+                'manual_qr' => true,
+            ]);
+        }
+
         $midtransResponse = $midtrans->createCharge(
             (string) $order->id,
             (int) round((float) $order->total),
@@ -540,6 +560,18 @@ class PosController extends Controller
             'transaction_id' => $midtransResponse['transaction_id'] ?? null,
             ...$paymentData,
         ]);
+    }
+
+    public function confirmQris(Order $order): JsonResponse
+    {
+        $this->authorize('update', $order);
+
+        if ($order->status !== OrderStatus::Paid) {
+            $order->payment?->update(['status' => 'settlement']);
+            $this->markOrderPaid($order);
+        }
+
+        return response()->json(['status' => 'settlement']);
     }
 
     protected function mapStatus(Order $order, MidtransService $midtrans): string

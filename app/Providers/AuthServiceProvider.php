@@ -139,6 +139,10 @@ class AuthServiceProvider extends ServiceProvider
             return $user->hasAnyRole(['Owner', 'Admin']);
         });
 
+        Gate::define('manageQrCodes', function (User $user) {
+            return $user->hasAnyRole(['Owner', 'Admin']);
+        });
+
         Gate::define('manageMenuCategories', function (User $user) {
             return $user->hasAnyRole(['Owner', 'Admin', 'Cashier', 'Kitchen Staff', 'Waiter']);
         });

@@ -113,8 +113,44 @@ export function useSelfOrderPayment(tableToken: string) {
         [tableToken],
     )
 
+    const handleConfirmManualPay = useCallback(() => {
+        if (!midtransOrderId) {
+            return
+        }
+
+        setPayProcessing(true)
+        setPayError(null)
+
+        fetch(`/t/${tableToken}/orders/${midtransOrderId}/confirm-qris`, {
+            method: 'POST',
+            headers: commonHeaders(),
+            body: JSON.stringify({ access_token: midtransAccessToken }),
+        })
+            .then(res => res.json().then(data => ({ ok: res.ok, data })))
+            .then(({ ok, data }) => {
+                setPayProcessing(false)
+
+                if (!ok || data.status !== 'settlement') {
+                    setPayError(data.message ?? 'Gagal mengonfirmasi pembayaran')
+
+                    return
+                }
+
+                setPayStatus('settlement')
+                clearPoll()
+
+                setTimeout(() => {
+                    router.visit(`/t/${tableToken}/orders/${midtransOrderId}/status`)
+                }, 1500)
+            })
+            .catch(() => {
+                setPayProcessing(false)
+                setPayError('Terjadi kesalahan jaringan')
+            })
+    }, [midtransOrderId, midtransAccessToken, tableToken, clearPoll])
+
     useEffect(() => {
-        if (!midtransOrderId || payStatus !== 'pending') {
+        if (!midtransOrderId || payStatus !== 'pending' || midtransResponse?.manual_qr) {
             return
         }
 
@@ -140,7 +176,7 @@ export function useSelfOrderPayment(tableToken: string) {
         }, 3000)
 
         return clearPoll
-    }, [midtransOrderId, payStatus, tableToken, clearPoll])
+    }, [midtransOrderId, payStatus, tableToken, clearPoll, midtransResponse])
 
     return {
         paymentMethod,
@@ -148,15 +184,18 @@ export function useSelfOrderPayment(tableToken: string) {
         midtransStep,
         setMidtransStep,
         midtransResponse,
+        setMidtransResponse,
         midtransOrderId,
         midtransAccessToken,
         payStatus,
         payProcessing,
         payError,
+        setPayError,
         copied,
         setCopied,
         resetPayment,
         handleCashPay,
         handleOnlinePay,
+        handleConfirmManualPay,
     }
 }

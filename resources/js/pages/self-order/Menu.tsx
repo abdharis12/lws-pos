@@ -247,6 +247,7 @@ export default function SelfOrderMenu({ table, tableToken, categories, outlet }:
                         payment.resetPayment()
                     }}
                     onCancel={handleCancelPayment}
+                    onConfirmManual={payment.handleConfirmManualPay}
                 />
             )}
         </div>

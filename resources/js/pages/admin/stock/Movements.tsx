@@ -303,6 +303,7 @@ export default function StockMovements({
                                     const cfg =
                                         typeConfig[m.type] ?? typeConfig.out;
                                     const qty = Number(m.qty);
+
                                     return (
                                         <tr
                                             key={m.id}

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
 import { Search, Plus, Check, Star, Filter, Heart, Info, ChevronRight, ShoppingBag } from 'lucide-react';
+import React, { useState } from 'react';
 
 export interface MenuItem {
     id: string;
@@ -190,11 +190,13 @@ export const MenuSection: React.FC<MenuSectionProps> = ({
             item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             (item.frenchName && item.frenchName.toLowerCase().includes(searchQuery.toLowerCase())) ||
             item.description.toLowerCase().includes(searchQuery.toLowerCase());
+
         return matchesCategory && matchesSearch;
     });
 
     const getItemQuantityInCart = (itemId: string) => {
         const found = cartItems.find((ci) => ci.item.id === itemId);
+
         return found ? found.quantity : 0;
     };
 
@@ -256,6 +258,7 @@ export const MenuSection: React.FC<MenuSectionProps> = ({
                 <div className="mt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {filteredItems.map((item) => {
                         const qty = getItemQuantityInCart(item.id);
+
                         return (
                             <div
                                 key={item.id}

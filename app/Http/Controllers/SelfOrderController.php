@@ -11,6 +11,7 @@ use App\Http\Requests\SelfOrder\PayRequest;
 use App\Http\Requests\SelfOrder\StoreRequest;
 use App\Models\Meja;
 use App\Models\Order;
+use App\Models\QrCode;
 use App\Models\TableSession;
 use App\Services\MenuCatalogService;
 use App\Services\MidtransService;
@@ -222,6 +223,27 @@ class SelfOrderController extends Controller
     protected function payOnline(Order $order, array $validated, MidtransService $midtrans, string $orderNumber): JsonResponse
     {
         $paymentType = $validated['payment_type'];
+
+        if ($paymentType === 'qris' && ($qrCode = QrCode::activeQr())) {
+            $this->paymentService->createPaymentRecord($order, [], 'qris');
+
+            return response()->json([
+                'order_id' => $order->id,
+                'order_number' => $orderNumber,
+                'access_token' => $order->access_token,
+                'subtotal' => (float) $order->subtotal,
+                'tax' => (float) $order->tax,
+                'service_charge' => (float) ($order->service_charge ?? 0),
+                'midtrans_charge' => (float) ($order->midtrans_charge ?? 0),
+                'rounding_amount' => (float) ($order->rounding_amount ?? 0),
+                'total' => (float) $order->total,
+                'payment_type' => 'qris',
+                'transaction_id' => null,
+                'qr_code' => $qrCode->image_url,
+                'manual_qr' => true,
+            ]);
+        }
+
         $midtransResponse = $midtrans->createCharge((string) $order->id, (int) round((float) $order->total), $paymentType);
         $paymentData = $this->paymentService->extractPaymentResponse($midtransResponse);
 
@@ -241,6 +263,18 @@ class SelfOrderController extends Controller
             'transaction_id' => $midtransResponse['transaction_id'] ?? null,
             ...$paymentData,
         ]);
+    }
+
+    public function confirmQris(string $tableToken, Order $order, Request $request): JsonResponse
+    {
+        $this->assertTableOwner($tableToken, $order);
+        $this->assertOrderToken($order, (string) $request->input('access_token'));
+        abort_if(! in_array($order->status, [OrderStatus::Pending, OrderStatus::PendingPayment], true), 403);
+
+        $order->payment?->update(['status' => 'settlement']);
+        $this->applyFinalStatus($order, 'settlement');
+
+        return response()->json(['status' => 'settlement']);
     }
 
     protected function mapStatus(Order $order, MidtransService $midtrans): string

@@ -104,9 +104,13 @@ export default function Grns({ grns, filters, pendingPos }: Props) {
     function selectPo(poId: string) {
         setSelectedPoId(poId);
         const po = pendingPos.find((p) => String(p.id) === poId);
-        if (!po?.items) return;
+
+        if (!po?.items) {
+return;
+}
 
         const initial: Record<number, { qty_received: string; unit_cost: string }> = {};
+
         for (const item of po.items) {
             initial[item.id] = {
                 qty_received: String(
@@ -115,6 +119,7 @@ export default function Grns({ grns, filters, pendingPos }: Props) {
                 unit_cost: String(item.unit_cost),
             };
         }
+
         setLines(initial);
     }
 
@@ -128,7 +133,10 @@ export default function Grns({ grns, filters, pendingPos }: Props) {
     function submit(e: React.FormEvent) {
         e.preventDefault();
         const po = pendingPos.find((p) => String(p.id) === selectedPoId);
-        if (!po?.items) return;
+
+        if (!po?.items) {
+return;
+}
 
         const items = po.items
             .filter((item) => Number(lines[item.id]?.qty_received ?? 0) > 0)
@@ -138,7 +146,9 @@ export default function Grns({ grns, filters, pendingPos }: Props) {
                 unit_cost: lines[item.id].unit_cost || String(item.unit_cost),
             }));
 
-        if (items.length === 0) return;
+        if (items.length === 0) {
+return;
+}
 
         router.post(
             '/admin/procurement/grns',
@@ -234,6 +244,7 @@ export default function Grns({ grns, filters, pendingPos }: Props) {
                                     const cfg =
                                         statusConfig[grn.status] ??
                                         statusConfig.pending;
+
                                     return (
                                         <tr
                                             key={grn.id}

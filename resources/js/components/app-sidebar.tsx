@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { AwardIcon, BarChart3, Calendar, ChartArea, ChartCandlestick, ChefHat, ClipboardList, Clock, FileUserIcon, Grid3x3, HandCoinsIcon, HandPlatter, LayoutGrid, ListTodo, MapPin, ScissorsLineDashedIcon, Settings2, ShoppingCart, Tag, Users, Utensils, Wallet, Receipt } from 'lucide-react';
+import { AwardIcon, BarChart3, Calendar, ChartArea, ChartCandlestick, ChefHat, ClipboardList, Clock, FileUserIcon, Grid3x3, HandCoinsIcon, HandPlatter, LayoutGrid, ListTodo, MapPin, QrCode, ScissorsLineDashedIcon, Settings2, ShoppingCart, Tag, Users, Utensils, Wallet, Receipt } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -148,6 +148,7 @@ return true;
             roles: ['Owner', 'Admin'],
             items: [
                 { title: 'Pengaturan Outlet', href: '/admin/outlet-settings', icon: MapPin },
+                { title: 'QR Pembayaran', href: '/admin/qr-codes', icon: QrCode },
             ],
         },
     ];

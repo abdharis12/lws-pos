@@ -102,6 +102,7 @@ export default function SuppliersIndex({ suppliers, filters, summary }: Props) {
                 }, { preserveScroll: true, preserveState: true });
             }
         }, 400);
+
         return () => clearTimeout(timer);
     }, [search, filters.search]);
 

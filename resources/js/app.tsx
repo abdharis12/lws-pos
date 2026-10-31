@@ -7,8 +7,20 @@ import AppLayout from '@/layouts/app-layout';
 import AuthLayout from '@/layouts/auth-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 
+const broadcastConnection =
+    import.meta.env.VITE_BROADCAST_CONNECTION ??
+    (import.meta.env.VITE_REVERB_APP_KEY ? 'reverb' : 'null');
+
+const reverbEnabled =
+    broadcastConnection === 'reverb' && Boolean(import.meta.env.VITE_REVERB_APP_KEY);
+
+const reverbScheme = import.meta.env.VITE_REVERB_SCHEME ?? 'https';
+const useTLS = reverbScheme === 'https';
+
 configureEcho({
-    broadcaster: import.meta.env.VITE_REVERB_APP_KEY ? 'reverb' : 'null',
+    broadcaster: reverbEnabled ? 'reverb' : 'null',
+    forceTLS: useTLS,
+    enabledTransports: useTLS ? ['wss'] : ['ws'],
 });
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';

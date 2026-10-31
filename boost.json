@@ -7,16 +7,23 @@
     "guidelines": true,
     "mcp": true,
     "nightwatch": false,
+    "packages": [
+        "spatie/laravel-permission",
+        "laramint/laravel-brain"
+    ],
     "sail": false,
     "skills": [
+        "infer-conventions",
         "fortify-development",
         "laravel-best-practices",
+        "testing-best-practices",
         "octane-development",
         "wayfinder-development",
-        "pest-testing",
         "inertia-react-development",
         "tailwindcss-development",
         "echo-react-development",
-        "echo-development"
+        "echo-development",
+        "laravel-permission-development",
+        "laravel-brain"
     ]
 }

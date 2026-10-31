@@ -31,6 +31,7 @@ use App\Http\Controllers\PosSessionController;
 use App\Http\Controllers\ProductionOrderController;
 use App\Http\Controllers\PromoController;
 use App\Http\Controllers\PurchaseOrderController;
+use App\Http\Controllers\QrCodeController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ReservationController;
 use App\Http\Controllers\SalaryComponentController;
@@ -38,6 +39,7 @@ use App\Http\Controllers\SelfOrderController;
 use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\StockMovementController;
 use App\Http\Controllers\StockTransferController;
+use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\TableController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TaxReportController;
@@ -223,6 +225,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::get('outlet-settings', [OutletController::class, 'edit'])->name('admin.outlet.edit');
         Route::put('outlet-settings', [OutletController::class, 'update'])->name('admin.outlet.update');
+
+        Route::middleware('can:manageQrCodes')->group(function () {
+            Route::get('qr-codes', [QrCodeController::class, 'index'])->name('admin.qr-codes.index');
+            Route::post('qr-codes', [QrCodeController::class, 'store'])->name('admin.qr-codes.store');
+            Route::post('qr-codes/{qrCode}/activate', [QrCodeController::class, 'activate'])->name('admin.qr-codes.activate');
+            Route::delete('qr-codes/{qrCode}', [QrCodeController::class, 'destroy'])->name('admin.qr-codes.destroy');
+        });
     });
 
     Route::prefix('admin')->middleware('can:manageMenuCategories')->group(function () {
@@ -264,6 +273,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('pos/orders/{order}/cancel-payment', [PosController::class, 'cancelPayment'])->middleware('throttle:pos-write')->name('pos.orders.cancel-payment');
         Route::post('pos/orders/initiate-payment', [PosController::class, 'initiatePayment'])->middleware('throttle:pos-write')->name('pos.orders.initiate-payment');
         Route::get('pos/orders/{order}/qris-status', [PosController::class, 'qrisStatus'])->name('pos.orders.qris-status');
+        Route::post('pos/orders/{order}/confirm-qris', [PosController::class, 'confirmQris'])->middleware('throttle:pos-write')->name('pos.orders.confirm-qris');
         Route::post('pos/tables/{table}/release', [PosController::class, 'releaseTable'])->middleware('throttle:pos-write')->name('pos.tables.release');
         Route::post('pos/tables/{table}/move/{target}', [PosController::class, 'moveTable'])->middleware('throttle:pos-write')->name('pos.tables.move');
         Route::post('pos/tables/{table}/merge/{target}', [PosController::class, 'mergeTable'])->middleware('throttle:pos-write')->name('pos.tables.merge');
@@ -300,6 +310,7 @@ Route::post('t/{tableToken}/orders', [SelfOrderController::class, 'store'])
     ->name('self-order.orders.store');
 Route::post('t/{tableToken}/pay', [SelfOrderController::class, 'pay'])->middleware('throttle:5,1')->name('self-order.pay');
 Route::get('t/{tableToken}/orders/{order}/payment-status', [SelfOrderController::class, 'paymentStatus'])->middleware('throttle:self-order')->name('self-order.payment-status');
+Route::post('t/{tableToken}/orders/{order}/confirm-qris', [SelfOrderController::class, 'confirmQris'])->middleware('throttle:5,1')->name('self-order.confirm-qris');
 Route::post('t/{tableToken}/orders/{order}/cancel', [SelfOrderController::class, 'cancel'])->middleware('throttle:5,1')->name('self-order.cancel');
 
 Route::post('webhooks/midtrans/notification', [MidtransWebhookController::class, 'notification'])

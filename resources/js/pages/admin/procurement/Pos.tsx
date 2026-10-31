@@ -248,6 +248,7 @@ export default function PurchaseOrders({
                             <tbody>
                                 {purchaseOrders.data.map((po) => {
                                     const cfg = statusConfig[po.status] ?? statusConfig.draft;
+
                                     return (
                                         <tr
                                             key={po.id}

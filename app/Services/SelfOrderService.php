@@ -87,7 +87,7 @@ class SelfOrderService
     ): Order {
         $totals = $this->calculateTotals($builtItems, $paymentMethod);
 
-        return $session->orders()->create([
+        return $session->orders()->forceCreate([
             'order_type' => $orderType,
             'status' => $status,
             'customer_name' => $customerName,
@@ -117,7 +117,7 @@ class SelfOrderService
         float $total,
         float $roundingAmount = 0,
     ): Order {
-        return $session->orders()->create([
+        return $session->orders()->forceCreate([
             'order_type' => $orderType,
             'status' => $status,
             'customer_name' => $customerName,

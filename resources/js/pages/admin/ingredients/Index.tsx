@@ -130,6 +130,7 @@ export default function IngredientsIndex({
 
     function submitForm(e: React.FormEvent) {
         e.preventDefault();
+
         if (editing.id) {
             form.put(`/admin/ingredients/${editing.id}`, {
                 onSuccess: () => setFormOpen(false),
@@ -143,7 +144,10 @@ export default function IngredientsIndex({
 
     function submitOpname(e: React.FormEvent) {
         e.preventDefault();
-        if (!opnameTarget) return;
+
+        if (!opnameTarget) {
+return;
+}
 
         router.post(
             '/admin/ingredients/stock-opname',
@@ -296,6 +300,7 @@ export default function IngredientsIndex({
                                     const isLow =
                                         Number(ing.current_stock) <=
                                         Number(ing.min_stock);
+
                                     return (
                                         <tr
                                             key={ing.id}

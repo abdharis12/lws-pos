@@ -19,6 +19,7 @@ interface MidtransResponse {
     payment_type: string;
     transaction_id: string | null;
     qr_code?: string;
+    manual_qr?: boolean;
     deeplink_url?: string;
     va_number?: string;
     bank?: string;
@@ -279,8 +280,60 @@ export default function MidtransPaymentDialog({
         // kept for backward-compat no-op (polling is automatic)
     }
 
+    function handleConfirmManualPayment() {
+        const id = orderIdRef.current;
+
+        if (!id) {
+            return;
+        }
+
+        setInitLoading(true);
+        setError(null);
+
+        fetch(`/pos/orders/${id}/confirm-qris`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': getCsrfToken(),
+            },
+        })
+            .then(res => res.json().then(data => ({ ok: res.ok, data })))
+            .then(({ ok, data }) => {
+                setInitLoading(false);
+
+                if (!ok || data.status !== 'settlement') {
+                    setError(data.message || 'Gagal mengonfirmasi pembayaran.');
+
+                    return;
+                }
+
+                setPaymentStatus('settlement');
+
+                const resp = responseRef.current;
+
+                setTimeout(() => {
+                    onSuccess({
+                        orderId: id,
+                        orderNumber: resp?.order_number ?? `TRX-LW-${id}`,
+                        subtotal: Number(resp?.subtotal ?? subtotal),
+                        tax: Number(resp?.tax ?? 0),
+                        serviceCharge: Number(resp?.service_charge ?? 0),
+                        total: Number(resp?.total ?? total),
+                        midtransCharge: Number(resp?.midtrans_charge ?? 0),
+                        roundingAmount: Number(resp?.rounding_amount ?? 0),
+                        paymentType: 'qris',
+                    });
+                }, 1200);
+            })
+            .catch(() => {
+                setInitLoading(false);
+                setError('Terjadi kesalahan jaringan');
+            });
+    }
+
     useEffect(() => {
-        if (open && step === 'pay' && response && !pollRef.current) {
+        if (open && step === 'pay' && response && !response.manual_qr && !pollRef.current) {
             startPolling();
         }
     }, [open, step, response]);
@@ -561,12 +614,29 @@ export default function MidtransPaymentDialog({
                                         )}
                                     </div>
 
+                                    {response.manual_qr && paymentStatus === 'pending' && (
+                                        <Button
+                                            onClick={handleConfirmManualPayment}
+                                            disabled={initLoading}
+                                            className="w-full"
+                                            style={{ backgroundColor: PRIMARY, color: '#fff' }}
+                                        >
+                                            {initLoading
+                                                ? <LoaderCircle className="mr-1 size-4 animate-spin" />
+                                                : <Check className="mr-1 size-4" />}
+                                            Konfirmasi Pembayaran Diterima
+                                        </Button>
+                                    )}
+
                                     <div className="flex items-center justify-center gap-2 rounded-lg p-2 text-xs" style={{ color: MUTED }}>
-                                        {paymentStatus === 'pending' && polling && (
+                                        {!response.manual_qr && paymentStatus === 'pending' && polling && (
                                             <>
                                                 <LoaderCircle className="size-3 animate-spin" />
                                                 <span>Memverifikasi pembayaran otomatis...</span>
                                             </>
+                                        )}
+                                        {response.manual_qr && paymentStatus === 'pending' && (
+                                            <span>Scan QR di atas, lalu tekan tombol konfirmasi setelah pembayaran diterima.</span>
                                         )}
                                         {paymentStatus === 'failed' && (
                                             <span className="text-red-500">Pembayaran gagal — coba lagi.</span>

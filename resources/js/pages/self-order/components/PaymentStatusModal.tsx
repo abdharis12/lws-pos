@@ -13,6 +13,7 @@ interface Props {
     onBack: () => void
     onRetry: () => void
     onCancel: () => void
+    onConfirmManual: () => void
 }
 
 function CopyButton({ text, copied, onCopy }: { text: string; copied: boolean; onCopy: (v: boolean) => void }) {
@@ -45,6 +46,7 @@ export function PaymentStatusModal({
     onBack,
     onRetry,
     onCancel,
+    onConfirmManual,
 }: Props) {
     return (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm animate-fade-in sm:items-center sm:p-4">
@@ -219,10 +221,20 @@ export function PaymentStatusModal({
                                 </a>
                             )}
 
-                            <div className="flex items-center gap-2 text-xs text-gray-500">
-                                <LoaderCircle className="size-3 animate-spin" />
-                                <span>Menunggu pembayaran...</span>
-                            </div>
+                            {midtransResponse.manual_qr ? (
+                                <Button
+                                    onClick={onConfirmManual}
+                                    className="w-full rounded-xl"
+                                    style={{ backgroundColor: '#4F6B6A', color: '#fff' }}
+                                >
+                                    Konfirmasi Pembayaran Diterima
+                                </Button>
+                            ) : (
+                                <div className="flex items-center gap-2 text-xs text-gray-500">
+                                    <LoaderCircle className="size-3 animate-spin" />
+                                    <span>Menunggu pembayaran...</span>
+                                </div>
+                            )}
 
                             <Button
                                 onClick={onBack}
