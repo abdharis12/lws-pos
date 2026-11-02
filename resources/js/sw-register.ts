@@ -6,10 +6,10 @@ export function registerServiceWorker() {
     window.addEventListener('load', async () => {
         try {
             const registration = await navigator.serviceWorker.register('/sw.js', {
-                updateViaCache: 'no-cache',
+                updateViaCache: 'none',
             });
 
-            registration.update().catch(() => {});
+            registration.update().catch(() => { });
 
             navigator.serviceWorker.addEventListener('controllerchange', () => {
                 if (navigator.serviceWorker.controller) {

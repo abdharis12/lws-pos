@@ -13,11 +13,11 @@ class Employee extends Model
     use HasFactory;
 
     protected $fillable = [
-        'phone', 'position', 'join_date', 'resign_date', 'is_active',
+        'phone', 'position', 'join_date', 'resign_date', 'is_active', 'base_salary', 'salary_type',
     ];
 
     protected $guarded = [
-        'user_id', 'outlet_id', 'base_salary', 'salary_type',
+        'user_id', 'outlet_id',
     ];
 
     protected $hidden = [

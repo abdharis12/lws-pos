@@ -15,6 +15,7 @@ import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogContent,
@@ -369,16 +370,22 @@ return;
                                         </Label>
                                         <Input
                                             id="base_salary"
-                                            type="number"
-                                            min="0"
-                                            value={data.base_salary}
-                                            onChange={(e) =>
-                                                setData(
-                                                    'base_salary',
-                                                    e.target.value,
-                                                )
-                                            }
-                                            className="border-[#CFC0A4]/50 bg-white focus-visible:border-[#4F6B6A] focus-visible:ring-[#4F6B6A]"
+                                            type="text"
+                                            inputMode="numeric"
+                                            value={data.base_salary
+                                                ? Number(data.base_salary).toLocaleString('id-ID')
+                                                : ''}
+                                            onChange={(e) => {
+                                                const raw = e.target.value.replace(/\./g, '');
+                                                setData('base_salary', raw);
+                                            }}
+                                            onBlur={(e) => {
+                                                const raw = e.target.value.replace(/\./g, '');
+                                                if (raw) {
+                                                    e.target.value = Number(raw).toLocaleString('id-ID');
+                                                }
+                                            }}
+                                            className="border-[#CFC0A4]/50 bg-white focus-visible:border-[#4F6B6A] focus-visible:ring-[#4F6B6A] text-right"
                                         />
                                         <InputError
                                             message={errors.base_salary}
@@ -416,16 +423,11 @@ return;
                                 </div>
                                 {editing && (
                                     <div className="flex items-center gap-2">
-                                        <input
-                                            type="checkbox"
+                                        <Checkbox
                                             id="is_active"
-                                            className="size-4 rounded border"
                                             checked={data.is_active}
-                                            onChange={(e) =>
-                                                setData(
-                                                    'is_active',
-                                                    e.target.checked,
-                                                )
+                                            onCheckedChange={(checked) =>
+                                                setData('is_active', checked)
                                             }
                                         />
                                         <Label htmlFor="is_active">Aktif</Label>

@@ -29,6 +29,10 @@ class EmployeeController extends Controller
 
         $employees = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
         $this->attachRoles($employees);
+        // expose salary fields for the frontend
+        $employees->getCollection()->transform(function ($e) {
+            return $e->makeVisible(['base_salary', 'salary_type']);
+        });
         $roles = Role::all()->pluck('name');
 
         return Inertia::render('admin/employees/Index', [
@@ -59,6 +63,7 @@ class EmployeeController extends Controller
 
         $employee->load('user.roles');
         $employee->role = $employee->user->roles->pluck('name')->first();
+        $employee->makeVisible(['base_salary', 'salary_type']);
 
         return Inertia::render('admin/employees/Show', [
             'employee' => $employee,
@@ -169,7 +174,7 @@ class EmployeeController extends Controller
 
     protected function storeEmployee(array $validated, User $user, int $outletId): void
     {
-        Employee::create([
+        Employee::forceCreate([
             'user_id' => $user->id,
             'outlet_id' => $outletId,
             'phone' => $validated['phone'],
