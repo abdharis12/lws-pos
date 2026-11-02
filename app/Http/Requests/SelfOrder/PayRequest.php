@@ -11,7 +11,7 @@ class PayRequest extends StoreRequest
         return [
             ...parent::rules(),
             'payment_method' => ['required', Rule::in(['cash', 'online'])],
-            'payment_type' => 'required_if:payment_method,online|string|max:50',
+            'payment_type' => 'exclude_unless:payment_method,online|required|string|in:qris',
         ];
     }
 

@@ -32,7 +32,7 @@ const PAYMENT_LABELS: Record<string, string> = {
 
 function paymentLabel(method: string | null | undefined): string {
     if (!method) {
-        return 'Online';
+        return 'QRIS';
     }
 
     return PAYMENT_LABELS[method] ?? method;

@@ -44,6 +44,7 @@ beforeEach(function () {
 
     $this->order->payment()->create([
         'method' => 'qris',
+        'midtrans_transaction_id' => 'legacy-tx-id',
         'gross_amount' => 25000,
         'status' => 'pending',
     ]);

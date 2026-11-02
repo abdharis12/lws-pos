@@ -70,18 +70,23 @@ class SelfOrderController extends Controller
         return redirect()->route('self-order.status', [$tableToken, $order]);
     }
 
-    public function pay(PayRequest $request, string $tableToken, MidtransService $midtrans): JsonResponse
+    public function pay(PayRequest $request, string $tableToken): JsonResponse
     {
         $table = Meja::where('table_token', $tableToken)->firstOrFail();
         $session = $this->orderService->getOrCreateSession($table);
         $validated = $request->validated();
+
+        if ($validated['payment_method'] === 'online' && ! QrCode::activeQr()) {
+            return response()->json(['message' => 'QRIS belum dikonfigurasi. Silakan bayar di kasir.'], 422);
+        }
+
         $status = $validated['payment_method'] === 'online' ? OrderStatus::PendingPayment : OrderStatus::Pending;
 
         $order = $this->buildOrder($session, $validated, $validated['payment_method'], $status);
         $orderNumber = config('pos.order_number_prefix', 'TRX-LW-').$order->id;
 
         if ($validated['payment_method'] === 'online') {
-            return $this->payOnline($order, $validated, $midtrans, $orderNumber);
+            return $this->payOnline($order, $orderNumber);
         }
 
         return response()->json([
@@ -106,6 +111,10 @@ class SelfOrderController extends Controller
             return response()->json(['status' => 'failed']);
         }
 
+        if ($order->payment && $order->payment->method === 'qris' && blank($order->payment->midtrans_transaction_id)) {
+            return response()->json(['status' => 'pending']);
+        }
+
         $mapped = $this->mapStatus($order, $midtrans);
 
         if ($mapped !== 'pending' && $order->payment) {
@@ -123,7 +132,10 @@ class SelfOrderController extends Controller
         abort_if(! in_array($order->status, [OrderStatus::Pending, OrderStatus::PendingPayment], true), 403);
 
         if ($order->payment) {
-            $midtrans->cancel((string) $order->id);
+            if ($order->payment->midtrans_transaction_id) {
+                $midtrans->cancel((string) $order->id);
+            }
+
             $order->payment->update(['status' => 'failed']);
         }
 
@@ -220,34 +232,15 @@ class SelfOrderController extends Controller
         return $order;
     }
 
-    protected function payOnline(Order $order, array $validated, MidtransService $midtrans, string $orderNumber): JsonResponse
+    protected function payOnline(Order $order, string $orderNumber): JsonResponse
     {
-        $paymentType = $validated['payment_type'];
+        $qrCode = QrCode::activeQr();
 
-        if ($paymentType === 'qris' && ($qrCode = QrCode::activeQr())) {
-            $this->paymentService->createPaymentRecord($order, [], 'qris');
-
-            return response()->json([
-                'order_id' => $order->id,
-                'order_number' => $orderNumber,
-                'access_token' => $order->access_token,
-                'subtotal' => (float) $order->subtotal,
-                'tax' => (float) $order->tax,
-                'service_charge' => (float) ($order->service_charge ?? 0),
-                'midtrans_charge' => (float) ($order->midtrans_charge ?? 0),
-                'rounding_amount' => (float) ($order->rounding_amount ?? 0),
-                'total' => (float) $order->total,
-                'payment_type' => 'qris',
-                'transaction_id' => null,
-                'qr_code' => $qrCode->image_url,
-                'manual_qr' => true,
-            ]);
+        if (! $qrCode) {
+            return response()->json(['message' => 'QRIS belum dikonfigurasi. Silakan bayar di kasir.'], 422);
         }
 
-        $midtransResponse = $midtrans->createCharge((string) $order->id, (int) round((float) $order->total), $paymentType);
-        $paymentData = $this->paymentService->extractPaymentResponse($midtransResponse);
-
-        $this->paymentService->createPaymentRecord($order, $midtransResponse, $paymentType);
+        $this->paymentService->createPaymentRecord($order, [], 'qris');
 
         return response()->json([
             'order_id' => $order->id,
@@ -259,9 +252,10 @@ class SelfOrderController extends Controller
             'midtrans_charge' => (float) ($order->midtrans_charge ?? 0),
             'rounding_amount' => (float) ($order->rounding_amount ?? 0),
             'total' => (float) $order->total,
-            'payment_type' => $paymentType,
-            'transaction_id' => $midtransResponse['transaction_id'] ?? null,
-            ...$paymentData,
+            'payment_type' => 'qris',
+            'transaction_id' => null,
+            'qr_code' => $qrCode->image_url,
+            'manual_qr' => true,
         ]);
     }
 

@@ -6,8 +6,8 @@ use App\Models\Menu;
 use App\Models\MenuCategory;
 use App\Models\Order;
 use App\Models\Outlet;
+use App\Models\QrCode;
 use App\Support\Money;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 
 beforeEach(function () {
@@ -87,13 +87,10 @@ test('self-order cash total on exact multiple of 500 has zero rounding', functio
 });
 
 test('self-order online does not apply rounding, only Midtrans charge on rawBeforeCharge', function () {
-    Http::fake([
-        'sandbox.midtrans.com/*' => Http::response([
-            'transaction_id' => 'txn-test-1',
-            'qr_code' => 'data:image/png;base64,fake',
-            'transaction_status' => 'pending',
-            'payment_type' => 'qris',
-        ], 200),
+    QrCode::query()->create([
+        'label' => 'QRIS Utama',
+        'image_path' => 'qr-codes/qris.png',
+        'is_active' => true,
     ]);
 
     $this->menu->update(['price' => 22000]);

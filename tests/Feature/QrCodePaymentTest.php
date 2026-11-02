@@ -216,15 +216,8 @@ test('self-order manual qris confirmation rejects a wrong access token', functio
     ])->assertForbidden();
 });
 
-test('qris payment falls back to midtrans when no qr code is stored', function () {
-    Http::fake([
-        'https://sandbox.midtrans.com/*' => Http::response([
-            'transaction_id' => 'fake-tx-id',
-            'transaction_status' => 'pending',
-            'status_code' => '201',
-            'order_id' => 'TEST',
-        ], 200),
-    ]);
+test('qris payment requires a stored qr code', function () {
+    Http::fake();
 
     $this->actingAs($this->cashier)
         ->postJson(route('pos.orders.initiate-payment'), [
@@ -235,8 +228,8 @@ test('qris payment falls back to midtrans when no qr code is stored', function (
             'payment_type' => 'qris',
             'order_type' => 'dine_in',
         ])
-        ->assertOk()
-        ->assertJsonMissing(['manual_qr' => true]);
+        ->assertStatus(422)
+        ->assertJson(['message' => 'QRIS belum dikonfigurasi. Unggah QR pembayaran di menu QR Pembayaran.']);
 
-    Http::assertSentCount(1);
+    Http::assertNothingSent();
 });

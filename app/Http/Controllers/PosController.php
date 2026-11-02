@@ -168,10 +168,15 @@ class PosController extends Controller
         return redirect()->route('pos.index')->with('last_order_id', $order->id);
     }
 
-    public function initiatePayment(InitiatePaymentRequest $request, MidtransService $midtrans): JsonResponse
+    public function initiatePayment(InitiatePaymentRequest $request): JsonResponse
     {
         try {
             $validated = $request->validated();
+
+            if ($validated['payment_type'] === 'qris' && ! QrCode::activeQr()) {
+                return response()->json(['message' => 'QRIS belum dikonfigurasi. Unggah QR pembayaran di menu QR Pembayaran.'], 422);
+            }
+
             $user = $request->user();
             $orderItems = $this->orderService->buildOrderItems($validated['items']);
             $this->validateLargeApproval($this->orderSubtotal($orderItems), $validated);
@@ -181,7 +186,7 @@ class PosController extends Controller
                 $user, $validated, $orderItems, $session, $this->currentPosSessionId(),
             );
 
-            return $this->midtransInitiatedResponse($order, $validated, $midtrans);
+            return $this->midtransInitiatedResponse($order);
         } catch (\Exception $e) {
             Log::error('Payment initiation failed', [
                 'message' => $e->getMessage(),
@@ -199,6 +204,10 @@ class PosController extends Controller
 
         if ($order->status === OrderStatus::Paid) {
             return response()->json(['status' => 'settlement']);
+        }
+
+        if ($order->payment && $order->payment->method === 'qris' && blank($order->payment->midtrans_transaction_id)) {
+            return response()->json(['status' => 'pending']);
         }
 
         $mapped = $this->mapStatus($order, $midtrans);
@@ -517,35 +526,15 @@ class PosController extends Controller
 
     // ── payment / qris helpers ──────────────────────────────────────────────
 
-    protected function midtransInitiatedResponse(Order $order, array $validated, MidtransService $midtrans): JsonResponse
+    protected function midtransInitiatedResponse(Order $order): JsonResponse
     {
-        if ($validated['payment_type'] === 'qris' && ($qrCode = QrCode::activeQr())) {
-            $this->paymentService->createPaymentRecord($order, [], 'qris');
+        $qrCode = QrCode::activeQr();
 
-            return response()->json([
-                'order_id' => $order->id,
-                'order_number' => config('pos.order_number_prefix', 'TRX-LW-').$order->id,
-                'subtotal' => $order->subtotal,
-                'tax' => $order->tax,
-                'service_charge' => $order->service_charge,
-                'midtrans_charge' => $order->midtrans_charge,
-                'rounding_amount' => $order->rounding_amount,
-                'total' => $order->total,
-                'payment_type' => 'qris',
-                'transaction_id' => null,
-                'qr_code' => $qrCode->image_url,
-                'manual_qr' => true,
-            ]);
+        if (! $qrCode) {
+            return response()->json(['message' => 'QRIS belum dikonfigurasi. Unggah QR pembayaran di menu QR Pembayaran.'], 422);
         }
 
-        $midtransResponse = $midtrans->createCharge(
-            (string) $order->id,
-            (int) round((float) $order->total),
-            $validated['payment_type'],
-        );
-
-        $paymentData = $this->paymentService->extractPaymentResponse($midtransResponse);
-        $this->paymentService->createPaymentRecord($order, $midtransResponse, $validated['payment_type']);
+        $this->paymentService->createPaymentRecord($order, [], 'qris');
 
         return response()->json([
             'order_id' => $order->id,
@@ -556,9 +545,10 @@ class PosController extends Controller
             'midtrans_charge' => $order->midtrans_charge,
             'rounding_amount' => $order->rounding_amount,
             'total' => $order->total,
-            'payment_type' => $validated['payment_type'],
-            'transaction_id' => $midtransResponse['transaction_id'] ?? null,
-            ...$paymentData,
+            'payment_type' => 'qris',
+            'transaction_id' => null,
+            'qr_code' => $qrCode->image_url,
+            'manual_qr' => true,
         ]);
     }
 

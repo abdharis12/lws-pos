@@ -29,6 +29,7 @@ class CheckPendingPayments extends Command
 
         Order::where('status', OrderStatus::PendingPayment)
             ->where('created_at', '<', now()->subMinutes(2))
+            ->whereHas('payment', fn ($query) => $query->whereNotNull('midtrans_transaction_id'))
             ->chunkById(100, function (Collection $orders) use ($midtrans, &$paidIds, &$cancelledIds) {
                 foreach ($orders as $order) {
                     [$paid, $cancelled] = $this->classifyOrder($order, $midtrans);

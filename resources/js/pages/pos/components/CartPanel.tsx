@@ -1,6 +1,6 @@
 import {
     Plus, Minus, X, Percent, SplitSquareVertical,
-    Printer, Wallet, Globe, ShieldCheck,
+    Printer, Wallet, QrCode, ShieldCheck,
     PackageOpen, Table2,
 } from 'lucide-react';
 import { useState, useMemo } from 'react';
@@ -314,7 +314,7 @@ export default function CartPanel({
                                         <Wallet className="mr-2 size-4" /> Bayar Cash
                                     </Button>
                                     <Button onClick={() => onOrder('online')} disabled={items.length === 0 || processing || !tableSelected || takeawayNoName} variant="secondary" className="w-full" size="lg" style={{ backgroundColor: SAND, color: INK }}>
-                                        <Globe className="mr-2 size-4" /> Bayar Online
+                                        <QrCode className="mr-2 size-4" /> Bayar QRIS
                                     </Button>
                                 </>
                             )}

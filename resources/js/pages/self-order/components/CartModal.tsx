@@ -161,7 +161,7 @@ export function CartModal({
                                 )}
                                 onClick={() => onSetPaymentMethod('online')}
                             >
-                                Bayar Online
+                                Bayar QRIS
                             </button>
                         </div>
 
@@ -181,6 +181,12 @@ export function CartModal({
                                         <span className="text-gray-500">Service Charge (5%)</span>
                                         <span className="text-gray-800">{fmt(onlineServiceCharge)}</span>
                                     </div>
+                                    {onlineRoundingAmount > 0 && (
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-500">Pembulatan</span>
+                                            <span className="text-gray-800">{fmt(onlineRoundingAmount)}</span>
+                                        </div>
+                                    )}
                                     <div className="flex justify-between">
                                         <span className="text-gray-500">Biaya Transaksi</span>
                                         <span className="text-gray-800">{fmt(midtransCharge)}</span>

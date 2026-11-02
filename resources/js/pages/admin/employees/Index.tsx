@@ -427,7 +427,7 @@ return;
                                             id="is_active"
                                             checked={data.is_active}
                                             onCheckedChange={(checked) =>
-                                                setData('is_active', checked)
+                                                setData('is_active', checked === true)
                                             }
                                         />
                                         <Label htmlFor="is_active">Aktif</Label>

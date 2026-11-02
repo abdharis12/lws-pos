@@ -9,6 +9,7 @@ use App\Models\OptionGroup;
 use App\Models\OptionItem;
 use App\Models\Order;
 use App\Models\Outlet;
+use App\Models\QrCode;
 use App\Models\TableSession;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -542,14 +543,11 @@ test('cashier cannot approve discount', function () {
         ->assertStatus(403);
 });
 
-test('online payment flow does NOT occupy table until settlement', function () {
-    Http::fake([
-        'https://sandbox.midtrans.com/*' => Http::response([
-            'transaction_id' => 'fake-tx-id',
-            'transaction_status' => 'pending',
-            'status_code' => '201',
-            'order_id' => 'TEST',
-        ], 200),
+test('qris payment flow does NOT occupy table until settlement', function () {
+    QrCode::query()->create([
+        'label' => 'QRIS Utama',
+        'image_path' => 'qr-codes/qris.png',
+        'is_active' => true,
     ]);
 
     $this->actingAs($this->cashier)
@@ -561,7 +559,8 @@ test('online payment flow does NOT occupy table until settlement', function () {
             'payment_type' => 'qris',
             'order_type' => 'dine_in',
         ])
-        ->assertOk();
+        ->assertOk()
+        ->assertJson(['manual_qr' => true, 'payment_type' => 'qris']);
 
     expect($this->table->fresh()->status->value)->not->toBe('occupied');
 });

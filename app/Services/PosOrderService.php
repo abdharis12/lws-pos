@@ -385,7 +385,9 @@ class PosOrderService
             return;
         }
 
-        $midtrans->cancel((string) $order->id);
+        if ($order->payment->midtrans_transaction_id) {
+            $midtrans->cancel((string) $order->id);
+        }
 
         $order->payment->update(['status' => 'failed']);
     }

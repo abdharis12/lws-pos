@@ -1,5 +1,5 @@
 import {
-    QrCode, Smartphone, Building2, Store, ChevronLeft,
+    QrCode, ChevronLeft,
     LoaderCircle, AlertCircle, Check, Copy, ExternalLink,
 } from 'lucide-react';
 import { useState, useEffect, useRef, useMemo } from 'react';
@@ -70,24 +70,11 @@ interface PaymentMethod {
 }
 
 const PAYMENT_METHODS: PaymentMethod[] = [
-    { id: 'qris', name: 'QRIS', description: 'GoPay / OVO / LinkAja', category: 'qris' },
-    { id: 'gopay', name: 'GoPay', description: 'Dompet digital Gojek', category: 'ewallet' },
-    { id: 'shopeepay', name: 'ShopeePay', description: 'Dompet digital Shopee', category: 'ewallet' },
-    { id: 'bca_va', name: 'BCA VA', description: 'Transfer ke BCA', category: 'va' },
-    { id: 'mandiri_va', name: 'Mandiri VA', description: 'Transfer ke Mandiri', category: 'va' },
-    { id: 'bni_va', name: 'BNI VA', description: 'Transfer ke BNI', category: 'va' },
-    { id: 'bri_va', name: 'BRI VA', description: 'Transfer ke BRI', category: 'va' },
-    { id: 'permata_va', name: 'Permata VA', description: 'Transfer ke Permata', category: 'va' },
-    { id: 'echannel', name: 'Mandiri Bill', description: 'Pembayaran Mandiri', category: 'va' },
-    { id: 'indomaret', name: 'Indomaret', description: 'Bayar di Indomaret', category: 'cstore' },
-    { id: 'alfamart', name: 'Alfamart', description: 'Bayar di Alfamart', category: 'cstore' },
+    { id: 'qris', name: 'QRIS', description: 'Scan menggunakan aplikasi bank / e-wallet', category: 'qris' },
 ];
 
 const CATEGORY_NAMES: Record<string, string> = {
     qris: 'QRIS',
-    ewallet: 'E-Wallet',
-    va: 'Virtual Account',
-    cstore: 'Convenience Store',
 };
 
 export default function MidtransPaymentDialog({
@@ -105,22 +92,6 @@ export default function MidtransPaymentDialog({
     const [copied, setCopied] = useState(false);
     const orderIdRef = useRef<number | null>(null);
     const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-    const localBreakdown = useMemo(() => {
-        const sub = subtotal;
-        const tx = Math.round(sub * 0.10);
-        const sc = Math.round(sub * 0.05);
-        const discountAmount = discountType === 'percentage' && discountValue > 0
-            ? Math.min(sub * (discountValue / 100), sub)
-            : discountType === 'nominal' && discountValue > 0
-                ? Math.min(discountValue, sub)
-                : 0;
-        const rawBeforeCharge = sub + tx + sc - discountAmount;
-        const mc = Math.round(rawBeforeCharge * 2.5 / 100 / 100) * 100;
-        const finalTotal = rawBeforeCharge + mc;
-
-        return { subtotal: sub, tax: tx, serviceCharge: sc, midtransCharge: mc, roundingAmount: 0, total: finalTotal };
-    }, [subtotal, discountType, discountValue]);
 
     const groupedMethods = useMemo(() => {
         const groups: Record<string, PaymentMethod[]> = {};
@@ -276,10 +247,6 @@ export default function MidtransPaymentDialog({
             .catch(() => {});
     }
 
-    function handleConfirmPayment() {
-        // kept for backward-compat no-op (polling is automatic)
-    }
-
     function handleConfirmManualPayment() {
         const id = orderIdRef.current;
 
@@ -382,22 +349,6 @@ export default function MidtransPaymentDialog({
         return `Rp ${Math.round(safe).toLocaleString('id-ID')}`;
     }
 
-    function getIcon(method: PaymentMethod) {
-        if (method.category === 'qris') {
-            return QrCode;
-        }
-
-        if (method.category === 'ewallet') {
-            return Smartphone;
-        }
-
-        if (method.category === 'cstore') {
-            return Store;
-        }
-
-        return Building2;
-    }
-
     return (
         <Dialog open={open} onOpenChange={handleClose}>
             <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto" style={{ backgroundColor: CREAM }}>
@@ -421,7 +372,7 @@ export default function MidtransPaymentDialog({
                                 </p>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                     {methods.map(method => {
-                                        const Icon = getIcon(method);
+                                        const Icon = QrCode;
 
                                         return (
                                             <button
