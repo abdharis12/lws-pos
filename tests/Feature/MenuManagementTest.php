@@ -6,6 +6,8 @@ use App\Models\MenuCategory;
 use App\Models\OptionGroup;
 use App\Models\Outlet;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
 
 beforeEach(function () {
@@ -152,6 +154,30 @@ test('owner can update menu', function () {
     ])->assertRedirect(route('admin.menus.index'));
 
     expect($menu->fresh()->name)->toBe('Bubur Ayam Spesial Update');
+});
+
+test('owner can update menu and upload a photo via post method spoofing', function () {
+    Storage::fake('public');
+
+    $owner = User::factory()->create()->assignRole('Owner');
+    Employee::factory()->create(['user_id' => $owner->id, 'outlet_id' => $this->outlet->id]);
+    $menu = Menu::factory()->create();
+
+    $this->actingAs($owner)->post(route('admin.menus.update', $menu), [
+        '_method' => 'put',
+        'category_id' => $menu->category_id,
+        'name' => 'Menu Dengan Foto Baru',
+        'price' => 35000,
+        'is_available' => true,
+        'photo' => UploadedFile::fake()->image('menu.jpg'),
+    ])->assertRedirect(route('admin.menus.index'));
+
+    $menu->refresh();
+
+    expect($menu->name)->toBe('Menu Dengan Foto Baru')
+        ->and($menu->photo_path)->not->toBeNull();
+
+    Storage::disk('public')->assertExists($menu->photo_path);
 });
 
 test('owner can update menu station to a valid station', function () {

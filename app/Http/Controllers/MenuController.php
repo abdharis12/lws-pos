@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\ActivityLogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
@@ -203,7 +204,11 @@ class MenuController extends Controller
         $this->clearMenuCache($menu);
         MenuAvailabilityChanged::dispatch($menu->fresh(), $menu->is_available);
 
-        $this->activityLog->log($user, $action, Menu::class, $menu->id, $desc, $context ?? []);
+        $context = collect($context ?? [])
+            ->reject(fn ($value) => $value instanceof UploadedFile)
+            ->all();
+
+        $this->activityLog->log($user, $action, Menu::class, $menu->id, $desc, $context);
     }
 
     protected function clearMenuCache(Menu $menu): void

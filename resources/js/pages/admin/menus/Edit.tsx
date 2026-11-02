@@ -65,7 +65,7 @@ export default function MenusEdit({ menu, categories, optionGroups }: Props) {
         menu.photo_path ? `/storage/${menu.photo_path}` : null,
     );
 
-    const { data, setData, put, processing, errors } = useForm({
+    const { data, setData, post, transform, processing, errors } = useForm({
         category_id: String(menu.category_id),
         name: menu.name,
         description: menu.description ?? '',
@@ -78,7 +78,14 @@ export default function MenusEdit({ menu, categories, optionGroups }: Props) {
 
     function submit(e: React.FormEvent) {
         e.preventDefault();
-        put(`/admin/menus/${menu.id}`);
+
+        // Use POST with method spoofing so multipart uploads (photo) work.
+        // PHP does not parse multipart bodies on native PUT requests.
+        transform((formData) => ({ ...formData, _method: 'put' }));
+
+        post(`/admin/menus/${menu.id}`, {
+            forceFormData: true,
+        });
     }
 
     function toggleOptionGroup(id: number) {
