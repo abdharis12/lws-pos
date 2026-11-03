@@ -125,13 +125,13 @@ class ReportController extends Controller
         $employees = Employee::with('user')
             ->where('outlet_id', $this->outletId())
             ->with([
-                'shifts' => fn ($q) => $q->whereBetween('shift_date', [$monthStart, $monthEnd]),
-                'attendances' => fn ($q) => $q->whereBetween('clock_in_at', [$monthStart, $monthEnd]),
+                'shifts' => fn($q) => $q->whereBetween('shift_date', [$monthStart, $monthEnd]),
+                'attendances' => fn($q) => $q->whereBetween('clock_in_at', [$monthStart, $monthEnd]),
             ])
             ->get();
 
-        $summary = $employees->map(fn ($employee) => $this->overtimeRow($employee))
-            ->filter(fn ($item) => $item['total_overtime_days'] > 0)
+        $summary = $employees->map(fn($employee) => $this->overtimeRow($employee))
+            ->filter(fn($item) => $item['total_overtime_days'] > 0)
             ->values();
 
         return Inertia::render('admin/reports/Overtime', [
@@ -153,7 +153,7 @@ class ReportController extends Controller
             ->selectRaw('served_by, COUNT(*) as total')
             ->groupBy('served_by')
             ->pluck('total', 'served_by')
-            ->map(fn ($total) => (int) $total);
+            ->map(fn($total) => (int) $total);
 
         $servedUserIds = $points->keys();
 
@@ -179,7 +179,7 @@ class ReportController extends Controller
         $date = $request->input('date', today()->format('Y-m-d'));
         $format = $request->input('format', 'xlsx');
 
-        return Excel::download(new SalesReportExport($period, $date), 'laporan-penjualan-'.$date.'.'.$format);
+        return Excel::download(new SalesReportExport($period, $date), 'laporan-penjualan-' . $date . '.' . $format);
     }
 
     // ── Sales helpers ───────────────────────────────────────────────────────
@@ -223,7 +223,11 @@ class ReportController extends Controller
         $rows = Order::whereIn('status', [OrderStatus::Paid, OrderStatus::Completed])
             ->where('created_at', '>=', $start)
             ->where('created_at', '<', $start->copy()->addDay())
-            ->selectRaw('EXTRACT(HOUR FROM created_at)::int as hour, COUNT(*) as count, COALESCE(SUM(total),0) as total')
+            ->selectRaw((match(DB::getDriverName()) {
+            'mysql' => 'HOUR(created_at)',
+            'pgsql' => 'EXTRACT(HOUR FROM created_at)',
+            default => "strftime('%H', created_at)"
+        }) . ' as hour, COUNT(*) as count, COALESCE(SUM(total),0) as total')
             ->groupBy('hour')
             ->get()
             ->keyBy('hour');
@@ -390,7 +394,7 @@ class ReportController extends Controller
 
     protected function attendanceRows(Collection $attendances): Collection
     {
-        return $attendances->map(fn ($a) => [
+        return $attendances->map(fn($a) => [
             'date' => $a->clock_in_at->format('Y-m-d'),
             'clock_in' => $a->clock_in_at->format('H:i'),
             'clock_out' => $a->clock_out_at?->format('H:i'),
@@ -436,7 +440,7 @@ class ReportController extends Controller
                 return $carry;
             }
 
-            $scheduledEnd = Carbon::parse($attendance->clock_in_at->format('Y-m-d').' '.$shift->end_time);
+            $scheduledEnd = Carbon::parse($attendance->clock_in_at->format('Y-m-d') . ' ' . $shift->end_time);
             $overtimeHours = $attendance->clock_out_at->gt($scheduledEnd) ? $attendance->clock_out_at->diffInHours($scheduledEnd) : 0;
 
             if ($overtimeHours > 0) {
@@ -451,7 +455,7 @@ class ReportController extends Controller
     {
         return Employee::with('user')
             ->where('outlet_id', $this->outletId())
-            ->whereHas('user', fn ($q) => $q->role('Waiter'))
+            ->whereHas('user', fn($q) => $q->role('Waiter'))
             ->where(function ($query) use ($servedUserIds) {
                 $query->where('is_active', true)
                     ->orWhereIn('user_id', $servedUserIds);
@@ -462,7 +466,7 @@ class ReportController extends Controller
     protected function waiterSummary(Collection $waiters, Collection $points): Collection
     {
         return $waiters
-            ->map(fn ($employee) => [
+            ->map(fn($employee) => [
                 'employee_id' => $employee->id,
                 'name' => $employee->user?->name ?? 'Unknown',
                 'position' => $employee->position,
@@ -470,6 +474,6 @@ class ReportController extends Controller
             ])
             ->sortByDesc('points')
             ->values()
-            ->map(fn ($row, $index) => [...$row, 'rank' => $index + 1]);
+            ->map(fn($row, $index) => [...$row, 'rank' => $index + 1]);
     }
 }
