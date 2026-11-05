@@ -57,7 +57,7 @@ export default function HistoryDialog({ open, onOpenChange, onPrint, loading, er
             <DialogContent className="flex max-h-[85vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl" style={{ backgroundColor: CREAM }}>
                 <DialogTitle className="sr-only">Histori Pesanan Hari Ini</DialogTitle>
 
-                <div className="flex items-center justify-between border-b px-5 py-4 mt-12" style={{ borderColor: BORDER, backgroundColor: '#fff' }}>
+                <div className="flex items-center justify-between border-b px-5 py-4 mt-12" style={{ borderColor: BORDER, backgroundColor: CREAM }}>
                     <div className="flex items-center gap-2">
                         <History className="size-5" style={{ color: PRIMARY }} />
                         <div>
@@ -119,7 +119,7 @@ export default function HistoryDialog({ open, onOpenChange, onPrint, loading, er
                                             type="button"
                                             onClick={() => setSelectedId(isSelected ? null : order.id)}
                                             className="flex w-full items-center gap-3 px-5 py-3 text-left transition-colors hover:opacity-90"
-                                            style={{ backgroundColor: isSelected ? `${PRIMARY}08` : '#fff' }}
+                                            style={{ backgroundColor: isSelected ? `${PRIMARY}08` : CREAM }}
                                         >
                                             <div className="flex size-10 flex-shrink-0 flex-col items-center justify-center rounded-xl" style={{ backgroundColor: `${PRIMARY}12` }}>
                                                 <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: PRIMARY }}>

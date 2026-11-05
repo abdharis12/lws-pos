@@ -2,7 +2,7 @@ import { Breadcrumbs } from '@/components/breadcrumbs';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import type { BreadcrumbItem as BreadcrumbItemType } from '@/types';
 
-const CREAM = '#F6F2E9';
+const CREAM = 'var(--cream)';
 
 export function AppSidebarHeader({
     breadcrumbs = [],

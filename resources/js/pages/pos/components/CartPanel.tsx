@@ -123,7 +123,7 @@ export default function CartPanel({
                         const itemTotal = (Number(item.menu.price) + item.selectedOptions.reduce((s, o) => s + o.adjustment * (o.quantity || 1), 0)) * item.qty;
 
                         return (
-                            <div key={i} className="rounded-xl p-3" style={{ border: `1px solid ${BORDER}`, backgroundColor: `${CREAM}60` }}>
+                            <div key={i} className="rounded-xl p-3" style={{ border: `1px solid ${BORDER}`, backgroundColor: `color-mix(in srgb, ${CREAM} 38%, transparent)` }}>
                                 <div className="flex items-start justify-between">
                                     <span className="text-sm font-medium" style={{ color: INK }}>{item.menu.name}</span>
                                     <Button variant="ghost" size="icon" className="size-6" onClick={() => onRemove(i)}>
@@ -183,7 +183,7 @@ export default function CartPanel({
                 )}
 
                 {showDiscount && items.length > 0 && !isConfirmMode && !showPrintButton && (
-                    <div className="mb-3 rounded-xl p-3" style={{ border: `1px solid ${BORDER}`, backgroundColor: `${CREAM}80` }}>
+                    <div className="mb-3 rounded-xl p-3" style={{ border: `1px solid ${BORDER}`, backgroundColor: `color-mix(in srgb, ${CREAM} 50%, transparent)` }}>
                         <div className="mb-2 flex gap-2">
                             <Button
                                 variant={discountType === 'percentage' ? 'outline' : 'default'}
@@ -234,7 +234,7 @@ export default function CartPanel({
                 )}
 
                 {splitCount > 1 && !showPrintButton && (
-                    <div className="mb-3 flex items-center justify-between rounded-xl px-3 py-2 text-xs" style={{ border: `1px solid ${BORDER}`, backgroundColor: `${CREAM}80` }}>
+                    <div className="mb-3 flex items-center justify-between rounded-xl px-3 py-2 text-xs" style={{ border: `1px solid ${BORDER}`, backgroundColor: `color-mix(in srgb, ${CREAM} 50%, transparent)` }}>
                         <span style={{ color: MUTED }}>Split bill</span>
                         <span className="font-medium" style={{ color: INK }}>{splitCount} bagian</span>
                     </div>
@@ -272,7 +272,7 @@ export default function CartPanel({
                         onClick={() => onOpenTablePicker?.()}
                         disabled={items.length === 0}
                         className="mb-3 flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-sm transition-all hover:opacity-80"
-                        style={{ border: `1px solid ${BORDER}`, backgroundColor: `${CREAM}80` }}
+                        style={{ border: `1px solid ${BORDER}`, backgroundColor: `color-mix(in srgb, ${CREAM} 50%, transparent)` }}
                     >
                         <span className="flex items-center gap-2">
                             <Table2 className="size-4" style={{ color: PRIMARY }} />

@@ -28,7 +28,7 @@ export interface ReceiptData {
     change?: number | null;
 }
 
-export type PrintChannel = 'ble' | 'usb' | 'os-dialog';
+export type PrintChannel = 'ble' | 'usb' | 'native' | 'os-dialog';
 
 export interface PrintResult {
     channel: PrintChannel;
@@ -37,7 +37,7 @@ export interface PrintResult {
 }
 
 export interface PairedDeviceInfo {
-    kind: 'bluetooth' | 'usb';
+    kind: 'bluetooth' | 'usb' | 'native';
     id: string;
     name: string;
     pairedAt: number;

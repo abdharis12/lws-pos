@@ -73,7 +73,7 @@ export default function PosTables({ tables, groupedTables }: MejaPageProps) {
         <>
             <Head title="Meja" />
             <div className="flex h-screen flex-col overflow-hidden" style={{ backgroundColor: CREAM }}>
-                <div className="border-b px-5 py-3" style={{ borderColor: BORDER, backgroundColor: '#fff' }}>
+                <div className="border-b px-5 py-3" style={{ borderColor: BORDER, backgroundColor: CREAM }}>
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <Link href="/pos" className="flex size-9 items-center justify-center rounded-xl transition-all hover:opacity-70" style={{ backgroundColor: `${PRIMARY}0f`, color: INK }}>
@@ -132,7 +132,7 @@ export default function PosTables({ tables, groupedTables }: MejaPageProps) {
                                     <div
                                         key={table.id}
                                         className="flex flex-col rounded-2xl border p-4 transition-all hover:-translate-y-0.5 hover:shadow-md"
-                                        style={{ backgroundColor: '#fff', borderColor: BORDER }}
+                                        style={{ backgroundColor: CREAM, borderColor: BORDER }}
                                     >
                                         <div className="flex items-center justify-between gap-2">
                                             <span className="flex size-16 items-center justify-center rounded-xl text-lg font-bold" style={{ backgroundColor: selectedBg, color: textColor }}>
@@ -192,7 +192,7 @@ export default function PosTables({ tables, groupedTables }: MejaPageProps) {
                     setReleaseTable(null);
                 }
             }}>
-                <DialogContent className="sm:max-w-xs border-0 shadow-lg shadow-slate-900/10" style={{ backgroundColor: '#fff' }}>
+                <DialogContent className="sm:max-w-xs border-0 shadow-lg shadow-slate-900/10" style={{ backgroundColor: CREAM }}>
                     <div className="flex flex-col items-center py-4 text-center">
                         <div className="mb-4 flex size-16 items-center justify-center rounded-2xl" style={{ backgroundColor: `${PRIMARY}15` }}>
                             <Move className="size-7" style={{ color: PRIMARY }} />

@@ -99,7 +99,7 @@ export default function PendingOrdersInbox({
                                 className="group relative flex-shrink-0 cursor-pointer rounded-xl p-3 text-left transition-all snap-start"
                                 style={{
                                     border: `1px solid ${selectedId === order.id ? PRIMARY : BORDER}`,
-                                    backgroundColor: selectedId === order.id ? `${PRIMARY}08` : '#fff',
+                                    backgroundColor: selectedId === order.id ? `${PRIMARY}08` : CREAM,
                                     minWidth: '200px',
                                 }}
                             >

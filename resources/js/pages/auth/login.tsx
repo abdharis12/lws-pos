@@ -11,7 +11,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
 
-const SAND = '#CFC0A4';
+const SAND = 'var(--sand)';
 const DARK = '#233433';
 const PRIMARY = '#4F6B6A';
 

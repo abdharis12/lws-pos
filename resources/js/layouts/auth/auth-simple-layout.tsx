@@ -1,8 +1,8 @@
 import { Head } from '@inertiajs/react';
 import type { AuthLayoutProps } from '@/types';
 
-const CREAM = '#F6F2E9';
-const INK = '#25332F';
+const CREAM = 'var(--cream)';
+const INK = 'var(--ink)';
 
 export default function AuthSimpleLayout({
     children,

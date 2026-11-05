@@ -186,10 +186,10 @@ reset(menu);
                                             <>
                                                 <div className="flex items-center gap-2">
                                                     <div className="flex size-5 items-center justify-center rounded-full border" style={{
-                                                        borderColor: selected ? '#fff' : BORDER,
-                                                        backgroundColor: selected ? '#fff' : 'transparent',
+                                                        borderColor: selected ? PRIMARY : BORDER,
+                                                        backgroundColor: selected ? PRIMARY : 'transparent',
                                                     }}>
-                                                        {selected && <Check className="size-3" style={{ color: PRIMARY }} />}
+                                                        {selected && <Check className="size-3" style={{ color: '#fff' }} />}
                                                     </div>
                                                     <div className="flex flex-1 items-center justify-between min-w-0">
                                                         <span className="truncate">{opt.name}</span>

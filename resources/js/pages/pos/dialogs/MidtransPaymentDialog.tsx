@@ -380,7 +380,7 @@ export default function MidtransPaymentDialog({
                                                 onClick={() => handleSelectMethod(method)}
                                                 disabled={initLoading}
                                                 className="flex items-center gap-3 rounded-xl p-3 text-left transition-all hover:opacity-80 disabled:opacity-50"
-                                                style={{ border: `1px solid ${BORDER}`, backgroundColor: '#fff' }}
+                                                style={{ border: `1px solid ${BORDER}`, backgroundColor: CREAM }}
                                             >
                                                 <div className="flex size-10 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: `${PRIMARY}10` }}>
                                                     <Icon className="size-5" style={{ color: PRIMARY }} />
@@ -401,7 +401,7 @@ export default function MidtransPaymentDialog({
                 {step === 'pay' && (
                     <div className="flex flex-col items-center space-y-4 py-2">
                         <div className="w-full max-w-sm space-y-4">
-                            <div className="rounded-xl p-3" style={{ border: `1px solid ${BORDER}`, backgroundColor: '#fff' }}>
+                            <div className="rounded-xl p-3" style={{ border: `1px solid ${BORDER}`, backgroundColor: CREAM }}>
                                 <p className="mb-2 text-xs font-semibold" style={{ color: MUTED }}>Rincian Pembayaran</p>
                                 <div className="space-y-1 text-sm">
                                     <div className="flex justify-between">
@@ -473,7 +473,7 @@ export default function MidtransPaymentDialog({
                                                 <p className="text-xs font-medium uppercase tracking-wider" style={{ color: MUTED }}>
                                                     {response.bank?.toUpperCase()} Virtual Account
                                                 </p>
-                                                <div className="mt-2 flex items-center justify-between gap-2 rounded-lg p-3" style={{ backgroundColor: `${CREAM}80` }}>
+                                                <div className="mt-2 flex items-center justify-between gap-2 rounded-lg p-3" style={{ backgroundColor: `color-mix(in srgb, ${CREAM} 50%, transparent)` }}>
                                                     <span className="font-mono text-lg font-bold tracking-wider break-all" style={{ color: INK }}>
                                                         {response.va_number}
                                                     </span>
@@ -500,7 +500,7 @@ export default function MidtransPaymentDialog({
                                                 <div className="mt-2 space-y-2">
                                                     <div>
                                                         <p className="text-xs" style={{ color: MUTED }}>Bill Key</p>
-                                                        <div className="flex items-center gap-2 rounded-lg p-3" style={{ backgroundColor: `${CREAM}80` }}>
+                                                        <div className="flex items-center gap-2 rounded-lg p-3" style={{ backgroundColor: `color-mix(in srgb, ${CREAM} 50%, transparent)` }}>
                                                             <span className="font-mono text-lg font-bold tracking-wider break-all" style={{ color: INK }}>
                                                                 {response.bill_key}
                                                             </span>
@@ -532,7 +532,7 @@ export default function MidtransPaymentDialog({
                                                 <p className="text-xs font-medium uppercase tracking-wider" style={{ color: MUTED }}>
                                                     {response.store ?? 'Pembayaran'} Kode
                                                 </p>
-                                                <div className="mt-2 flex items-center justify-between gap-2 rounded-lg p-3" style={{ backgroundColor: `${CREAM}80` }}>
+                                                <div className="mt-2 flex items-center justify-between gap-2 rounded-lg p-3" style={{ backgroundColor: `color-mix(in srgb, ${CREAM} 50%, transparent)` }}>
                                                     <span className="font-mono text-lg font-bold tracking-wider break-all" style={{ color: INK }}>
                                                         {response.payment_code}
                                                     </span>

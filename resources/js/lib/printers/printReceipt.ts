@@ -13,12 +13,18 @@ import {
     pairUsbPrinter,
     printViaUsb,
 } from './usbPrinter';
+import {
+    connectAndGetNativeWriter,
+    isNativeBridgeSupported,
+    pairNativePrinter,
+    printViaNative,
+} from './nativePrinter';
 
 export interface OsDialogPrinter {
     printViaOsDialog(iframe: HTMLIFrameElement | null, data: ReceiptData): void;
 }
 
-export async function pairPrinter(kind: 'bluetooth' | 'usb'): Promise<void> {
+export async function pairPrinter(kind: 'bluetooth' | 'usb' | 'native'): Promise<void> {
     if (kind === 'bluetooth') {
         const device = await pairBluetoothPrinter();
         setPairedDeviceInfo({
@@ -27,7 +33,7 @@ export async function pairPrinter(kind: 'bluetooth' | 'usb'): Promise<void> {
             name: device.name ?? 'Bluetooth Printer',
             pairedAt: Date.now(),
         });
-    } else {
+    } else if (kind === 'usb') {
         const device = await pairUsbPrinter();
         setPairedDeviceInfo({
             kind: 'usb',
@@ -35,6 +41,9 @@ export async function pairPrinter(kind: 'bluetooth' | 'usb'): Promise<void> {
             name: device.productName ?? `USB Printer (${device.vendorId.toString(16)})`,
             pairedAt: Date.now(),
         });
+    } else if (kind === 'native') {
+        const info = await pairNativePrinter();
+        setPairedDeviceInfo(info);
     }
 }
 
@@ -123,6 +132,25 @@ export async function printReceipt(opts: PrintReceiptOptions): Promise<PrintResu
         }
     }
 
+    if (info?.kind === 'native' && isNativeBridgeSupported()) {
+        try {
+            const handle = await connectAndGetNativeWriter(info.id);
+
+            try {
+                await printViaNative(handle, bytes);
+                handle.cleanup();
+
+                return { channel: 'native', success: true };
+            } catch (err) {
+                handle.cleanup();
+
+                throw err;
+            }
+        } catch (err) {
+            console.warn('Native print failed, falling back to OS dialog:', err);
+        }
+    }
+
     // Fallback: OS print dialog
     try {
         osPrinter.printViaOsDialog(iframeRef, data);
@@ -138,7 +166,7 @@ export async function printReceipt(opts: PrintReceiptOptions): Promise<PrintResu
 }
 
 export function isAnyDirectPrintSupported(): boolean {
-    return isWebBluetoothSupported() || isWebUsbSupported();
+    return isWebBluetoothSupported() || isWebUsbSupported() || isNativeBridgeSupported();
 }
 
 export function isOsPrintSupported(): boolean {

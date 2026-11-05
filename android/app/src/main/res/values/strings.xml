@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">LWS POS</string>
+    <string name="title_activity_main">LWS POS</string>
+    <string name="package_name">com.lws.pos</string>
+    <string name="custom_url_scheme">com.lws.pos</string>
+</resources>

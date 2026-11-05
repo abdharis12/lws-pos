@@ -6,9 +6,9 @@ import { ReservationModal } from '@/components/template/reservation';
 import { Button } from '@/components/ui/button';
 import { dashboard, login } from '@/routes';
 
-const CREAM = '#F6F2E9';
+const CREAM = 'var(--cream)';
 const PRIMARY = '#4F6B6A';
-const INK = '#25332F';
+const INK = 'var(--ink)';
 
 const features = [
     {

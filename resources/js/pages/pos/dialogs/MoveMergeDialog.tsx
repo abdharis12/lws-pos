@@ -83,7 +83,7 @@ onClose();
                                     className="relative flex flex-col items-center rounded-xl p-3 text-sm font-medium transition-all hover:opacity-85 disabled:opacity-50"
                                     style={{
                                         backgroundColor: TABLE_COLORS[t.status] || '#9ca3af',
-                                        color: t.status === 'available' ? INK : '#fff',
+                                        color: t.status === 'available' ? INK : INK,
                                     }}
                                 >
                                     <span className="text-lg font-bold">{t.code}</span>

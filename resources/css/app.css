@@ -98,6 +98,13 @@
     --sidebar-accent-foreground: #FAF8F5;
     --sidebar-border: rgba(207, 192, 164, 0.2);
     --sidebar-ring: #CFC0A4;
+
+    /* POS theme colors */
+    --cream: #F6F2E9;
+    --ink: #25332F;
+    --muted: #5c6a66;
+    --sand: #CFC0A4;
+    --border-color: rgba(37, 51, 47, 0.08);
 }
 
 .dark {
@@ -107,8 +114,8 @@
     --card-foreground: oklch(0.985 0 0);
     --popover: oklch(0.145 0 0);
     --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.985 0 0);
-    --primary-foreground: oklch(0.205 0 0);
+    --primary: oklch(0.48 0.032 195.5);
+    --primary-foreground: oklch(0.80 0.038 88.5);
     --secondary: oklch(0.269 0 0);
     --secondary-foreground: oklch(0.985 0 0);
     --muted: oklch(0.269 0 0);
@@ -127,12 +134,19 @@
     --chart-5: oklch(0.645 0.246 16.439);
     --sidebar: oklch(0.205 0 0);
     --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.985 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-primary: oklch(0.48 0.032 195.5);
+    --sidebar-primary-foreground: oklch(0.80 0.038 88.5);
     --sidebar-accent: oklch(0.269 0 0);
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(0.269 0 0);
     --sidebar-ring: oklch(0.439 0 0);
+
+    /* POS theme colors - dark mode */
+    --cream: #1a1d1c;
+    --ink: #e8ebe9;
+    --muted: #a0a8a4;
+    --sand: #8a8f88;
+    --border-color: rgba(207, 192, 164, 0.2);
 }
 
 @layer base {
@@ -144,3 +158,58 @@
         @apply bg-background text-foreground;
     }
 }
+
+/* --------------------------------------------------------------------------
+   Dark mode overrides for hard-coded utility colors.
+
+   Many existing screens use `bg-white`, `text-gray-900`, etc. instead of the
+   theme tokens. These rules keep those screens readable when the `.dark`
+   class is present (the class is added automatically from the OS setting by
+   use-appearance).
+   -------------------------------------------------------------------------- */
+
+.dark .bg-white {
+    background-color: var(--cream);
+}
+
+.dark .bg-gray-50,
+.dark .bg-gray-100,
+.dark .bg-slate-50,
+.dark .bg-slate-100 {
+    background-color: color-mix(in srgb, var(--cream) 88%, white 12%);
+}
+
+.dark .text-black,
+.dark .text-gray-900,
+.dark .text-gray-800,
+.dark .text-gray-700,
+.dark .text-slate-900,
+.dark .text-slate-800,
+.dark .text-slate-700 {
+    color: var(--ink);
+}
+
+.dark .text-gray-600,
+.dark .text-gray-500,
+.dark .text-slate-600,
+.dark .text-slate-500 {
+    color: var(--muted);
+}
+
+.dark .border-gray-200,
+.dark .border-gray-300,
+.dark .border-slate-200,
+.dark .border-slate-300 {
+    border-color: var(--border-color);
+}
+
+.dark .bg-\[\#F6F2E9\] {
+    background-color: var(--cream);
+}
+
+.dark .bg-\[\#F6F2E9\]\/90,
+.dark .bg-\[\#F6F2E9\]\/60,
+.dark .bg-\[\#F6F2E9\]\/40 {
+    background-color: color-mix(in srgb, var(--cream) 60%, transparent);
+}
+

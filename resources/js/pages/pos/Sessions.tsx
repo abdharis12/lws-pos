@@ -22,6 +22,9 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { CREAM, INK, BORDER } from './constants';
+
+const INK_LIGHT = 'color-mix(in srgb, var(--ink) 8%, transparent)';
 
 interface UserSummary {
     id: number;
@@ -91,10 +94,7 @@ function formatDateLong(dt: string): string {
     });
 }
 
-const INK = 'oklch(0.48 0.032 195.5)';
-const INK_LIGHT = 'oklch(0.48 0.032 195.5 / 0.08)';
-const BORDER = 'oklch(0.80 0.038 88.5 / 0.35)';
-const CREAM = 'oklch(0.98 0.005 85.0)';
+
 
 export default function SessionsIndex({
     currentSession,
@@ -259,7 +259,7 @@ export default function SessionsIndex({
                     {currentSession && (
                         <Card
                             className="overflow-hidden border-0 shadow-lg shadow-slate-900/5"
-                            style={{ backgroundColor: '#fff' }}
+                            style={{ backgroundColor: CREAM }}
                         >
                             <div
                                 className="relative flex items-center justify-between px-6 py-4"
@@ -520,7 +520,7 @@ export default function SessionsIndex({
                     {!currentSession && (
                         <Card
                             className="overflow-hidden border-0 shadow-lg shadow-slate-900/5"
-                            style={{ backgroundColor: '#fff' }}
+                            style={{ backgroundColor: CREAM }}
                         >
                             <div className="flex flex-col items-center px-6 py-12 text-center">
                                 <div
@@ -559,7 +559,7 @@ export default function SessionsIndex({
 
                     <Card
                         className="overflow-hidden border-0 shadow-lg shadow-slate-900/5"
-                        style={{ backgroundColor: '#fff' }}
+                        style={{ backgroundColor: CREAM }}
                     >
                         <CardHeader
                             className="border-b px-6 py-5 border-[#CFC0A4]/20"
@@ -775,7 +775,7 @@ export default function SessionsIndex({
             >
                 <DialogContent
                     className="sm:max-w-sm"
-                    style={{ backgroundColor: '#fff' }}
+                    style={{ backgroundColor: CREAM }}
                 >
                     <DialogHeader>
                         <div className="flex items-center gap-3">
@@ -866,7 +866,7 @@ export default function SessionsIndex({
             >
                 <DialogContent
                     className="sm:max-w-lg"
-                    style={{ backgroundColor: '#fff' }}
+                    style={{ backgroundColor: CREAM }}
                 >
                     <DialogHeader>
                         <div className="flex items-center gap-3">

@@ -90,8 +90,8 @@ const statusClasses: Record<string, string> = {
     paid: 'rounded-full border border-primary/50 bg-primary px-2.5 py-0.5 text-xs font-semibold tracking-wide text-white shadow-sm',
 };
 
-const INK = 'oklch(0.48 0.032 195.5)';
-const INK_LIGHT = 'oklch(0.48 0.032 195.5 / 0.08)';
+const INK = 'var(--ink)';
+const INK_LIGHT = 'color-mix(in srgb, var(--ink) 8%, transparent)';
 
 export default function Payslips({ payslips, period, periods }: Props) {
     const [showGenerateConfirm, setShowGenerateConfirm] = useState(false);

@@ -63,9 +63,13 @@ class DatabaseSeeder extends Seeder
         // Buat Karyawan Lainnya
         $employeeData = [
             ['name' => 'Dwi', 'email' => 'cashier@lws.my.id', 'position' => 'Kasir', 'role' => 'Cashier', 'salary' => 1500000],
-            ['name' => 'Aziz', 'email' => 'aziz@lws.my.id', 'position' => 'dapur', 'role' => 'Kitchen Staff', 'salary' => 1500000],
-            ['name' => 'Riza', 'email' => 'riza@lws.my.id', 'position' => 'waiter', 'role' => 'Waiter', 'salary' => 1500000],
-            ['name' => 'Arif', 'email' => 'arif@lws.my.id', 'position' => 'waiter', 'role' => 'Waiter', 'salary' => 1500000],
+            ['name' => 'Aziz', 'email' => 'aziz@lws.my.id', 'position' => 'Dapur', 'role' => 'Kitchen Staff', 'salary' => 1500000],
+            ['name' => 'Riza', 'email' => 'riza@lws.my.id', 'position' => 'Waiter', 'role' => 'Waiter', 'salary' => 1500000],
+            ['name' => 'Arif', 'email' => 'arif@lws.my.id', 'position' => 'Waiter', 'role' => 'Waiter', 'salary' => 1500000],
+            ['name' => 'Taufik', 'email' => 'taufik@lws.my.id', 'position' => 'Dapur', 'role' => 'Kitchen Staff', 'salary' => 1500000],
+            ['name' => 'Jenny', 'email' => 'jenny@lws.my.id', 'position' => 'Waiter', 'role' => 'Waiter', 'salary' => 1500000],
+            ['name' => 'Putri', 'email' => 'putri@lws.my.id', 'position' => 'Waiter', 'role' => 'Waiter', 'salary' => 1500000],
+            ['name' => 'Mey', 'email' => 'mey@lws.my.id', 'position' => 'Waiter', 'role' => 'Waiter', 'salary' => 1500000],
         ];
 
         foreach ($employeeData as $data) {
@@ -115,17 +119,40 @@ class DatabaseSeeder extends Seeder
         }
 
         $menuItems = [
-            ['category' => 'Bubur', 'name' => 'Bubur Ayam Spesial', 'price' => 25000],
-            ['category' => 'Bubur', 'name' => 'Bubur Ayam Original', 'price' => 20000],
-            ['category' => 'Bubur', 'name' => 'Bubur Daging', 'price' => 22000],
-            ['category' => 'Bubur', 'name' => 'Bubur Jamur', 'price' => 20000],
-            ['category' => 'Makanan', 'name' => 'Nasi Goreng', 'price' => 28000],
-            ['category' => 'Makanan', 'name' => 'Mie Goreng', 'price' => 25000],
-            ['category' => 'Makanan', 'name' => 'Mie Ayam', 'price' => 22000],
-            ['category' => 'Minuman', 'name' => 'Es Teh Manis', 'price' => 5000],
-            ['category' => 'Minuman', 'name' => 'Es Jeruk', 'price' => 7000],
-            ['category' => 'Minuman', 'name' => 'Teh Hangat', 'price' => 4000],
-            ['category' => 'Minuman', 'name' => 'Air Mineral', 'price' => 5000],
+            ['category' => 'Bubur', 'name' => 'Bubur Ayam Spesial', 'price' => 20000],
+            ['category' => 'Bubur', 'name' => 'Bubur Ayam Original', 'price' => 15000],
+            ['category' => 'Bubur', 'name' => 'Bubur Daging', 'price' => 32000],
+            ['category' => 'Bubur', 'name' => 'Bubur Ikan', 'price' => 23000],
+            ['category' => 'Bubur', 'name' => 'Bubur Jamur', 'price' => 25000],
+            ['category' => 'Bubur', 'name' => 'Bubur Manado', 'price' => 32000],
+
+            ['category' => 'Makanan', 'name' => 'Coto Makassar', 'price' => 38000],
+            ['category' => 'Makanan', 'name' => 'Lontong Sayur', 'price' => 28000],
+            ['category' => 'Makanan', 'name' => 'Nasi Kuning Kang LW', 'price' => 29000],
+            ['category' => 'Makanan', 'name' => 'Nasi Rames LW (Ayam Panggang)', 'price' => 34000],
+            ['category' => 'Makanan', 'name' => 'Nasi Rames LW (Ikan Cakalang)', 'price' => 30000],
+
+            ['category' => 'Minuman', 'name' => 'Air Mineral', 'price' => 6000],
+            ['category' => 'Minuman', 'name' => 'Air Putih Hangat', 'price' => 3000],
+            ['category' => 'Minuman', 'name' => 'Coffe Latte', 'price' => 22000],
+            ['category' => 'Minuman', 'name' => 'Es Kosong', 'price' => 3000],
+            ['category' => 'Minuman', 'name' => 'Es Teh Manis', 'price' => 12000],
+            ['category' => 'Minuman', 'name' => 'Fruit Punch', 'price' => 23000],
+            ['category' => 'Minuman', 'name' => 'Manggo Matcha', 'price' => 25000],
+            ['category' => 'Minuman', 'name' => 'Matcha Latte', 'price' => 23000],
+            ['category' => 'Minuman', 'name' => 'Refresher Coconut', 'price' => 21000],
+            ['category' => 'Minuman', 'name' => 'Sunrise', 'price' => 20000],
+
+            ['category' => 'Snack', 'name' => 'Bakwan Goreng', 'price' => 12000],
+            ['category' => 'Snack', 'name' => 'Brown Sugar Pudding', 'price' => 15000],
+            ['category' => 'Snack', 'name' => 'Cendol', 'price' => 20000],
+            ['category' => 'Snack', 'name' => 'Cheese Cake', 'price' => 35000],
+            ['category' => 'Snack', 'name' => 'Fruit Pudding', 'price' => 15000],
+            ['category' => 'Snack', 'name' => 'Kue Jagung', 'price' => 10000],
+            ['category' => 'Snack', 'name' => 'Lalampa', 'price' => 12000],
+            ['category' => 'Snack', 'name' => 'Lumpia Goreng', 'price' => 15000],
+            ['category' => 'Snack', 'name' => 'Manisan Buah Potong', 'price' => 20000],
+            ['category' => 'Snack', 'name' => 'Pie Buah', 'price' => 22000],
         ];
 
         foreach ($menuItems as $item) {
@@ -185,10 +212,10 @@ class DatabaseSeeder extends Seeder
                 ['name' => 'Pedas Level 3', 'price' => 0, 'sort' => 4],
             ]],
             ['group' => 'Topping', 'items' => [
-                ['name' => 'Daging', 'price' => 6000, 'sort' => 1],
-                ['name' => 'Telur', 'price' => 4000, 'sort' => 2],
-                ['name' => 'Suwiran Ayam', 'price' => 5000, 'sort' => 3],
-                ['name' => 'Ikan', 'price' => 6000, 'sort' => 4],
+                ['name' => 'Daging', 'price' => 10000, 'sort' => 1],
+                ['name' => 'Telur', 'price' => 5000, 'sort' => 2],
+                ['name' => 'Suwiran Ayam', 'price' => 10000, 'sort' => 3],
+                ['name' => 'Ikan', 'price' => 10000, 'sort' => 4],
             ]],
             ['group' => 'Ukuran', 'items' => [
                 ['name' => 'Kecil', 'price' => 0, 'sort' => 1],
@@ -212,14 +239,20 @@ class DatabaseSeeder extends Seeder
         }
 
         $tables = [
-            ['code' => 'L1-01', 'capacity' => 2, 'floor' => 'Lantai 1'],
-            ['code' => 'L1-02', 'capacity' => 4, 'floor' => 'Lantai 1'],
+            ['code' => 'L1-01', 'capacity' => 3, 'floor' => 'Lantai 1'],
+            ['code' => 'L1-02', 'capacity' => 3, 'floor' => 'Lantai 1'],
+            ['code' => 'L1-03', 'capacity' => 2, 'floor' => 'Lantai 1'],
+            ['code' => 'L1-04', 'capacity' => 2, 'floor' => 'Lantai 1'],
+            ['code' => 'L1-05', 'capacity' => 2, 'floor' => 'Lantai 1'],
+            ['code' => 'BAR-01', 'capacity' => 1, 'floor' => 'Lantai 1'],
+            ['code' => 'BAR-02', 'capacity' => 1, 'floor' => 'Lantai 1'],
+            ['code' => 'BAR-03', 'capacity' => 1, 'floor' => 'Lantai 1'],
+            ['code' => 'BAR-04', 'capacity' => 1, 'floor' => 'Lantai 1'],
+            ['code' => 'BAR-05', 'capacity' => 1, 'floor' => 'Lantai 1'],
             ['code' => 'L2-01', 'capacity' => 4, 'floor' => 'Lantai 2'],
-            ['code' => 'L2-02', 'capacity' => 6, 'floor' => 'Lantai 2'],
-            ['code' => 'L3-01', 'capacity' => 4, 'floor' => 'Lantai 3'],
-            ['code' => 'L3-02', 'capacity' => 6, 'floor' => 'Lantai 3'],
-            ['code' => 'L4-01', 'capacity' => 6, 'floor' => 'Lantai 4'],
-            ['code' => 'L4-02', 'capacity' => 8, 'floor' => 'Lantai 4'],
+            ['code' => 'L2-02', 'capacity' => 4, 'floor' => 'Lantai 2'],
+            ['code' => 'VIP-01', 'capacity' => 6, 'floor' => 'VIP Room'],
+            ['code' => 'VIP-02', 'capacity' => 6, 'floor' => 'VIP Room'],
             ['code' => 'TR-01', 'capacity' => 4, 'floor' => 'Teras'],
             ['code' => 'TR-02', 'capacity' => 6, 'floor' => 'Teras'],
         ];

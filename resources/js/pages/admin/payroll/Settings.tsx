@@ -49,8 +49,8 @@ const typeLabels: Record<string, string> = {
     tenure_ratio: 'Rasio Masa Kerja',
 };
 
-const INK = 'oklch(0.48 0.032 195.5)';
-const INK_LIGHT = 'oklch(0.48 0.032 195.5 / 0.08)';
+const INK = 'var(--ink)';
+const INK_LIGHT = 'color-mix(in srgb, var(--ink) 8%, transparent)';
 
 export default function PayrollSettings({ thrSettings }: Props) {
     const [open, setOpen] = useState(false);

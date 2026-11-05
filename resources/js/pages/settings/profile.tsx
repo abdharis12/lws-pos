@@ -18,7 +18,7 @@ type PageProps = {
     auth: Auth;
 };
 
-const BORDER = 'rgba(37,51,47,0.08)';
+const BORDER = 'var(--border-color)';
 
 export default function Profile({
     mustVerifyEmail,

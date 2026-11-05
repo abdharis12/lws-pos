@@ -32,10 +32,10 @@ import { calcSubtotal } from './lib/pricing';
 import { printViaOsDialog } from './lib/receipt';
 import type { CartItem, MenuItem, OrderData, PendingOrder, PosPageProps, PrintReceiptData } from './types';
 
-const INK = 'oklch(0.48 0.032 195.5)';
-const BORDER = 'oklch(0.80 0.038 88.5 / 0.35)';
-const CREAM = 'oklch(0.98 0.005 85.0)';
-const MUTED = 'oklch(0.60 0.03 88.5)';
+const INK = 'var(--ink)';
+const BORDER = 'var(--border-color)';
+const CREAM = 'var(--cream)';
+const MUTED = 'var(--muted)';
 
 export default function PosIndex({ categories, tables, pendingOrders, lastOrder }: PosPageProps) {
     const { auth } = usePage().props as { auth: { user: { id: number; name: string } | null } };
@@ -618,7 +618,7 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder 
             <div className="flex h-screen overflow-hidden" style={{ backgroundColor: CREAM }}>
 
                 <div className="flex flex-1 flex-col overflow-hidden">
-                    <div className="border-b px-3 py-3 lg:px-5" style={{ borderColor: BORDER, backgroundColor: '#fff' }}>
+                    <div className="border-b px-3 py-3 lg:px-5" style={{ borderColor: BORDER, backgroundColor: CREAM }}>
                         <div className="flex items-center justify-between gap-2">
                             <div>
                                 <p className="text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: MUTED }}>POS Kasir</p>
@@ -731,7 +731,7 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder 
                     </div>
                 </div>
 
-                <aside className="hidden w-96 flex-shrink-0 border-l lg:flex lg:flex-col" style={{ borderColor: BORDER, backgroundColor: '#fff' }}>
+                <aside className="hidden w-96 flex-shrink-0 border-l lg:flex lg:flex-col" style={{ borderColor: BORDER, backgroundColor: CREAM }}>
                     <div className="border-b px-5 py-3" style={{ borderColor: BORDER }}>
                         <p className="text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: MUTED }}>Pesanan</p>
                         <p className="font-serif text-lg font-bold tracking-tight" style={{ color: INK }}>Cart</p>
@@ -751,7 +751,7 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder 
                 </button>
 
                 <Sheet open={cartOpen} onOpenChange={setCartOpen}>
-                    <SheetContent side="bottom" className="h-[85vh]" style={{ backgroundColor: '#fff' }}>
+                    <SheetContent side="bottom" className="h-[85vh]" style={{ backgroundColor: CREAM }}>
                         <SheetHeader className="border-b px-5 py-4" style={{ borderColor: BORDER }}>
                             <SheetTitle className="font-serif text-lg font-bold" style={{ color: INK }}>Pesanan</SheetTitle>
                         </SheetHeader>
@@ -787,7 +787,7 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder 
                         setDeleteConfirmOrder(null);
                     }
                 }}>
-                    <DialogContent className="sm:max-w-xs border-0 shadow-lg shadow-slate-900/10" style={{ backgroundColor: '#fff' }}>
+                    <DialogContent className="sm:max-w-xs border-0 shadow-lg shadow-slate-900/10" style={{ backgroundColor: CREAM }}>
                         <div className="flex flex-col items-center py-4 text-center">
                             <div className="mb-4 flex size-16 items-center justify-center rounded-2xl" style={{ backgroundColor: '#fef2f2' }}>
                                 <Trash2 className="size-7 text-rose-500" />

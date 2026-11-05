@@ -6,7 +6,7 @@ import { useOrderCreated } from '@/hooks/use-order-created';
 import { useOrderReadyToast } from '@/hooks/use-order-ready-toast';
 import type { AppLayoutProps } from '@/types';
 
-const CREAM = '#F6F2E9';
+const CREAM = 'var(--cream)';
 
 export default function AppSidebarLayout({
     children,

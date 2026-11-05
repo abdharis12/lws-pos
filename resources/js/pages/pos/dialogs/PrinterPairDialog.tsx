@@ -1,7 +1,8 @@
-import { Bluetooth, Cable, Check, Loader2, Printer, X } from 'lucide-react';
+import { Bluetooth, Cable, Check, Loader2, Printer, X, Cpu } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { isWebBluetoothSupported } from '@/lib/printers/blePrinter';
+import { isNativeBridgeSupported } from '@/lib/printers/nativePrinter';
 import {
     getPairedPrinterName,
     pairPrinter,
@@ -30,7 +31,7 @@ function Toast({ message, kind }: { message: string; kind: 'success' | 'error' |
 }
 
 export default function PrinterPairDialog({ open, onOpenChange, onPairChange }: Props) {
-    const [busy, setBusy] = useState<'ble' | 'usb' | null>(null);
+    const [busy, setBusy] = useState<'ble' | 'usb' | 'native' | null>(null);
     const [toast, setToast] = useState<{ message: string; kind: 'success' | 'error' | 'info' } | null>(null);
     const [refreshKey, setRefreshKey] = useState(0);
 
@@ -51,15 +52,15 @@ export default function PrinterPairDialog({ open, onOpenChange, onPairChange }: 
         setToast({ message, kind });
     }
 
-    async function handlePair(kind: 'bluetooth' | 'usb') {
-        setBusy(kind === 'bluetooth' ? 'ble' : 'usb');
+    async function handlePair(kind: 'bluetooth' | 'usb' | 'native') {
+        setBusy(kind === 'bluetooth' ? 'ble' : kind === 'usb' ? 'usb' : 'native');
 
         try {
             await pairPrinter(kind);
             const name = getPairedPrinterName();
             setRefreshKey(k => k + 1);
             onPairChange?.(name);
-            showToast(`Printer ${kind === 'bluetooth' ? 'Bluetooth' : 'USB'} berhasil di-pair.`, 'success');
+            showToast(`Printer ${kind === 'bluetooth' ? 'Bluetooth (BLE)' : kind === 'usb' ? 'USB' : 'Bluetooth (Classic SPP)'} berhasil di-pair.`, 'success');
         } catch (err) {
             const msg = (err as Error).message;
             showToast(msg ?? 'Gagal pairing printer', 'error');
@@ -77,6 +78,7 @@ export default function PrinterPairDialog({ open, onOpenChange, onPairChange }: 
 
     const bleSupported = isWebBluetoothSupported();
     const usbSupported = isWebUsbSupported();
+    const nativeSupported = isNativeBridgeSupported();
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -94,7 +96,7 @@ export default function PrinterPairDialog({ open, onOpenChange, onPairChange }: 
 
                     <div
                         className="rounded-xl p-3"
-                        style={{ backgroundColor: paired ? `${PRIMARY}10` : '#fff', border: `1px solid ${BORDER}` }}
+                        style={{ backgroundColor: paired ? `${PRIMARY}10` : CREAM, border: `1px solid ${BORDER}` }}
                     >
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
@@ -126,7 +128,7 @@ export default function PrinterPairDialog({ open, onOpenChange, onPairChange }: 
                             onClick={() => handlePair('bluetooth')}
                             disabled={! bleSupported || busy !== null}
                             className="flex w-full items-center gap-3 rounded-xl p-3 text-left transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-                            style={{ backgroundColor: '#fff', border: `1px solid ${BORDER}` }}
+                            style={{ backgroundColor: CREAM, border: `1px solid ${BORDER}` }}
                         >
                             <div className="flex size-10 items-center justify-center rounded-lg" style={{ backgroundColor: `${PRIMARY}12` }}>
                                 <Bluetooth className="size-5" style={{ color: PRIMARY }} />
@@ -147,7 +149,7 @@ export default function PrinterPairDialog({ open, onOpenChange, onPairChange }: 
                             onClick={() => handlePair('usb')}
                             disabled={! usbSupported || busy !== null}
                             className="flex w-full items-center gap-3 rounded-xl p-3 text-left transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-                            style={{ backgroundColor: '#fff', border: `1px solid ${BORDER}` }}
+                            style={{ backgroundColor: CREAM, border: `1px solid ${BORDER}` }}
                         >
                             <div className="flex size-10 items-center justify-center rounded-lg" style={{ backgroundColor: `${PRIMARY}12` }}>
                                 <Cable className="size-5" style={{ color: PRIMARY }} />
@@ -162,18 +164,41 @@ export default function PrinterPairDialog({ open, onOpenChange, onPairChange }: 
                             </div>
                             {busy === 'usb' && <Loader2 className="size-4 animate-spin" style={{ color: PRIMARY }} />}
                         </button>
+
+                        {/* Native Classic (SPP) button */}
+                        <button
+                            type="button"
+                            onClick={() => handlePair('native')}
+                            disabled={! nativeSupported || busy !== null}
+                            className="flex w-full items-center gap-3 rounded-xl p-3 text-left transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                            style={{ backgroundColor: CREAM, border: `1px solid ${BORDER}` }}
+                        >
+                            <div className="flex size-10 items-center justify-center rounded-lg" style={{ backgroundColor: `${PRIMARY}12` }}>
+                                <Cpu className="size-5" style={{ color: PRIMARY }} />
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-sm font-semibold" style={{ color: INK }}>Printer Bluetooth (Classic SPP)</p>
+                                <p className="text-xs" style={{ color: MUTED }}>
+                                    {nativeSupported
+                                        ? 'Xprinter XP-58, XP-80, dll. (Bluetooth Classic SPP)'
+                                        : 'Tidak didukung langsung oleh browser. Gunakan native bridge atau pilih USB.'}
+                                </p>
+                            </div>
+                            {busy === 'native' && <Loader2 className="size-4 animate-spin" style={{ color: PRIMARY }} />}
+                        </button>
                     </div>
 
                     {toast && (
                         <Toast message={toast.message} kind={toast.kind} />
                     )}
 
-                    <div className="rounded-lg p-3 text-xs" style={{ backgroundColor: '#fff', border: `1px solid ${BORDER}`, color: MUTED }}>
+                    <div className="rounded-lg p-3 text-xs" style={{ backgroundColor: CREAM, border: `1px solid ${BORDER}`, color: MUTED }}>
                         <p className="font-semibold" style={{ color: INK }}>Catatan</p>
                         <ul className="mt-1 list-disc space-y-1 pl-4">
                             <li>Pairing hanya perlu sekali. Setelah ter-pair, struk otomatis terkirim.</li>
                             <li>Browser Safari iOS tidak mendukung Web Bluetooth/USB — gunakan Chrome di laptop/desktop.</li>
-                            <li>Printer Bluetooth Classic SPP (Xprinter XP-58/XP-80) tidak didukung langsung dari browser.</li>
+                            <li>Printer Bluetooth Classic SPP (mis. RPP02N, Xprinter XP-58/XP-80) dicetak lewat <b>native bridge</b> (helper SPP yang berjalan di komputer/HP).</li>
+                            <li>Jika BLE/USB/SPP gagal, aplikasi otomatis memakai dialog cetak sistem.</li>
                         </ul>
                     </div>
                 </div>

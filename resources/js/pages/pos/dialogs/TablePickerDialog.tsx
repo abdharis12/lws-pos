@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
-import { BORDER, INK, MUTED, PRIMARY, SAND, TABLE_COLORS } from '../constants';
+import { BORDER, CREAM, INK, MUTED, PRIMARY, SAND, TABLE_COLORS } from '../constants';
 import type { TableData } from '../types';
 
 interface Props {
@@ -42,7 +42,7 @@ export default function TablePickerDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-lg" style={{ backgroundColor: '#fff' }}>
+            <DialogContent className="sm:max-w-lg" style={{ backgroundColor: CREAM }}>
                 <DialogHeader>
                     <DialogTitle style={{ color: INK }}>Pilih Meja</DialogTitle>
                 </DialogHeader>
@@ -64,7 +64,7 @@ export default function TablePickerDialog({
                                     onClick={() => setFloor(null)}
                                     className="flex-shrink-0 rounded-full px-3 py-1.5 text-xs font-medium"
                                     style={{
-                                        backgroundColor: floor === null ? PRIMARY : 'oklch(0.48 0.032 195.5 / 0.06)',
+                                        backgroundColor: floor === null ? PRIMARY : CREAM,
                                         color: floor === null ? '#fff' : INK,
                                     }}
                                 >
@@ -76,7 +76,7 @@ export default function TablePickerDialog({
                                         onClick={() => setFloor(f)}
                                         className="flex-shrink-0 rounded-full px-3 py-1.5 text-xs font-medium"
                                         style={{
-                                            backgroundColor: floor === f ? PRIMARY : 'oklch(0.48 0.032 195.5 / 0.06)',
+                                            backgroundColor: floor === f ? PRIMARY : CREAM,
                                             color: floor === f ? '#fff' : INK,
                                         }}
                                     >
@@ -99,7 +99,7 @@ export default function TablePickerDialog({
                                             selected && 'ring-1',
                                         )}
                                         style={{
-                                            backgroundColor: selected ? PRIMARY : (TABLE_COLORS[table.status] || '#fff'),
+                                            backgroundColor: selected ? PRIMARY : (TABLE_COLORS[table.status] || CREAM),
                                             color: selected ? '#fff' : INK,
                                             borderColor: selected ? PRIMARY : BORDER,
                                         }}

@@ -93,8 +93,8 @@ export default function AttendanceRecap({
         return { value, label };
     });
 
-    const INK = 'oklch(0.48 0.032 195.5)';
-    const INK_LIGHT = 'oklch(0.48 0.032 195.5 / 0.08)';
+    const INK = 'var(--ink)';
+    const INK_LIGHT = 'color-mix(in srgb, var(--ink) 8%, transparent)';
 
     return (
         <>
