@@ -106,6 +106,85 @@ test('waiter ready page lists only ready orders with table info', function () {
     expect($completed->fresh()->status)->toBe(OrderStatus::Completed);
 });
 
+test('waiter ready page includes ready takeaway orders without a table', function () {
+    $takeaway = Order::factory()->create([
+        'table_session_id' => null,
+        'created_by' => $this->waiter->id,
+        'order_type' => 'takeaway',
+        'status' => 'ready',
+    ]);
+    $takeaway->items()->create([
+        'menu_id' => $this->menu->id,
+        'qty' => 1,
+        'base_price' => $this->menu->price,
+        'total_price' => $this->menu->price,
+    ]);
+
+    $this->actingAs($this->waiter)
+        ->get(route('waiter.ready'))
+        ->assertInertia(fn ($page) => $page
+            ->component('waiter/ReadyOrders')
+            ->has('readyOrders', 1)
+            ->where('readyOrders.0.id', $takeaway->id)
+            ->where('readyOrders.0.order_type', 'takeaway')
+            ->where('readyOrders.0.table_session', null)
+        );
+});
+
+test('waiter ready page includes legacy orders with no outlet attribution', function () {
+    $legacy = Order::factory()->create([
+        'table_session_id' => null,
+        'pos_session_id' => null,
+        'created_by' => null,
+        'order_type' => 'takeaway',
+        'status' => 'ready',
+    ]);
+    $legacy->items()->create([
+        'menu_id' => $this->menu->id,
+        'qty' => 1,
+        'base_price' => $this->menu->price,
+        'total_price' => $this->menu->price,
+    ]);
+
+    $this->actingAs($this->waiter)
+        ->get(route('waiter.ready'))
+        ->assertInertia(fn ($page) => $page
+            ->component('waiter/ReadyOrders')
+            ->has('readyOrders', 1)
+            ->where('readyOrders.0.id', $legacy->id)
+        );
+});
+
+test('waiter ready page excludes takeaway orders from another outlet', function () {
+    $otherOutlet = Outlet::factory()->create();
+    $otherWaiter = User::factory()->create()->assignRole('Waiter');
+    Employee::factory()->create([
+        'user_id' => $otherWaiter->id,
+        'outlet_id' => $otherOutlet->id,
+        'position' => 'waiter',
+    ]);
+
+    $foreign = Order::factory()->create([
+        'table_session_id' => null,
+        'created_by' => $otherWaiter->id,
+        'order_type' => 'takeaway',
+        'status' => 'ready',
+    ]);
+    $foreign->items()->create([
+        'menu_id' => $this->menu->id,
+        'qty' => 1,
+        'base_price' => $this->menu->price,
+        'total_price' => $this->menu->price,
+    ]);
+
+    $this->actingAs($this->waiter)
+        ->get(route('waiter.ready'))
+        ->assertInertia(fn ($page) => $page
+            ->component('waiter/ReadyOrders')
+            ->has('readyOrders', 0)
+        );
+});
+
 // ─── Serve ───────────────────────────────────────────────────
 
 test('waiter can serve a ready order', function () {

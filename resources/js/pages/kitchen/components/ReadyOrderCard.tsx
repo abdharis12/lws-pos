@@ -18,7 +18,8 @@ export default function ReadyOrderCard({ order }: Props) {
     }, []);
 
     const elapsed = calcElapsed(order.updated_at, now);
-    const tableCode = order.table_session?.table?.code ?? order.order_type;
+    const isTakeaway = order.order_type === 'takeaway';
+    const tableCode = order.table_session?.table?.code ?? (isTakeaway ? 'Take Away' : order.order_type);
     const floor = order.table_session?.table?.floor;
     const totalQty = order.items.reduce((sum, i) => sum + i.qty, 0);
 
@@ -97,7 +98,7 @@ export default function ReadyOrderCard({ order }: Props) {
                         'bg-emerald-500/20',
                     )}>
                         <Check className="size-3" />
-                        Menunggu diantar · {totalQty} item
+                        {isTakeaway ? 'Siap diambil' : 'Menunggu diantar'} · {totalQty} item
                     </span>
                 </div>
             </div>

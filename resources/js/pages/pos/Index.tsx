@@ -192,13 +192,13 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder 
         setTablePickerOpen(false);
     }
 
-    function buildReceiptData(amountGiven?: number, paymentMethod: 'cash' | 'online' = 'cash'): PrintReceiptData {
+    function buildReceiptData(amountGiven?: number): PrintReceiptData {
         const pendingOrder = pendingOrders.find(o => o.id === selectedPendingOrderId);
         const selectedCodes = tables.filter(t => selectedTableIds.includes(t.id)).map(t => t.code).join(', ');
         const cashAmount = amountGiven ?? undefined;
         const change = amountGiven ? amountGiven - total : undefined;
 
-        const localServiceCharge = paymentMethod === 'online' ? Math.round(subtotal * 0.05) : 0;
+        const localServiceCharge = 0;
         const localMidtransCharge = 0;
 
         return {
@@ -230,7 +230,7 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder 
         }
 
         if (paymentMethod === 'online') {
-            setPrintReceiptData(buildReceiptData(undefined, 'online'));
+            setPrintReceiptData(buildReceiptData());
             setMidtransDialogOpen(true);
 
             return;
@@ -255,7 +255,7 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder 
             order_type: orderType,
             customer_name: isDineIn ? null : customerName,
         });
-        setPrintReceiptData(buildReceiptData(undefined, 'cash'));
+        setPrintReceiptData(buildReceiptData());
         post('/pos/orders', {
             preserveScroll: true,
             onSuccess: () => {
@@ -285,7 +285,7 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder 
             order_type: orderType,
             customer_name: isDineIn ? null : customerName,
         });
-        setPrintReceiptData(buildReceiptData(amountGiven, 'cash'));
+        setPrintReceiptData(buildReceiptData(amountGiven));
         post('/pos/orders', {
             preserveScroll: true,
             onSuccess: () => {
@@ -397,7 +397,7 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder 
         setCashAmountGiven(amountGiven);
         setCashDialogOpen(false);
         setConfirmPayProcessing(true);
-        setPrintReceiptData(buildReceiptData(amountGiven, 'cash'));
+        setPrintReceiptData(buildReceiptData(amountGiven));
 
         router.put(`/pos/orders/${selectedPendingOrderId}/confirm-pay`, {
             items: cartItems.map(item => ({
@@ -435,7 +435,7 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder 
 
         const sub = num(calcSubtotal(items), 0);
         const tx = num(Math.round(sub * 0.10), 0);
-        const fallbackServiceCharge = data.paymentMethod === 'online' ? Math.round(sub * 0.05) : 0;
+        const fallbackServiceCharge = 0;
         const sc = num(data.serviceCharge, fallbackServiceCharge);
         const mc = num(data.midtransCharge, 0);
         const disc = dType && dVal

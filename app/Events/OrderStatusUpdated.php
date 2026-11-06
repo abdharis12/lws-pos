@@ -19,6 +19,8 @@ class OrderStatusUpdated implements ShouldBroadcastNow
     {
         $this->order = $order->load([
             'tableSession.table',
+            'posSession',
+            'createdBy.employee',
             'items.menu',
             'items.options.optionItem',
         ]);
@@ -28,7 +30,7 @@ class OrderStatusUpdated implements ShouldBroadcastNow
     {
         $channels = [];
 
-        $outletId = $this->order->tableSession?->table?->outlet_id;
+        $outletId = $this->order->outletId();
         $tableToken = $this->order->tableSession?->table?->table_token;
 
         if ($outletId) {

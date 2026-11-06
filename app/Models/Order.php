@@ -102,7 +102,19 @@ class Order extends Model
 
         return $query->where(function ($q) use ($outletId) {
             $q->whereHas('tableSession.table', fn ($t) => $t->where('outlet_id', $outletId))
-                ->orWhereHas('posSession', fn ($p) => $p->where('outlet_id', $outletId));
+                ->orWhereHas('posSession', fn ($p) => $p->where('outlet_id', $outletId))
+                ->orWhereHas('createdBy.employee', fn ($e) => $e->where('outlet_id', $outletId));
         });
+    }
+
+    /**
+     * Resolve the order's outlet from its table, POS session, or creator.
+     * Takeaway orders have no table session, so the fallbacks matter.
+     */
+    public function outletId(): ?int
+    {
+        return $this->tableSession?->table?->outlet_id
+            ?? $this->posSession?->outlet_id
+            ?? $this->createdBy?->employee?->outlet_id;
     }
 }

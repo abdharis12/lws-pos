@@ -211,6 +211,30 @@ test('KDS shows ready orders in dedicated readyOrders prop', function () {
         );
 });
 
+test('KDS shows ready takeaway orders without a table session', function () {
+    $ready = Order::factory()->create([
+        'table_session_id' => null,
+        'order_type' => 'takeaway',
+        'status' => 'ready',
+    ]);
+    $ready->items()->create([
+        'menu_id' => $this->mainStationMenu->id,
+        'qty' => 1,
+        'base_price' => 25000,
+        'total_price' => 25000,
+    ]);
+
+    $this->actingAs($this->kitchenStaff)
+        ->get(route('kitchen.index'))
+        ->assertInertia(fn ($page) => $page
+            ->component('kitchen/Index')
+            ->has('readyOrders', 1)
+            ->where('readyOrders.0.id', $ready->id)
+            ->where('readyOrders.0.order_type', 'takeaway')
+            ->where('readyOrders.0.table_session', null)
+        );
+});
+
 // ─── Status Updates ──────────────────────────────────────────
 
 test('kitchen staff can mark order as processing', function () {

@@ -187,7 +187,6 @@ export default function SelfOrderMenu({ table, tableToken, categories, outlet }:
                     cartTax={cart.cartTax}
                     cartRoundingAmount={cart.cartRoundingAmount}
                     cartTotal={cart.cartTotal}
-                    onlineServiceCharge={cart.onlineServiceCharge}
                     midtransCharge={cart.midtransCharge}
                     onlineRoundingAmount={cart.onlineRoundingAmount}
                     onlineTotal={cart.onlineTotal}

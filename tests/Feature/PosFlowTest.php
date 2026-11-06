@@ -151,6 +151,25 @@ test('cashier can create order with cash payment', function () {
     ]);
 });
 
+test('cashier takeaway order records its creator', function () {
+    $this->actingAs($this->cashier)->post(route('pos.orders.store'), [
+        'table_id' => null,
+        'order_type' => 'takeaway',
+        'customer_name' => 'Bintang',
+        'items' => [
+            ['menu_id' => $this->menu->id, 'qty' => 1, 'notes' => null, 'option_ids' => []],
+        ],
+        'payment_method' => 'cash',
+    ])->assertRedirect(route('pos.index'));
+
+    $order = Order::latest('id')->first();
+
+    expect($order)->not->toBeNull()
+        ->and($order->created_by)->toBe($this->cashier->id)
+        ->and($order->order_type)->toBe('takeaway')
+        ->and($order->table_session_id)->toBeNull();
+});
+
 test('cashier can create order with QRIS payment', function () {
     $this->actingAs($this->cashier)->post(route('pos.orders.store'), [
         'table_id' => $this->table->id,

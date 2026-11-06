@@ -413,10 +413,6 @@ export default function MidtransPaymentDialog({
                                         <span style={{ color: INK }}>{formatPrice(response?.tax ?? 0)}</span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span style={{ color: MUTED }}>Service Charge (5%)</span>
-                                        <span style={{ color: INK }}>{formatPrice(response?.service_charge ?? 0)}</span>
-                                    </div>
-                                    <div className="flex justify-between">
                                         <span style={{ color: MUTED }}>Biaya Transaksi</span>
                                         <span style={{ color: INK }}>{formatPrice(response?.midtrans_charge ?? 0)}</span>
                                     </div>

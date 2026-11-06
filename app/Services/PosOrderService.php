@@ -100,11 +100,6 @@ class PosOrderService
         return round($subtotal * $this->getTaxRate());
     }
 
-    public function calculateServiceCharge(float $subtotal): float
-    {
-        return round($subtotal * (float) config('pos.service_charge_rate', 0.05));
-    }
-
     public function calculateMidtransCharge(float $amount): float
     {
         $chargePercent = (float) config('pos.midtrans.charge_percentage', 2.5);
@@ -191,7 +186,7 @@ class PosOrderService
     ): Order {
         $data = $this->splitOrderData($this->splitShared($user, $validated, $groupedTableIds, $posSessionId), $amounts, $i, $splitCount);
 
-        $order = $session?->orders()->create($data) ?? Order::create($data);
+        $order = $session?->orders()->forceCreate($data) ?? Order::forceCreate($data);
         $this->itemBuilder->attach($order, $orderItems);
         $this->attachIfAsked($order, $validated);
 
@@ -426,7 +421,7 @@ class PosOrderService
         $totals = $this->paymentTotals($subtotal, $validated);
         $orderData = $this->paymentOrderData($user, $validated, $subtotal, $totals, $posSessionId);
 
-        $order = $session?->orders()->create($orderData) ?? Order::create($orderData);
+        $order = $session?->orders()->forceCreate($orderData) ?? Order::forceCreate($orderData);
         $this->itemBuilder->attach($order, $orderItems);
 
         return $order;
@@ -436,8 +431,8 @@ class PosOrderService
     {
         $discountAmount = $this->calculateDiscount($subtotal, $validated);
         $tax = $this->calculateTax($subtotal);
-        $serviceCharge = $this->calculateServiceCharge($subtotal);
-        $rawTotalBeforeCharge = max(0, $subtotal + $tax + $serviceCharge - $discountAmount);
+        $serviceCharge = 0;
+        $rawTotalBeforeCharge = max(0, $subtotal + $tax - $discountAmount);
         $midtransCharge = $this->calculateMidtransCharge($rawTotalBeforeCharge);
 
         return [

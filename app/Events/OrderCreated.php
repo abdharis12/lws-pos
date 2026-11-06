@@ -20,14 +20,14 @@ class OrderCreated implements ShouldBroadcast
             'items.menu',
             'items.options.optionItem',
             'tableSession.table',
+            'posSession',
             'createdBy.employee',
         ]);
     }
 
     public function broadcastOn(): array
     {
-        $outletId = $this->order->tableSession?->table?->outlet_id
-            ?? $this->order->createdBy?->employee?->outlet_id;
+        $outletId = $this->order->outletId();
 
         return $outletId
             ? [new PrivateChannel("outlet.{$outletId}.pos")]

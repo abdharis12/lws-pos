@@ -119,8 +119,7 @@ export function useSelfOrderCart() {
     const cartRoundingAmount = useMemo(() => computeRoundingAmount(cartSubtotal + cartTax), [cartSubtotal, cartTax])
     const cartTotal = useMemo(() => ceilTo500(cartSubtotal + cartTax), [cartSubtotal, cartTax])
 
-    const onlineServiceCharge = useMemo(() => Math.round(cartSubtotal * 0.05), [cartSubtotal])
-    const rawBeforeCharge = useMemo(() => cartSubtotal + cartTax + onlineServiceCharge, [cartSubtotal, cartTax, onlineServiceCharge])
+    const rawBeforeCharge = useMemo(() => cartSubtotal + cartTax, [cartSubtotal, cartTax])
     const midtransCharge = useMemo(() => Math.round(rawBeforeCharge * 2.5 / 100 / 100) * 100, [rawBeforeCharge])
     const onlineTotal = useMemo(() => rawBeforeCharge + midtransCharge, [rawBeforeCharge, midtransCharge])
     const onlineRoundingAmount = 0
@@ -185,7 +184,6 @@ export function useSelfOrderCart() {
         cartTax,
         cartRoundingAmount,
         cartTotal,
-        onlineServiceCharge,
         midtransCharge,
         onlineRoundingAmount,
         onlineTotal,

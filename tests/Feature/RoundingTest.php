@@ -112,12 +112,13 @@ test('self-order online does not apply rounding, only Midtrans charge on rawBefo
 
     $subtotal = 22000.0;
     $tax = round($subtotal * 0.10);
-    $serviceCharge = round($subtotal * 0.05);
+    $serviceCharge = 0;
     $rawBeforeCharge = $subtotal + $tax + $serviceCharge;
     $expectedMidtransCharge = round($rawBeforeCharge * 2.5 / 100 / 100) * 100;
     $expectedTotal = $rawBeforeCharge + $expectedMidtransCharge;
 
     expect((float) $json['total'])->toEqual($expectedTotal)
+        ->and((float) $json['service_charge'])->toEqual(0.0)
         ->and((float) $json['rounding_amount'])->toEqual(0.0)
         ->and((float) $json['midtrans_charge'])->toEqual($expectedMidtransCharge);
 
@@ -125,6 +126,7 @@ test('self-order online does not apply rounding, only Midtrans charge on rawBefo
     expect($order)
         ->not->toBeNull()
         ->and((float) $order->total)->toEqual($expectedTotal)
+        ->and((float) $order->service_charge)->toEqual(0.0)
         ->and((float) $order->midtrans_charge)->toEqual($expectedMidtransCharge)
         ->and((float) $order->rounding_amount)->toEqual(0.0);
 });

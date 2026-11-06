@@ -110,7 +110,7 @@ export default function OrderCard({
                             #{order.id}
                         </span>
                         <span className="text-sm font-semibold text-white">
-                            {tableCode ?? order.order_type}
+                            {tableCode ?? (order.order_type === 'takeaway' ? 'Take Away' : order.order_type)}
                         </span>
                     </div>
                     <div className="flex items-center gap-2">

@@ -1,11 +1,11 @@
-import { Search, Plus, Check, Star, Filter, Heart, Info, ChevronRight, ShoppingBag } from 'lucide-react';
+import { Search, Plus, Star, Info, ShoppingBag } from 'lucide-react';
 import React, { useState } from 'react';
 
 export interface MenuItem {
     id: string;
     name: string;
     frenchName?: string;
-    category: 'haute-porridge' | 'coffee-beverage' | 'french-bakery' | 'bistro-mains';
+    category: 'Bubur' | 'Makanan' | 'Dessert' | 'Minuman';
     price: number;
     description: string;
     image: string;
@@ -18,148 +18,149 @@ const MENU_ITEMS: MenuItem[] = [
     // Haute Porridge (Bubur Kang LW Special Edition)
     {
         id: 'hp-1',
-        name: "Bubur Ayam Royal Truffle LW's",
-        frenchName: "Velouté de Riz Poulet au Truffe",
-        category: 'haute-porridge',
-        price: 68000,
-        description: "Bubur organik lembut disiram kaldu kalkun 12 jam, potongan dada ayam asap, telur poached, minyak truffle hitam Perancis, emping emas & minyak wijen artisanal.",
+        name: "Bubur Ayam Spesial",
+        frenchName: "Bubur Ayam Telur",
+        category: 'Bubur',
+        price: 18000,
+        description: "Bubur organik lembut disiram kuah rempah khas Kang LW dan ayam suwir plus telur.",
         image: "https://images.unsplash.com/photo-1541832676-9b763b0239ab?auto=format&fit=crop&w=800&q=80",
-        tags: ["Signature", "Truffle", "Best Seller"],
+        tags: ["Telur Rebus", "Ayam Suwir", "Spesial"],
         isChefSpecial: true,
-        calories: "380 kcal"
+        calories: "180 kcal"
     },
     {
         id: 'hp-2',
-        name: "Bubur Seafood Mediterranean LW's",
-        frenchName: "Bouillabaisse de Riz aux Fruits de Mer",
-        category: 'haute-porridge',
-        price: 85000,
-        description: "Bubur rempah saffron disajikan dengan udang galah bakar, cumi tinta hitam, kerang hijau Perancis, & parsley segar khas Riviera.",
+        name: "Bubur Ikan",
+        frenchName: "Bubur Ikan Cakalang",
+        category: 'Bubur',
+        price: 23000,
+        description: "Bubur Ikan Cakalang suwir dengan cita rasa bebeda yang meledak dimulut.",
         image: "https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?auto=format&fit=crop&w=800&q=80",
-        tags: ["Seafood", "Saffron", "Chef's Choice"],
+        tags: ["Cakalang Rica-Rica", "Pedas"],
         isChefSpecial: true,
-        calories: "420 kcal"
+        calories: "120 kcal"
     },
     {
         id: 'hp-3',
-        name: "Bubur Bebek Peking Five-Spice",
-        frenchName: "Congee de Canard Rôti aux Epices",
-        category: 'haute-porridge',
-        price: 78000,
-        description: "Daging bebek panggang Peking empuk dengan saus hoisin madu, telur pitik century, iris jahe muda, & daun bawang segar.",
+        name: "Bubur Manado",
+        frenchName: "Perpaduan Bubur dengan Sayuran ",
+        category: 'Bubur',
+        price: 32000,
+        description: "Bubur sehat khas Kang LW's berisi sayuran segar, labu kuning, dan jagung manis. Dilengkapi dengan ikan cakalang asap suwir dan sambal roa pedas autentik.",
         image: "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?auto=format&fit=crop&w=800&q=80",
-        tags: ["Roast Duck", "Rich Flavor"],
-        calories: "450 kcal"
+        tags: ["Jagung", "Labu", "Bayam"],
+        calories: "150 kcal"
     },
     {
         id: 'hp-4',
-        name: "Bubur Jamur Porcini & Parmigiano (V)",
+        name: "Bubur Daging",
         frenchName: "Risotto Congee aux Champignons Porcini",
-        category: 'haute-porridge',
-        price: 62000,
-        description: "Bubur krem beraroma tumisan jamur wild porcini, keju Parmigiano-Reggiano parut 24 bulan, minyak zaitun ekstra virgin & crouton herb.",
+        category: 'Bubur',
+        price: 32000,
+        description: "Kelezatan semangkuk bubur Kang LW's hangat bertekstur lembut yang dipadu dengan empuknya irisan daging sapi pilihan.",
         image: "https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=800&q=80",
-        tags: ["Vegetarian", "Creamy", "Parmigiano"],
+        tags: ["Daging", "Kuah Kuning"],
         calories: "320 kcal"
     },
 
     // Coffee & European Beverages
     {
         id: 'cb-1',
-        name: "Espresso Viennese Gold LW's",
-        frenchName: "Café Viennois aux Feuillets d'Or",
-        category: 'coffee-beverage',
-        price: 42000,
-        description: "Double shot Arabica Ethiopia & Toraja, ditutup whip cream vanilla Perancis, bubuk kayu manis Ceylon & serpihan emas 24k.",
+        name: "Nasi Kuning Kang LW",
+        frenchName: "Nasi Kuning dengan Rasa Emas",
+        category: 'Makanan',
+        price: 29000,
+        description: "Nasi kuning gurih harum rempah khas Kang LW, disajikan dengan lauk lengkap: ayam suwir, ikan cakalang, mie/bihun, telur, dan sambal pedas nikmat.",
         image: "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=800&q=80",
-        tags: ["Gold Leaf", "Signature Coffee"],
+        tags: ["Nasi Kuning", "Ayam Suwir", "Ikan Cakalang"],
         isChefSpecial: true
     },
     {
         id: 'cb-2',
-        name: "Iced Pistachio Cream Latte",
-        frenchName: "Latte Glacé à la Crème de Pistache",
-        category: 'coffee-beverage',
-        price: 48000,
-        description: "Espresso lembut dipadukan dengan susu oat hangat, cold foam krim pistachio buatan sendiri & renyahan pistachio panggang.",
+        name: "Coto Makasar",
+        frenchName: "Coto Makassar Khas Kang LW",
+        category: 'Makanan',
+        price: 38000,
+        description: "Kelezatan kuah coto yang pekat, kaya rempah pilihan, dan gurih berkaldu asli.",
         image: "https://images.unsplash.com/photo-1517701604599-bb29b565090c?auto=format&fit=crop&w=800&q=80",
-        tags: ["Popular", "Pistachio", "Iced"]
+        tags: ["Daging Sapi", "Lontong"]
     },
     {
         id: 'cb-3',
-        name: "Café Au Lait Lavender Paris",
-        frenchName: "Café au Lait à la Lavande de Provence",
-        category: 'coffee-beverage',
-        price: 45000,
-        description: "Susu hangat diinfus ekstrak bunga lavender alami dari Provence, Perancis, dipadu espresso sangrai medium beraroma floral.",
+        name: "Lontong Sayur",
+        frenchName: "Lontong dengan Sayuran Segar",
+        category: 'Makanan',
+        price: 28000,
+        description: "Lontong lembut disajikan dengan kuah kuning khas Kang LW, sayuran segar dan bumbu rempah khas Kang LW.",
         image: "https://images.unsplash.com/photo-1534778101976-62847782c213?auto=format&fit=crop&w=800&q=80",
-        tags: ["Aromatic", "Floral", "Hot"]
+        tags: ["Aromatic", "Ayam Panggang", "Lontong"]
     },
     {
         id: 'cb-4',
-        name: "Chai Tea Latte Imperial",
-        frenchName: "Thé Chai Impérial aux Epices",
-        category: 'coffee-beverage',
-        price: 40000,
-        description: "Seduhan teh hitam Assam pilihan dengan kapulaga, kayu manis, cengkeh, madu hutan murni, & buih susu lembut.",
+        name: "Nasi Rames LW",
+        frenchName: "Nasi Rames Kang LW's Special Ayam dan Ikan Cakalang",
+        category: 'Makanan',
+        price: 34000,
+        description: "Perpaduan sempurna antara gurihnya lauk utama pilihan, kelezatan tumisan sayur segar.",
         image: "https://images.unsplash.com/photo-1576092768241-dec231879fc3?auto=format&fit=crop&w=800&q=80",
-        tags: ["Spiced Tea", "Non-Coffee"]
+        tags: ["Ayam", "Ikan Cakalang", "Tumisan Sayur"]
     },
 
     // French Bakery & Desserts
     {
         id: 'fb-1',
-        name: "Croissant Butter Truffle Honey",
-        frenchName: "Croissant au Beurre Truffé & Miel",
-        category: 'french-bakery',
-        price: 38000,
-        description: "Croissant berlapis renyah dipanggang dengan mentega AOP Perancis, disiram madu murni bersentuhan aroma truffle ringan.",
+        name: "Pie Buah",
+        frenchName: "Pie Buah Klasik By Rumah Kue Bintang",
+        category: 'Dessert',
+        price: 22000,
+        description: "Kulit pie renyah berpadu dengan vla vanila lembut yang manisnya pas. Disajikan dengan topping buah segar kaya vitamin.",
         image: "https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=800&q=80",
-        tags: ["Fresh Baked", "Must Try"],
+        tags: ["Fresh", "Harus Dicoba", "Fla"],
         isChefSpecial: true
     },
     {
         id: 'fb-2',
-        name: "Eclair au Chocolat Valrhona 70%",
-        frenchName: "Eclair au Chocolat Noir Valrhona",
-        category: 'french-bakery',
-        price: 48000,
-        description: "Pastry choux Perancis berisi cream chocolate Valrhona dark 70%, dilapisi ganache glossy berkilau & hazelnut caramel.",
+        name: "Pudding Fruit",
+        frenchName: "Pudding Buah Klasik By Rumah Kue Bintang",
+        category: 'Dessert',
+        price: 15000,
+        description: "Pudding lembut dengan rasa buah segar, dilapisi karamel yang manis.",
         image: "https://images.unsplash.com/photo-1612203985729-70726954388c?auto=format&fit=crop&w=800&q=80",
-        tags: ["Valrhona", "Decadent"]
+        tags: ["Fresh", "Manis Pas"]
     },
     {
         id: 'fb-3',
-        name: "Tarte Tatin Apel Karamelized",
-        frenchName: "Tarte Tatin Pommes Caramelisées",
-        category: 'french-bakery',
-        price: 52000,
-        description: "Kue tar apel karamel hangat resep klasik Normandia, disajikan bersama satu scoop gelato vanilla Madagascar segar.",
+        name: "Lalampa",
+        frenchName: "Lalampa Khas Ternate By Rumah Kue Bintang",
+        category: 'Dessert',
+        price: 12000,
+        description: "Kuliner tradisional khas Ternate yang mirip lemper, terbuat dari beras ketan pulen yang dimasak bersama santan gurih, diisi dengan suwiran ikan tongkol/cakalang berbumbu rempah pedas yang melimpah.",
         image: "https://images.unsplash.com/photo-1519869325930-281384150729?auto=format&fit=crop&w=800&q=80",
-        tags: ["Warm Dessert", "Classic French"]
+        tags: ["Ikan Cakalang", "Tradisional", "Khas Ternate"]
     },
 
     // Bistro Main Courses
     {
         id: 'bm-1',
-        name: "Steak Au Poivre Wagyu LW's",
-        frenchName: "Steak au Poivre Vert & Purée Maison",
-        category: 'bistro-mains',
-        price: 185000,
-        description: "Daging Wagyu Sirloin MB5 dipanggang pan-seared, saus krim lada hijau Perancis, kentang tumbuk mentega halus & tumis buncis.",
-        image: "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=80",
-        tags: ["Wagyu MB5", "Premium Dinner"],
+        name: "Refresher Coconut",
+        frenchName: "Refresher Coconut Smoothie",
+        category: 'Minuman',
+        price: 21000,
+        description: "Smoothie segar dengan rasa kelapa, disajikan dingin.",
+        image: "https://images.unsplash.com/photo-1575596510825-f748919a2bf7?auto=format&fit=crop&w=800&q=80",
+        tags: ["Es Kelapa", "Segar", "Smoothie"],
         isChefSpecial: true
     },
     {
         id: 'bm-2',
-        name: "Duck Confit Cassoulet Perancis",
-        frenchName: "Confit de Canard aux Haricots Blancs",
-        category: 'bistro-mains',
-        price: 145000,
-        description: "Paha bebek slow-cooked 8 jam dengan kulit garing keemasan, disajikan di atas rebusan kacang putih bermentega & herba thyme.",
-        image: "https://images.unsplash.com/photo-1514944288352-18d7173af518?auto=format&fit=crop&w=800&q=80",
-        tags: ["Classic Bistro", "Slow-Cooked"]
+        name: "Sunrise",
+        frenchName: "Sunrise Lemonade",
+        category: 'Minuman',
+        price: 20000,
+        description: "Minuman segar dengan rasa jeruk, disajikan dingin.",
+        image: "https://images.unsplash.com/photo-1567671899076-51a64ddb7c5d?auto=format&fit=crop&w=800&q=80",
+        tags: ["Es Jeruk", "Segar"],
+        isChefSpecial: true
     }
 ];
 
@@ -178,10 +179,10 @@ export const MenuSection: React.FC<MenuSectionProps> = ({
 
     const categories = [
         { id: 'all', label: 'Semua Hidangan' },
-        { id: 'haute-porridge', label: '🍲 Haute Porridge (Bubur Kang LW)' },
-        { id: 'coffee-beverage', label: '☕ Kopi & Minuman' },
-        { id: 'french-bakery', label: '🥐 Patisserie & Croissant' },
-        { id: 'bistro-mains', label: '🍷 Bistro Main Course' },
+        { id: 'Bubur', label: '🍲 Bubur' },
+        { id: 'Makanan', label: '🍚 Makanan' },
+        { id: 'Minuman', label: '🍷 Minuman' },
+        { id: 'Dessert', label: '🥐 Dessert' },
     ];
 
     const filteredItems = MENU_ITEMS.filter((item) => {
@@ -215,7 +216,7 @@ export const MenuSection: React.FC<MenuSectionProps> = ({
                         Menu Spesial Pilihan untuk Anda
                     </h2>
                     <p className="font-sans-clean text-base text-[#FAF8F5]/90 leading-relaxed">
-                        Setiap hidangan diracik dengan resep otentik, memadukan kehangatan bubur artisanal Nusantara dengan teknik boga klasik Eropa.
+                        Setiap hidangan diracik dengan resep otentik, memadukan kehangatan bubur artisanal Nusantara.
                     </p>
                 </div>
 

@@ -97,10 +97,11 @@ return;
             <span>Subtotal</span>
             <span>${formatPrice(data.subtotal)}</span>
         </div>
+        ${data.serviceCharge > 0 ? `
         <div class="row">
             <span>Service Charge (5%)</span>
             <span>${formatPrice(data.serviceCharge)}</span>
-        </div>
+        </div>` : ''}
         <div class="row">
             <span>Pajak Resto (10%)</span>
             <span>${formatPrice(data.tax)}</span>

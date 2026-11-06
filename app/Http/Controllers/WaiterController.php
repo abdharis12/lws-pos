@@ -7,6 +7,7 @@ use App\Events\OrderStatusUpdated;
 use App\Models\Order;
 use App\Models\User;
 use App\Services\ActivityLogService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -46,7 +47,10 @@ class WaiterController extends Controller
         broadcast(new OrderStatusUpdated($order))->toOthers();
         $this->logServed($user, $order);
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => 'Pesanan telah diantar.']);
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => $order->order_type === 'takeaway' ? 'Pesanan telah diambil.' : 'Pesanan telah diantar.',
+        ]);
 
         return redirect()->back();
     }
@@ -56,14 +60,27 @@ class WaiterController extends Controller
         return auth()->user()?->employee?->outlet_id;
     }
 
+    /**
+     * Scope orders to the waiter's outlet. Orders that predate outlet
+     * attribution (no table, POS session, or creator) are still shown
+     * instead of being hidden forever.
+     */
+    protected function scopeToOutlet(Builder $query, int $outletId): Builder
+    {
+        return $query->where(function (Builder $q) use ($outletId) {
+            $q->forOutlet($outletId)
+                ->orWhere(fn (Builder $orphan) => $orphan
+                    ->whereNull('table_session_id')
+                    ->whereNull('pos_session_id')
+                    ->whereNull('created_by'));
+        });
+    }
+
     protected function readyOrders(?int $outletId): Collection
     {
         return Order::with(['tableSession.table', 'items.menu', 'items.options.optionItem', 'servedBy'])
             ->where('status', OrderStatus::Ready)
-            ->when($outletId, fn ($query) => $query->whereHas(
-                'tableSession.table',
-                fn ($q) => $q->where('outlet_id', $outletId)
-            ))
+            ->when($outletId, fn ($query) => $this->scopeToOutlet($query, $outletId))
             ->orderBy('updated_at', 'asc')
             ->get();
     }
@@ -73,10 +90,7 @@ class WaiterController extends Controller
         return Order::where('status', OrderStatus::Completed)
             ->whereNotNull('served_by')
             ->where('served_at', '>=', now()->startOfDay())
-            ->when($outletId, fn ($query) => $query->whereHas(
-                'tableSession.table',
-                fn ($q) => $q->where('outlet_id', $outletId)
-            ))
+            ->when($outletId, fn ($query) => $this->scopeToOutlet($query, $outletId))
             ->with('servedBy')
             ->get()
             ->groupBy('served_by')
@@ -104,7 +118,7 @@ class WaiterController extends Controller
             'order.served',
             Order::class,
             $order->id,
-            "Order #{$order->id} diantar oleh {$user->name}",
+            "Order #{$order->id} ".($order->order_type === 'takeaway' ? 'diambil' : 'diantar')." oleh {$user->name}",
             [
                 'table_code' => $order->tableSession?->table?->code,
                 'served_by' => $user->id,

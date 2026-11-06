@@ -1,5 +1,5 @@
 import { Head, Link, usePage } from '@inertiajs/react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Hero } from '@/components/template/hero';
 import { MenuSection } from '@/components/template/menu';
 import { ReservationModal } from '@/components/template/reservation';

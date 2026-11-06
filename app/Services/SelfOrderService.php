@@ -44,14 +44,13 @@ class SelfOrderService
         $subtotal = array_sum(array_column($builtItems, 'total_price'));
 
         $taxRate = (float) config('pos.tax_rate', 0.10);
-        $serviceChargeRate = (float) config('pos.service_charge_rate', 0.05);
         $chargePercent = (float) config('pos.midtrans.charge_percentage', 2.5);
 
         $tax = round($subtotal * $taxRate);
 
         if ($paymentMethod === 'online') {
-            $serviceCharge = round($subtotal * $serviceChargeRate);
-            $rawBeforeCharge = $subtotal + $tax + $serviceCharge;
+            $serviceCharge = 0;
+            $rawBeforeCharge = $subtotal + $tax;
             $midtransCharge = round($rawBeforeCharge * $chargePercent / 100 / 100) * 100;
             $total = $rawBeforeCharge + $midtransCharge;
             $roundingAmount = 0;

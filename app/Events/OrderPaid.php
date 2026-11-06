@@ -16,12 +16,18 @@ class OrderPaid implements ShouldBroadcast
 
     public function __construct(Order $order)
     {
-        $this->order = $order->load(['items.menu', 'items.options.optionItem', 'tableSession.table']);
+        $this->order = $order->load([
+            'items.menu',
+            'items.options.optionItem',
+            'tableSession.table',
+            'posSession',
+            'createdBy.employee',
+        ]);
     }
 
     public function broadcastOn(): array
     {
-        $outletId = $this->order->tableSession?->table?->outlet_id;
+        $outletId = $this->order->outletId();
 
         return $outletId
             ? [new PrivateChannel("outlet.{$outletId}.kitchen")]

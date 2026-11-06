@@ -12,7 +12,6 @@ interface Props {
     cartTax: number
     cartRoundingAmount: number
     cartTotal: number
-    onlineServiceCharge: number
     midtransCharge: number
     onlineRoundingAmount: number
     onlineTotal: number
@@ -34,7 +33,6 @@ export function CartModal({
     cartTax,
     cartRoundingAmount,
     cartTotal,
-    onlineServiceCharge,
     midtransCharge,
     onlineRoundingAmount,
     onlineTotal,
@@ -176,10 +174,6 @@ export function CartModal({
                                     <div className="flex justify-between">
                                         <span className="text-gray-500">Pajak Resto (10%)</span>
                                         <span className="text-gray-800">{fmt(cartTax)}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-500">Service Charge (5%)</span>
-                                        <span className="text-gray-800">{fmt(onlineServiceCharge)}</span>
                                     </div>
                                     {onlineRoundingAmount > 0 && (
                                         <div className="flex justify-between">

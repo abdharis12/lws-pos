@@ -230,7 +230,8 @@ export default function WaiterReadyOrders({ readyOrders, leaderboard }: Props) {
                 ) : (
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                         {readyOrders.map(order => {
-                            const tableCode = order.table_session?.table?.code ?? order.order_type;
+                            const isTakeaway = order.order_type === 'takeaway';
+                            const tableCode = order.table_session?.table?.code ?? (isTakeaway ? 'Take Away' : order.order_type);
                             const floor = order.table_session?.table?.floor;
                             const totalQty = order.items.reduce((sum, i) => sum + i.qty, 0);
                             const checked = checkedCount(order);
@@ -251,7 +252,7 @@ export default function WaiterReadyOrders({ readyOrders, leaderboard }: Props) {
                                             <div>
                                                 <p className="flex items-center gap-1 text-[11px] font-medium" style={{ color: MUTED }}>
                                                     <MapPin className="size-3" />
-                                                    {floor ?? 'Dine In'} • Order #{order.id}
+                                                    {floor ?? (isTakeaway ? 'Take Away' : 'Dine In')} • Order #{order.id}
                                                 </p>
                                                 <p className="text-sm font-semibold" style={{ color: INK }}>
                                                     {order.customer_name || 'Tanpa nama'}
@@ -357,7 +358,7 @@ export default function WaiterReadyOrders({ readyOrders, leaderboard }: Props) {
                                         >
                                             <Check className="size-4" />
                                             {allChecked
-                                                ? `Selesai Antar • ${totalQty} item`
+                                                ? `${isTakeaway ? 'Selesai Diambil' : 'Selesai Antar'} \u2022 ${totalQty} item`
                                                 : 'Centang semua item dulu'}
                                         </Button>
                                     </div>
@@ -381,16 +382,18 @@ export default function WaiterReadyOrders({ readyOrders, leaderboard }: Props) {
                                     Konfirmasi Antar Pesanan
                                 </DialogTitle>
                                 <DialogDescription className="text-center">
-                                    Pesanan meja{' '}
+                                    {serving.order_type === 'takeaway' ? 'Pesanan take away' : 'Pesanan meja'}{' '}
                                     <span className="font-bold" style={{ color: INK }}>
-                                        {serving.table_session?.table?.code ?? serving.order_type}
+                                        {serving.table_session?.table?.code ?? (serving.order_type === 'takeaway' ? 'Take Away' : serving.order_type)}
                                     </span>{' '}
-                                    akan ditandai selesai diantar.
+                                    akan ditandai selesai {serving.order_type === 'takeaway' ? 'diambil' : 'diantar'}.
                                 </DialogDescription>
                             </DialogHeader>
 
                             <div className="rounded-xl border bg-white p-4 text-center" style={{ borderColor: BORDER }}>
-                                <p className="text-xs" style={{ color: MUTED }}>Diantar oleh (otomatis dari akun Anda)</p>
+                                <p className="text-xs" style={{ color: MUTED }}>
+                                    {serving.order_type === 'takeaway' ? 'Diserahkan oleh' : 'Diantar oleh'} (otomatis dari akun Anda)
+                                </p>
                                 <p className="mt-1 font-semibold" style={{ color: INK }}>{waiterName}</p>
                                 <p className="mt-1 text-[11px] italic" style={{ color: MUTED }}>
                                     +1 poin untuk papan poin antar hari ini
@@ -413,7 +416,7 @@ export default function WaiterReadyOrders({ readyOrders, leaderboard }: Props) {
                                     className="font-semibold text-white"
                                     style={{ backgroundColor: '#059669' }}
                                 >
-                                    {processing ? 'Memproses...' : 'Ya, Selesai Antar'}
+                                    {processing ? 'Memproses...' : `Ya, Selesai ${serving.order_type === 'takeaway' ? 'Diambil' : 'Antar'}`}
                                 </Button>
                             </DialogFooter>
                         </>
