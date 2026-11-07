@@ -128,16 +128,6 @@ const MENU_ITEMS: MenuItem[] = [
         image: "https://images.unsplash.com/photo-1612203985729-70726954388c?auto=format&fit=crop&w=800&q=80",
         tags: ["Fresh", "Manis Pas"]
     },
-    {
-        id: 'fb-3',
-        name: "Lalampa",
-        frenchName: "Lalampa Khas Ternate By Rumah Kue Bintang",
-        category: 'Dessert',
-        price: 12000,
-        description: "Kuliner tradisional khas Ternate yang mirip lemper, terbuat dari beras ketan pulen yang dimasak bersama santan gurih, diisi dengan suwiran ikan tongkol/cakalang berbumbu rempah pedas yang melimpah.",
-        image: "https://images.unsplash.com/photo-1519869325930-281384150729?auto=format&fit=crop&w=800&q=80",
-        tags: ["Ikan Cakalang", "Tradisional", "Khas Ternate"]
-    },
 
     // Bistro Main Courses
     {
@@ -231,8 +221,8 @@ export const MenuSection: React.FC<MenuSectionProps> = ({
                                     key={cat.id}
                                     onClick={() => setSelectedCategory(cat.id)}
                                     className={`px-4 py-2 rounded-full text-xs font-sans-clean font-semibold tracking-wider transition-all duration-300 ${selectedCategory === cat.id
-                                            ? 'bg-[#CFC0A4] text-[#233433] shadow-lg scale-102'
-                                            : 'bg-[#233433] text-[#FAF8F5]/90 hover:text-[#CFC0A4] border border-[#CFC0A4]/20'
+                                        ? 'bg-[#CFC0A4] text-[#233433] shadow-lg scale-102'
+                                        : 'bg-[#233433] text-[#FAF8F5]/90 hover:text-[#CFC0A4] border border-[#CFC0A4]/20'
                                         }`}
                                 >
                                     {cat.label}
