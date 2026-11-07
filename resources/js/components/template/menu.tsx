@@ -1,4 +1,4 @@
-import { Search, Plus, Star, Info, ShoppingBag } from 'lucide-react';
+import { Search, Plus, Info, ShoppingBag } from 'lucide-react';
 import React, { useState } from 'react';
 
 export interface MenuItem {
@@ -14,173 +14,47 @@ export interface MenuItem {
     calories?: string;
 }
 
-const MENU_ITEMS: MenuItem[] = [
-    // Haute Porridge (Bubur Kang LW Special Edition)
-    {
-        id: 'hp-1',
-        name: "Bubur Ayam Spesial",
-        frenchName: "Bubur Ayam Telur",
-        category: 'Bubur',
-        price: 18000,
-        description: "Bubur organik lembut disiram kuah rempah khas Kang LW dan ayam suwir plus telur.",
-        image: "https://images.unsplash.com/photo-1541832676-9b763b0239ab?auto=format&fit=crop&w=800&q=80",
-        tags: ["Telur Rebus", "Ayam Suwir", "Spesial"],
-        isChefSpecial: true,
-        calories: "180 kcal"
-    },
-    {
-        id: 'hp-2',
-        name: "Bubur Ikan",
-        frenchName: "Bubur Ikan Cakalang",
-        category: 'Bubur',
-        price: 23000,
-        description: "Bubur Ikan Cakalang suwir dengan cita rasa bebeda yang meledak dimulut.",
-        image: "https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?auto=format&fit=crop&w=800&q=80",
-        tags: ["Cakalang Rica-Rica", "Pedas"],
-        isChefSpecial: true,
-        calories: "120 kcal"
-    },
-    {
-        id: 'hp-3',
-        name: "Bubur Manado",
-        frenchName: "Perpaduan Bubur dengan Sayuran ",
-        category: 'Bubur',
-        price: 32000,
-        description: "Bubur sehat khas Kang LW's berisi sayuran segar, labu kuning, dan jagung manis. Dilengkapi dengan ikan cakalang asap suwir dan sambal roa pedas autentik.",
-        image: "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?auto=format&fit=crop&w=800&q=80",
-        tags: ["Jagung", "Labu", "Bayam"],
-        calories: "150 kcal"
-    },
-    {
-        id: 'hp-4',
-        name: "Bubur Daging",
-        frenchName: "Risotto Congee aux Champignons Porcini",
-        category: 'Bubur',
-        price: 32000,
-        description: "Kelezatan semangkuk bubur Kang LW's hangat bertekstur lembut yang dipadu dengan empuknya irisan daging sapi pilihan.",
-        image: "https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=800&q=80",
-        tags: ["Daging", "Kuah Kuning"],
-        calories: "320 kcal"
-    },
+interface CatalogMenuItem {
+    id: string;
+    name: string;
+    categoryId: string;
+    price: number;
+    description: string | null;
+    photoPath: string | null;
+}
 
-    // Coffee & European Beverages
-    {
-        id: 'cb-1',
-        name: "Nasi Kuning Kang LW",
-        frenchName: "Nasi Kuning dengan Rasa Emas",
-        category: 'Makanan',
-        price: 29000,
-        description: "Nasi kuning gurih harum rempah khas Kang LW, disajikan dengan lauk lengkap: ayam suwir, ikan cakalang, mie/bihun, telur, dan sambal pedas nikmat.",
-        image: "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=800&q=80",
-        tags: ["Nasi Kuning", "Ayam Suwir", "Ikan Cakalang"],
-        isChefSpecial: true
-    },
-    {
-        id: 'cb-2',
-        name: "Coto Makasar",
-        frenchName: "Coto Makassar Khas Kang LW",
-        category: 'Makanan',
-        price: 38000,
-        description: "Kelezatan kuah coto yang pekat, kaya rempah pilihan, dan gurih berkaldu asli.",
-        image: "https://images.unsplash.com/photo-1517701604599-bb29b565090c?auto=format&fit=crop&w=800&q=80",
-        tags: ["Daging Sapi", "Lontong"]
-    },
-    {
-        id: 'cb-3',
-        name: "Lontong Sayur",
-        frenchName: "Lontong dengan Sayuran Segar",
-        category: 'Makanan',
-        price: 28000,
-        description: "Lontong lembut disajikan dengan kuah kuning khas Kang LW, sayuran segar dan bumbu rempah khas Kang LW.",
-        image: "https://images.unsplash.com/photo-1534778101976-62847782c213?auto=format&fit=crop&w=800&q=80",
-        tags: ["Aromatic", "Ayam Panggang", "Lontong"]
-    },
-    {
-        id: 'cb-4',
-        name: "Nasi Rames LW",
-        frenchName: "Nasi Rames Kang LW's Special Ayam dan Ikan Cakalang",
-        category: 'Makanan',
-        price: 34000,
-        description: "Perpaduan sempurna antara gurihnya lauk utama pilihan, kelezatan tumisan sayur segar.",
-        image: "https://images.unsplash.com/photo-1576092768241-dec231879fc3?auto=format&fit=crop&w=800&q=80",
-        tags: ["Ayam", "Ikan Cakalang", "Tumisan Sayur"]
-    },
-
-    // French Bakery & Desserts
-    {
-        id: 'fb-1',
-        name: "Pie Buah",
-        frenchName: "Pie Buah Klasik By Rumah Kue Bintang",
-        category: 'Dessert',
-        price: 22000,
-        description: "Kulit pie renyah berpadu dengan vla vanila lembut yang manisnya pas. Disajikan dengan topping buah segar kaya vitamin.",
-        image: "https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=800&q=80",
-        tags: ["Fresh", "Harus Dicoba", "Fla"],
-        isChefSpecial: true
-    },
-    {
-        id: 'fb-2',
-        name: "Pudding Fruit",
-        frenchName: "Pudding Buah Klasik By Rumah Kue Bintang",
-        category: 'Dessert',
-        price: 15000,
-        description: "Pudding lembut dengan rasa buah segar, dilapisi karamel yang manis.",
-        image: "https://images.unsplash.com/photo-1612203985729-70726954388c?auto=format&fit=crop&w=800&q=80",
-        tags: ["Fresh", "Manis Pas"]
-    },
-
-    // Bistro Main Courses
-    {
-        id: 'bm-1',
-        name: "Refresher Coconut",
-        frenchName: "Refresher Coconut Smoothie",
-        category: 'Minuman',
-        price: 21000,
-        description: "Smoothie segar dengan rasa kelapa, disajikan dingin.",
-        image: "https://images.unsplash.com/photo-1575596510825-f748919a2bf7?auto=format&fit=crop&w=800&q=80",
-        tags: ["Es Kelapa", "Segar", "Smoothie"],
-        isChefSpecial: true
-    },
-    {
-        id: 'bm-2',
-        name: "Sunrise",
-        frenchName: "Sunrise Lemonade",
-        category: 'Minuman',
-        price: 20000,
-        description: "Minuman segar dengan rasa jeruk, disajikan dingin.",
-        image: "https://images.unsplash.com/photo-1567671899076-51a64ddb7c5d?auto=format&fit=crop&w=800&q=80",
-        tags: ["Es Jeruk", "Segar"],
-        isChefSpecial: true
-    }
-];
+export interface MenuCategory {
+    id: number;
+    name: string;
+    menus: CatalogMenuItem[];
+}
 
 interface MenuSectionProps {
-    onAddToCart?: (item: MenuItem) => void;
-    cartItems?: { item: MenuItem; quantity: number }[];
+    menuCategories?: MenuCategory[];
+    onAddToCart?: (item: CatalogMenuItem) => void;
+    cartItems?: { item: CatalogMenuItem; quantity: number }[];
 }
 
 export const MenuSection: React.FC<MenuSectionProps> = ({
+    menuCategories = [],
     onAddToCart = () => { },
     cartItems = [],
 }) => {
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
     const [searchQuery, setSearchQuery] = useState<string>('');
-    const [activeItemModal, setActiveItemModal] = useState<MenuItem | null>(null);
+    const [activeItemModal, setActiveItemModal] = useState<CatalogMenuItem | null>(null);
 
     const categories = [
         { id: 'all', label: 'Semua Hidangan' },
-        { id: 'Bubur', label: '🍲 Bubur' },
-        { id: 'Makanan', label: '🍚 Makanan' },
-        { id: 'Minuman', label: '🍷 Minuman' },
-        { id: 'Dessert', label: '🥐 Dessert' },
+        ...menuCategories.map((category) => ({ id: String(category.id), label: category.name })),
     ];
+    const menuItems = menuCategories.flatMap((category) => category.menus);
 
-    const filteredItems = MENU_ITEMS.filter((item) => {
-        const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
+    const filteredItems = menuItems.filter((item) => {
+        const matchesCategory = selectedCategory === 'all' || item.categoryId === selectedCategory;
         const matchesSearch =
             item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (item.frenchName && item.frenchName.toLowerCase().includes(searchQuery.toLowerCase())) ||
-            item.description.toLowerCase().includes(searchQuery.toLowerCase());
+            (item.description?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
 
         return matchesCategory && matchesSearch;
     });
@@ -257,19 +131,18 @@ export const MenuSection: React.FC<MenuSectionProps> = ({
                             >
                                 {/* Image & Badges */}
                                 <div className="relative h-52 overflow-hidden cursor-pointer" onClick={() => setActiveItemModal(item)}>
-                                    <img
-                                        src={item.image}
-                                        alt={item.name}
-                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 brightness-95"
-                                    />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-[#233433] via-transparent to-transparent opacity-80"></div>
-
-                                    {/* Chef Special Badge */}
-                                    {item.isChefSpecial && (
-                                        <span className="absolute top-3 left-3 bg-[#CFC0A4] text-[#233433] text-[10px] font-bold font-sans-clean px-2.5 py-1 rounded-full uppercase tracking-wider shadow-md flex items-center gap-1">
-                                            <Star className="w-3 h-3 fill-[#233433]" /> Chef's Signature
-                                        </span>
+                                    {item.photoPath ? (
+                                        <img
+                                            src={`/storage/${item.photoPath}`}
+                                            alt={item.name}
+                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 brightness-95"
+                                        />
+                                    ) : (
+                                        <div className="flex h-full items-center justify-center bg-[#4F6B6A] text-5xl text-[#CFC0A4]" aria-hidden="true">
+                                            {item.name.charAt(0)}
+                                        </div>
                                     )}
+                                    <div className="absolute inset-0 bg-gradient-to-t from-[#233433] via-transparent to-transparent opacity-80"></div>
 
                                     {/* Price Tag */}
                                     <span className="absolute bottom-3 right-3 bg-[#4F6B6A]/90 border border-[#CFC0A4]/40 text-[#CFC0A4] font-serif-display font-bold text-base px-3 py-1 rounded-lg backdrop-blur-md">
@@ -280,29 +153,17 @@ export const MenuSection: React.FC<MenuSectionProps> = ({
                                 {/* Content */}
                                 <div className="p-6 flex-1 flex flex-col justify-between space-y-4">
                                     <div>
-                                        {item.frenchName && (
-                                            <p className="font-serif-classic italic text-xs text-[#CFC0A4] tracking-wide">
-                                                {item.frenchName}
-                                            </p>
-                                        )}
                                         <h3
                                             onClick={() => setActiveItemModal(item)}
                                             className="font-serif-display text-xl font-medium text-[#FAF8F5] group-hover:text-[#CFC0A4] transition-colors cursor-pointer mt-0.5"
                                         >
                                             {item.name}
                                         </h3>
-                                        <p className="font-sans-clean text-xs text-[#FAF8F5]/80 line-clamp-2 mt-2 leading-relaxed">
-                                            {item.description}
-                                        </p>
-
-                                        {/* Tags */}
-                                        <div className="flex flex-wrap gap-1.5 mt-3">
-                                            {item.tags.map((tag) => (
-                                                <span key={tag} className="text-[10px] bg-[#4F6B6A] border border-[#CFC0A4]/20 text-[#CFC0A4] px-2 py-0.5 rounded">
-                                                    {tag}
-                                                </span>
-                                            ))}
-                                        </div>
+                                        {item.description && (
+                                            <p className="font-sans-clean text-xs text-[#FAF8F5]/80 line-clamp-2 mt-2 leading-relaxed">
+                                                {item.description}
+                                            </p>
+                                        )}
                                     </div>
 
                                     {/* Action Bar: Quick Detail & Add to Order */}
@@ -350,25 +211,22 @@ export const MenuSection: React.FC<MenuSectionProps> = ({
                         </button>
 
                         <div className="relative h-60">
-                            <img src={activeItemModal.image} alt={activeItemModal.name} className="w-full h-full object-cover" />
+                            {activeItemModal.photoPath ? (
+                                <img src={`/storage/${activeItemModal.photoPath}`} alt={activeItemModal.name} className="w-full h-full object-cover" />
+                            ) : (
+                                <div className="flex h-full items-center justify-center bg-[#4F6B6A] text-6xl text-[#CFC0A4]" aria-hidden="true">
+                                    {activeItemModal.name.charAt(0)}
+                                </div>
+                            )}
                             <div className="absolute inset-0 bg-gradient-to-t from-[#233433] via-transparent to-transparent"></div>
                         </div>
 
                         <div className="p-6 space-y-4">
-                            {activeItemModal.frenchName && (
-                                <p className="font-serif-classic italic text-sm text-[#CFC0A4]">
-                                    {activeItemModal.frenchName}
-                                </p>
-                            )}
                             <h3 className="font-serif-display text-2xl font-bold text-[#FAF8F5]">{activeItemModal.name}</h3>
 
-                            <p className="font-sans-clean text-sm text-[#FAF8F5]/80 leading-relaxed">
-                                {activeItemModal.description}
-                            </p>
-
-                            {activeItemModal.calories && (
-                                <p className="text-xs font-sans-clean text-[#CFC0A4]">
-                                    Informasi Nutrisi: <strong>{activeItemModal.calories}</strong>
+                            {activeItemModal.description && (
+                                <p className="font-sans-clean text-sm text-[#FAF8F5]/80 leading-relaxed">
+                                    {activeItemModal.description}
                                 </p>
                             )}
 

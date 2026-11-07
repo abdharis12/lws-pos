@@ -26,6 +26,7 @@ use App\Services\PaymentService;
 use App\Services\PosOrderService;
 use App\Services\PosTableService;
 use App\Services\PromoService;
+use App\Services\SelfOrderPaymentExpiryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -552,13 +553,33 @@ class PosController extends Controller
         ]);
     }
 
-    public function confirmQris(Order $order): JsonResponse
+    public function confirmQris(Order $order, SelfOrderPaymentExpiryService $expiryService): JsonResponse
     {
         $this->authorize('update', $order);
+        abort_unless($order->payment?->method === 'qris', 403);
+
+        if ($order->payment_expires_at?->isPast()) {
+            $expiryService->expire($order);
+
+            return response()->json([
+                'message' => 'Batas waktu QRIS telah berakhir. Minta pelanggan membuat pembayaran baru.',
+            ], 409);
+        }
+
+        abort_if(! in_array($order->status, [OrderStatus::PendingPayment, OrderStatus::Paid], true), 403);
 
         if ($order->status !== OrderStatus::Paid) {
-            $order->payment?->update(['status' => 'settlement']);
+            $order->payment->update(['status' => 'settlement']);
             $this->markOrderPaid($order);
+            $order->refresh();
+
+            if ($order->status !== OrderStatus::Paid) {
+                $order->payment->update(['status' => 'failed']);
+
+                return response()->json([
+                    'message' => 'Pembayaran ini sudah kedaluwarsa atau dibatalkan.',
+                ], 409);
+            }
         }
 
         return response()->json(['status' => 'settlement']);
@@ -588,7 +609,7 @@ class PosController extends Controller
     protected function markOrderPaid(Order $order): void
     {
         $updated = Order::where('id', $order->id)
-            ->where('status', '!=', OrderStatus::Paid->value)
+            ->whereIn('status', [OrderStatus::PendingPayment->value, OrderStatus::Pending->value])
             ->update(['status' => OrderStatus::Paid->value]);
 
         if (! $updated) {

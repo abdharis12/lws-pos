@@ -16,7 +16,7 @@ export function useOrderCreated(): void {
 
   useEcho<OrderCreatedPayload>(
     outletId ? `outlet.${outletId}.pos` : '',
-    '.OrderCreated',
+    'OrderCreated',
     (e) => {
       const table = e.order.table_code ?? '—'
       const name = e.order.customer_name ? ` (${e.order.customer_name})` : ''
@@ -24,7 +24,7 @@ export function useOrderCreated(): void {
         description: 'Menunggu konfirmasi kasir',
         duration: 5000,
       })
-      router.reload({ only: ['pendingOrders'], preserveScroll: true, preserveState: true })
+      router.reload({ only: ['pendingOrders'] })
     },
     [outletId],
   )

@@ -9,8 +9,10 @@ use App\Models\Outlet;
 use App\Models\QrCode;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 
 beforeEach(function () {
@@ -93,6 +95,7 @@ test('qris payment uses the stored qr code instead of midtrans', function () {
         ->assertJson(['manual_qr' => true, 'payment_type' => 'qris']);
 
     expect($response->json('qr_code'))->toBe('/storage/qr-codes/qris.png');
+    expect((float) $response->json('midtrans_charge'))->toBe(0.0);
     Http::assertNothingSent();
 
     $this->assertDatabaseHas('payments', [
@@ -141,6 +144,7 @@ test('self-order qris payment uses the stored qr code instead of midtrans', func
     ]);
 
     $response = $this->postJson(route('self-order.pay', $this->table->table_token), [
+        'idempotency_key' => (string) Str::uuid(),
         'customer_name' => 'Pelanggan QR',
         'payment_method' => 'online',
         'payment_type' => 'qris',
@@ -160,7 +164,7 @@ test('self-order qris payment uses the stored qr code instead of midtrans', func
     ]);
 });
 
-test('self-order manual qris confirmation marks the order as paid', function () {
+test('self-order customer cannot mark a manual qris order as paid', function () {
     QrCode::query()->create([
         'label' => 'QRIS Utama',
         'image_path' => 'qr-codes/qris.png',
@@ -168,6 +172,7 @@ test('self-order manual qris confirmation marks the order as paid', function () 
     ]);
 
     $response = $this->postJson(route('self-order.pay', $this->table->table_token), [
+        'idempotency_key' => (string) Str::uuid(),
         'customer_name' => 'Pelanggan QR',
         'payment_method' => 'online',
         'payment_type' => 'qris',
@@ -183,9 +188,15 @@ test('self-order manual qris confirmation marks the order as paid', function () 
     expect($order->status->value)->toBe('pending_payment');
     expect($order->tableSession?->table_id)->toBe($this->table->id);
 
-    $this->postJson(route('self-order.confirm-qris', [$this->table->table_token, $order]), [
+    $this->postJson("/t/{$this->table->table_token}/orders/{$order->id}/confirm-qris", [
         'access_token' => $response->json('access_token'),
-    ])
+    ])->assertNotFound();
+
+    expect($order->fresh()->status->value)->toBe('pending_payment');
+    expect($order->payment->fresh()->status)->toBe('pending');
+
+    $this->actingAs($this->cashier)
+        ->postJson(route('pos.orders.confirm-qris', $order))
         ->assertOk()
         ->assertJson(['status' => 'settlement']);
 
@@ -193,14 +204,66 @@ test('self-order manual qris confirmation marks the order as paid', function () 
     expect($order->payment->fresh()->status)->toBe('settlement');
 });
 
-test('self-order manual qris confirmation rejects a wrong access token', function () {
+test('repeating a self-order qris request with the same idempotency key reuses its order and payment', function () {
     QrCode::query()->create([
         'label' => 'QRIS Utama',
         'image_path' => 'qr-codes/qris.png',
         'is_active' => true,
     ]);
 
-    $this->postJson(route('self-order.pay', $this->table->table_token), [
+    $payload = [
+        'idempotency_key' => (string) Str::uuid(),
+        'customer_name' => 'Pelanggan QR',
+        'payment_method' => 'online',
+        'payment_type' => 'qris',
+        'items' => [
+            ['menu_id' => $this->menu->id, 'qty' => 1, 'notes' => null, 'option_ids' => []],
+        ],
+    ];
+
+    $firstResponse = $this->postJson(route('self-order.pay', $this->table->table_token), $payload)->assertOk();
+    $secondResponse = $this->postJson(route('self-order.pay', $this->table->table_token), $payload)->assertOk();
+
+    expect($secondResponse->json('order_id'))->toBe($firstResponse->json('order_id'));
+    expect(Order::query()->where('idempotency_key', $payload['idempotency_key'])->count())->toBe(1);
+    expect(DB::table('payments')->where('order_id', $firstResponse->json('order_id'))->count())->toBe(1);
+});
+
+test('self-order rejects reuse of an idempotency key for a changed cart', function () {
+    QrCode::query()->create([
+        'label' => 'QRIS Utama',
+        'image_path' => 'qr-codes/qris.png',
+        'is_active' => true,
+    ]);
+
+    $payload = [
+        'idempotency_key' => (string) Str::uuid(),
+        'customer_name' => 'Pelanggan QR',
+        'payment_method' => 'online',
+        'payment_type' => 'qris',
+        'items' => [
+            ['menu_id' => $this->menu->id, 'qty' => 1, 'notes' => null, 'option_ids' => []],
+        ],
+    ];
+
+    $this->postJson(route('self-order.pay', $this->table->table_token), $payload)->assertOk();
+    $payload['items'][0]['qty'] = 2;
+
+    $this->postJson(route('self-order.pay', $this->table->table_token), $payload)
+        ->assertStatus(409);
+
+    expect(Order::query()->where('idempotency_key', $payload['idempotency_key'])->count())->toBe(1);
+});
+
+test('expired self-order qris payments are cancelled and release an idle table', function () {
+    QrCode::query()->create([
+        'label' => 'QRIS Utama',
+        'image_path' => 'qr-codes/qris.png',
+        'is_active' => true,
+    ]);
+
+    $response = $this->postJson(route('self-order.pay', $this->table->table_token), [
+        'idempotency_key' => (string) Str::uuid(),
         'customer_name' => 'Pelanggan QR',
         'payment_method' => 'online',
         'payment_type' => 'qris',
@@ -209,11 +272,14 @@ test('self-order manual qris confirmation rejects a wrong access token', functio
         ],
     ])->assertOk();
 
-    $order = Order::query()->latest('id')->firstOrFail();
+    $order = Order::query()->findOrFail($response->json('order_id'));
+    $this->travelTo($order->payment_expires_at->addMinute());
 
-    $this->postJson(route('self-order.confirm-qris', [$this->table->table_token, $order]), [
-        'access_token' => 'wrong-token',
-    ])->assertForbidden();
+    $this->artisan('app:expire-self-order-payments')->assertSuccessful();
+
+    expect($order->fresh()->status->value)->toBe('cancelled');
+    expect($order->payment->fresh()->status)->toBe('failed');
+    expect($this->table->fresh()->status->value)->toBe('available');
 });
 
 test('qris payment requires a stored qr code', function () {

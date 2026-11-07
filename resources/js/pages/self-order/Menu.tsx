@@ -37,7 +37,13 @@ export default function SelfOrderMenu({ table, tableToken, categories, outlet }:
 
     const handleCashCheckout = useCallback(() => {
         setSubmitting(true)
-        payment.handleCashPay(cart.cart, customerName)
+        payment.handleCashPay(cart.cart, customerName, (error) => {
+            setSubmitting(false)
+
+            if (error) {
+                toast.error(error)
+            }
+        })
     }, [payment, cart.cart, customerName])
 
     const handleOnlineSelect = useCallback(
@@ -81,9 +87,13 @@ export default function SelfOrderMenu({ table, tableToken, categories, outlet }:
 
             if (res.ok) {
                 payment.resetPayment()
+                setSubmitting(false)
+            } else {
+                const data = await res.json().catch(() => ({}))
+                toast.error(data.message ?? 'Pembayaran belum dapat dibatalkan. Silakan coba lagi.')
             }
         } catch {
-            // silent
+            toast.error('Koneksi bermasalah. Pembayaran belum dapat dibatalkan.')
         }
     }, [tableToken, payment])
 
@@ -223,6 +233,7 @@ export default function SelfOrderMenu({ table, tableToken, categories, outlet }:
                     onClose={() => {
                         payment.setPaymentMethod(null)
                         payment.setMidtransStep('select')
+                        setSubmitting(false)
                     }}
                 />
             )}
@@ -237,16 +248,19 @@ export default function SelfOrderMenu({ table, tableToken, categories, outlet }:
                     onCopy={payment.setCopied}
                     onBack={() => {
                         payment.setMidtransStep('select')
-                        payment.setMidtransResponse(null)
                         payment.setPayError(null)
                     }}
                     onRetry={() => {
-                        payment.setPaymentMethod(null)
+                        if (payment.payStatus === 'failed') {
+                            payment.resetPayment()
+                            payment.setPaymentMethod('online')
+                        }
+
+                        payment.setPayError(null)
                         payment.setMidtransStep('select')
-                        payment.resetPayment()
+                        setSubmitting(false)
                     }}
                     onCancel={handleCancelPayment}
-                    onConfirmManual={payment.handleConfirmManualPay}
                 />
             )}
         </div>

@@ -8,6 +8,7 @@ return [
         'nominal_threshold' => env('POS_DISCOUNT_NOMINAL_THRESHOLD', 50000),
     ],
     'order_number_prefix' => env('ORDER_NUMBER_PREFIX', 'TRX-LW-'),
+    'self_order_qr_expiry_minutes' => env('SELF_ORDER_QR_EXPIRY_MINUTES', 15),
     'midtrans' => [
         'allowed_ips' => env('MIDTRANS_ALLOWED_IPS')
             ? explode(',', env('MIDTRANS_ALLOWED_IPS'))

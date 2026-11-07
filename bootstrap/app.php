@@ -1,5 +1,6 @@
 <?php
 
+use App\Console\Commands\ExpireSelfOrderPayments;
 use App\Console\Commands\ResetTablesDaily;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
@@ -19,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withSchedule(function (Schedule $schedule): void {
         $schedule->command(ResetTablesDaily::class)->dailyAt('00:00');
+        $schedule->command(ExpireSelfOrderPayments::class)->everyMinute()->withoutOverlapping();
     })
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);

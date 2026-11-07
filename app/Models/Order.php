@@ -44,6 +44,7 @@ class Order extends Model
             'promo_discount' => 'decimal:2',
             'total' => 'decimal:2',
             'served_at' => 'datetime',
+            'payment_expires_at' => 'datetime',
             'grouped_tables' => 'array',
             'status' => OrderStatus::class,
         ];

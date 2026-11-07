@@ -19,7 +19,7 @@ export function useOrderReadyToast(): void {
 
   useEcho<ReadyPayload>(
     outletId ? `outlet.${outletId}.pos` : '',
-    '.OrderStatusUpdated',
+    'OrderStatusUpdated',
     (e) => {
       if (e.order.status === 'ready') {
         const table = e.order.table_code ?? '—'

@@ -142,10 +142,10 @@ class DatabaseSeeder extends Seeder
             ['category' => 'Minuman', 'name' => 'Matcha Latte', 'price' => 23000],
             ['category' => 'Minuman', 'name' => 'Refresher Coconut', 'price' => 21000],
             ['category' => 'Minuman', 'name' => 'Sunrise', 'price' => 20000],
+            ['category' => 'Minuman', 'name' => 'Cendol', 'price' => 20000],
 
             ['category' => 'Snack', 'name' => 'Bakwan Goreng', 'price' => 12000],
             ['category' => 'Snack', 'name' => 'Brown Sugar Pudding', 'price' => 15000],
-            ['category' => 'Snack', 'name' => 'Cendol', 'price' => 20000],
             ['category' => 'Snack', 'name' => 'Cheese Cake', 'price' => 35000],
             ['category' => 'Snack', 'name' => 'Fruit Pudding', 'price' => 15000],
             ['category' => 'Snack', 'name' => 'Kue Jagung', 'price' => 10000],

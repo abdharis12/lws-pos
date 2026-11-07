@@ -10,6 +10,7 @@ class PayRequest extends StoreRequest
     {
         return [
             ...parent::rules(),
+            'idempotency_key' => ['required', 'uuid'],
             'payment_method' => ['required', Rule::in(['cash', 'online'])],
             'payment_type' => 'exclude_unless:payment_method,online|required|string|in:qris',
         ];

@@ -31,14 +31,16 @@ class OrderStatusUpdated implements ShouldBroadcastNow
         $channels = [];
 
         $outletId = $this->order->outletId();
-        $tableToken = $this->order->tableSession?->table?->table_token;
+        $statusChannelToken = $this->order->access_token
+            ? hash_hmac('sha256', $this->order->access_token, (string) config('app.key'))
+            : null;
 
         if ($outletId) {
             $channels[] = new PrivateChannel("outlet.{$outletId}.pos");
         }
 
-        if ($tableToken) {
-            $channels[] = new Channel("table.{$tableToken}");
+        if ($statusChannelToken && $this->order->tableSession?->table) {
+            $channels[] = new Channel("self-order.{$this->order->id}.{$statusChannelToken}");
         }
 
         return $channels;

@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Enums\OrderStatus;
 use App\Enums\TableStatus;
 use App\Events\OrderCreated;
-use App\Events\OrderPaid;
 use App\Events\OrderStatusUpdated;
 use App\Http\Requests\SelfOrder\PayRequest;
 use App\Http\Requests\SelfOrder\StoreRequest;
@@ -14,12 +13,14 @@ use App\Models\Order;
 use App\Models\QrCode;
 use App\Models\TableSession;
 use App\Services\MenuCatalogService;
-use App\Services\MidtransService;
 use App\Services\PaymentService;
+use App\Services\SelfOrderPaymentExpiryService;
 use App\Services\SelfOrderService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -58,14 +59,45 @@ class SelfOrderController extends Controller
     public function store(StoreRequest $request, string $tableToken): RedirectResponse
     {
         $table = Meja::where('table_token', $tableToken)->firstOrFail();
-        $session = $this->orderService->getOrCreateSession($table);
         $validated = $request->validated();
+        $validated['idempotency_key'] ??= (string) Str::uuid();
+        $payloadHash = $this->idempotencyPayloadHash($validated, 'cash');
 
-        $order = $this->buildOrder($session, $validated, 'cash', OrderStatus::Pending);
+        [$order, $wasCreated] = DB::transaction(function () use ($table, $validated, $payloadHash, $request): array {
+            $lockedTable = Meja::query()->lockForUpdate()->findOrFail($table->id);
+            $existingOrder = Order::query()
+                ->where('idempotency_key', $validated['idempotency_key'])
+                ->first();
 
-        $order->refresh();
-        broadcast(new OrderCreated($order))->toOthers();
-        broadcast(new OrderStatusUpdated($order))->toOthers();
+            if ($existingOrder) {
+                abort_unless(
+                    hash_equals((string) $existingOrder->idempotency_payload_hash, $payloadHash)
+                    && $existingOrder->tableSession?->table_id === $lockedTable->id,
+                    409,
+                    'Kunci checkout sudah digunakan untuk pesanan lain. Silakan mulai ulang checkout.',
+                );
+
+                $this->authorizeOrderSession($request, $existingOrder);
+
+                return [$existingOrder, false];
+            }
+
+            $session = $this->orderService->getOrCreateSession($lockedTable);
+            $order = $this->buildOrder($session, $validated, 'cash', OrderStatus::Pending);
+            $order->forceFill([
+                'idempotency_key' => $validated['idempotency_key'],
+                'idempotency_payload_hash' => $payloadHash,
+            ])->save();
+            $this->authorizeOrderSession($request, $order);
+
+            return [$order, true];
+        });
+
+        if ($wasCreated) {
+            $order->refresh();
+            broadcast(new OrderCreated($order))->toOthers();
+            broadcast(new OrderStatusUpdated($order))->toOthers();
+        }
 
         return redirect()->route('self-order.status', [$tableToken, $order]);
     }
@@ -73,16 +105,88 @@ class SelfOrderController extends Controller
     public function pay(PayRequest $request, string $tableToken): JsonResponse
     {
         $table = Meja::where('table_token', $tableToken)->firstOrFail();
-        $session = $this->orderService->getOrCreateSession($table);
         $validated = $request->validated();
+        $qrCode = null;
+        $existingOrder = Order::query()
+            ->where('idempotency_key', $validated['idempotency_key'])
+            ->first();
 
-        if ($validated['payment_method'] === 'online' && ! QrCode::activeQr()) {
-            return response()->json(['message' => 'QRIS belum dikonfigurasi. Silakan bayar di kasir.'], 422);
+        if ($validated['payment_method'] === 'online' && ! $existingOrder) {
+            $qrCode = QrCode::activeQr();
+
+            if (! $qrCode || blank($qrCode->image_path)) {
+                return response()->json(['message' => 'QRIS belum dikonfigurasi. Silakan bayar di kasir.'], 422);
+            }
         }
 
         $status = $validated['payment_method'] === 'online' ? OrderStatus::PendingPayment : OrderStatus::Pending;
+        $payloadHash = $this->idempotencyPayloadHash($validated, $validated['payment_method']);
+        $expiresAt = $validated['payment_method'] === 'online'
+            ? now()->addMinutes(max(1, (int) config('pos.self_order_qr_expiry_minutes', 15)))
+            : null;
 
-        $order = $this->buildOrder($session, $validated, $validated['payment_method'], $status);
+        [$order, $isExpiredReplay, $wasCreated] = DB::transaction(function () use ($table, $validated, $status, $payloadHash, $expiresAt, $qrCode, $request): array {
+            $lockedTable = Meja::query()->lockForUpdate()->findOrFail($table->id);
+            $existingOrder = Order::query()
+                ->where('idempotency_key', $validated['idempotency_key'])
+                ->first();
+
+            if ($existingOrder) {
+                abort_unless(
+                    hash_equals((string) $existingOrder->idempotency_payload_hash, $payloadHash)
+                    && $existingOrder->tableSession?->table_id === $lockedTable->id,
+                    409,
+                    'Kunci checkout sudah digunakan untuk pesanan lain. Silakan mulai ulang checkout.',
+                );
+
+                $this->authorizeOrderSession($request, $existingOrder);
+
+                $isExpiredPendingPayment = $existingOrder->status === OrderStatus::PendingPayment
+                    && ($existingOrder->payment_expires_at?->isPast() ?? false);
+
+                return [$existingOrder, $isExpiredPendingPayment, false];
+            }
+
+            $session = $this->orderService->getOrCreateSession($lockedTable);
+            $order = $this->buildOrder($session, $validated, $validated['payment_method'], $status);
+            $order->forceFill([
+                'idempotency_key' => $validated['idempotency_key'],
+                'idempotency_payload_hash' => $payloadHash,
+                'payment_expires_at' => $expiresAt,
+                'payment_qr_code_path' => $qrCode?->image_path,
+            ])->save();
+
+            if ($validated['payment_method'] === 'online') {
+                $this->paymentService->createPaymentRecord($order, [], 'qris');
+            }
+
+            $this->authorizeOrderSession($request, $order);
+
+            return [$order, false, true];
+        });
+
+        if ($wasCreated) {
+            $order->refresh();
+            broadcast(new OrderCreated($order))->toOthers();
+            broadcast(new OrderStatusUpdated($order))->toOthers();
+        }
+
+        if ($isExpiredReplay) {
+            app(SelfOrderPaymentExpiryService::class)->expire($order);
+
+            return response()->json([
+                'code' => 'payment_expired',
+                'message' => 'Batas waktu QRIS telah berakhir. Silakan mulai pembayaran baru.',
+            ], 409);
+        }
+
+        if ($order->status === OrderStatus::Cancelled) {
+            return response()->json([
+                'code' => 'order_cancelled',
+                'message' => 'Pesanan ini sudah dibatalkan. Silakan mulai pembayaran baru.',
+            ], 409);
+        }
+
         $orderNumber = config('pos.order_number_prefix', 'TRX-LW-').$order->id;
 
         if ($validated['payment_method'] === 'online') {
@@ -99,11 +203,22 @@ class SelfOrderController extends Controller
         ]);
     }
 
-    public function paymentStatus(string $tableToken, Order $order, MidtransService $midtrans): JsonResponse
+    public function paymentStatus(string $tableToken, Order $order, Request $request, SelfOrderPaymentExpiryService $expiryService): JsonResponse
     {
-        $this->assertTableOwner($tableToken, $order);
+        $this->assertOrderAccess($tableToken, $order, $request);
 
-        if ($order->status === OrderStatus::Paid) {
+        if ($order->payment_expires_at?->isPast()) {
+            $expiryService->expire($order);
+            $order->refresh();
+        }
+
+        if (in_array($order->status, [
+            OrderStatus::Paid,
+            OrderStatus::Processing,
+            OrderStatus::Processed,
+            OrderStatus::Ready,
+            OrderStatus::Completed,
+        ], true)) {
             return response()->json(['status' => 'settlement']);
         }
 
@@ -111,31 +226,16 @@ class SelfOrderController extends Controller
             return response()->json(['status' => 'failed']);
         }
 
-        if ($order->payment && $order->payment->method === 'qris' && blank($order->payment->midtrans_transaction_id)) {
-            return response()->json(['status' => 'pending']);
-        }
-
-        $mapped = $this->mapStatus($order, $midtrans);
-
-        if ($mapped !== 'pending' && $order->payment) {
-            $order->payment->update(['status' => $mapped]);
-            $this->applyFinalStatus($order, $mapped);
-        }
-
-        return response()->json(['status' => $mapped]);
+        return response()->json(['status' => 'pending']);
     }
 
-    public function cancel(string $tableToken, Order $order, Request $request, MidtransService $midtrans): JsonResponse
+    public function cancel(string $tableToken, Order $order, Request $request): JsonResponse
     {
         $this->assertTableOwner($tableToken, $order);
         $this->assertOrderToken($order, (string) $request->input('access_token'));
         abort_if(! in_array($order->status, [OrderStatus::Pending, OrderStatus::PendingPayment], true), 403);
 
         if ($order->payment) {
-            if ($order->payment->midtrans_transaction_id) {
-                $midtrans->cancel((string) $order->id);
-            }
-
             $order->payment->update(['status' => 'failed']);
         }
 
@@ -151,6 +251,7 @@ class SelfOrderController extends Controller
                 OrderStatus::PendingPayment->value,
                 OrderStatus::Paid->value,
                 OrderStatus::Processing->value,
+                OrderStatus::Processed->value,
                 OrderStatus::Ready->value,
             ])->exists()) {
             $session->update(['status' => 'closed', 'closed_at' => now()]);
@@ -163,33 +264,40 @@ class SelfOrderController extends Controller
         return response()->json(['status' => 'cancelled']);
     }
 
-    public function orderStatus(string $tableToken, Order $order): Response
+    public function orderStatus(string $tableToken, Order $order, Request $request): Response
     {
-        $this->assertTableOwner($tableToken, $order);
+        $this->assertOrderAccess($tableToken, $order, $request);
         $order->load(['items.menu', 'items.options.optionItem', 'tableSession.table']);
 
         return Inertia::render('self-order/Status', [
             'table' => $order->tableSession->table,
             'tableToken' => $tableToken,
-            'order' => $order->only(['id', 'status', 'total', 'items', 'subtotal', 'tax', 'service_charge', 'midtrans_charge', 'rounding_amount', 'discount', 'order_type', 'customer_name', 'created_at']),
+            'statusChannelToken' => $this->statusChannelToken($order),
+            'order' => $order->only(['id', 'status', 'total', 'items', 'subtotal', 'tax', 'service_charge', 'midtrans_charge', 'rounding_amount', 'discount', 'order_type', 'customer_name', 'created_at', 'access_token']),
         ]);
     }
 
-    public function thankYou(string $tableToken, Order $order): Response
+    public function thankYou(string $tableToken, Order $order, Request $request): Response
     {
-        $this->assertTableOwner($tableToken, $order);
+        $this->assertOrderAccess($tableToken, $order, $request);
         $order->load(['items.menu', 'items.options.optionItem', 'tableSession.table', 'servedBy']);
 
         return Inertia::render('self-order/ThankYou', [
             'table' => $order->tableSession->table,
             'tableToken' => $tableToken,
+            'statusChannelToken' => $this->statusChannelToken($order),
             'order' => $order,
         ]);
     }
 
-    public function pollStatus(string $tableToken, Order $order): JsonResponse
+    public function pollStatus(string $tableToken, Order $order, Request $request, SelfOrderPaymentExpiryService $expiryService): JsonResponse
     {
-        $this->assertTableOwner($tableToken, $order);
+        $this->assertOrderAccess($tableToken, $order, $request);
+
+        if ($order->payment_expires_at?->isPast()) {
+            $expiryService->expire($order);
+            $order->refresh();
+        }
         $order->load(['items.menu', 'items.options.optionItem', 'tableSession.table']);
 
         return response()->json([
@@ -216,7 +324,7 @@ class SelfOrderController extends Controller
 
     protected function buildOrder(TableSession $session, array $validated, string $paymentMethod, OrderStatus $status): Order
     {
-        $orderItems = $this->orderService->buildOrderItems($validated['items']);
+        $orderItems = $this->orderService->buildOrderItemsForOutlet($validated['items'], $session->table->outlet_id);
 
         $order = $this->orderService->buildOrderServerSide(
             $session,
@@ -234,13 +342,13 @@ class SelfOrderController extends Controller
 
     protected function payOnline(Order $order, string $orderNumber): JsonResponse
     {
-        $qrCode = QrCode::activeQr();
-
-        if (! $qrCode) {
-            return response()->json(['message' => 'QRIS belum dikonfigurasi. Silakan bayar di kasir.'], 422);
-        }
-
-        $this->paymentService->createPaymentRecord($order, [], 'qris');
+        $paymentStatus = in_array($order->status, [
+            OrderStatus::Paid,
+            OrderStatus::Processing,
+            OrderStatus::Processed,
+            OrderStatus::Ready,
+            OrderStatus::Completed,
+        ], true) ? 'settlement' : 'pending';
 
         return response()->json([
             'order_id' => $order->id,
@@ -254,51 +362,46 @@ class SelfOrderController extends Controller
             'total' => (float) $order->total,
             'payment_type' => 'qris',
             'transaction_id' => null,
-            'qr_code' => $qrCode->image_url,
+            'qr_code' => $order->payment_qr_code_path ? '/storage/'.ltrim($order->payment_qr_code_path, '/') : null,
             'manual_qr' => true,
+            'status' => $paymentStatus,
+            'payment_expires_at' => $order->payment_expires_at?->toIso8601String(),
         ]);
     }
 
-    public function confirmQris(string $tableToken, Order $order, Request $request): JsonResponse
+    protected function idempotencyPayloadHash(array $validated, string $paymentMethod): string
+    {
+        $payload = [
+            'customer_name' => trim($validated['customer_name']),
+            'payment_method' => $paymentMethod,
+            'payment_type' => $validated['payment_type'] ?? null,
+            'items' => array_map(fn (array $item): array => [
+                'menu_id' => (int) $item['menu_id'],
+                'qty' => (int) $item['qty'],
+                'notes' => $item['notes'] ?? null,
+                'option_ids' => array_map('intval', $item['option_ids'] ?? []),
+            ], $validated['items']),
+        ];
+
+        return hash('sha256', json_encode($payload, JSON_THROW_ON_ERROR));
+    }
+
+    protected function authorizeOrderSession(Request $request, Order $order): void
+    {
+        $authorizedOrders = $request->session()->get('self_order.authorized_orders', []);
+        $authorizedOrders[$order->id] = true;
+        $request->session()->put('self_order.authorized_orders', array_slice($authorizedOrders, -50, null, true));
+    }
+
+    protected function statusChannelToken(Order $order): string
+    {
+        return hash_hmac('sha256', (string) $order->access_token, (string) config('app.key'));
+    }
+
+    protected function assertOrderAccess(string $tableToken, Order $order, Request $request): void
     {
         $this->assertTableOwner($tableToken, $order);
-        $this->assertOrderToken($order, (string) $request->input('access_token'));
-        abort_if(! in_array($order->status, [OrderStatus::Pending, OrderStatus::PendingPayment], true), 403);
-
-        $order->payment?->update(['status' => 'settlement']);
-        $this->applyFinalStatus($order, 'settlement');
-
-        return response()->json(['status' => 'settlement']);
-    }
-
-    protected function mapStatus(Order $order, MidtransService $midtrans): string
-    {
-        $status = $midtrans->getTransactionStatus((string) $order->id)['transaction_status'] ?? 'unknown';
-
-        return match ($status) {
-            'capture', 'settlement' => 'settlement',
-            'expire', 'cancel', 'deny' => 'failed',
-            default => 'pending',
-        };
-    }
-
-    protected function applyFinalStatus(Order $order, string $mapped): void
-    {
-        if ($mapped === 'settlement') {
-            $updated = Order::where('id', $order->id)
-                ->where('status', '!=', OrderStatus::Paid->value)
-                ->update(['status' => OrderStatus::Paid->value]);
-
-            if ($updated) {
-                $order->refresh();
-                broadcast(new OrderPaid($order))->toOthers();
-                broadcast(new OrderStatusUpdated($order))->toOthers();
-            }
-        } elseif ($mapped === 'failed') {
-            $order->update(['status' => OrderStatus::Cancelled]);
-            $order->refresh();
-            broadcast(new OrderStatusUpdated($order))->toOthers();
-        }
+        abort_unless($request->session()->get('self_order.authorized_orders.'.$order->id) === true, 404);
     }
 
     protected function assertTableOwner(string $tableToken, Order $order): void

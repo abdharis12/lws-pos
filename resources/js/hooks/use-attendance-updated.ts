@@ -17,7 +17,7 @@ export function useAttendanceUpdated(): void {
 
     useEcho<AttendanceUpdatedPayload>(
         outletId ? `outlet.${outletId}.attendance` : '',
-        '.AttendanceUpdated',
+        'AttendanceUpdated',
         () => {
             router.reload({
                 only: ['attendances', 'todayAttendance', 'stats'],

@@ -34,7 +34,7 @@ export function useKitchenOrders(
 
     useEcho<OrderPaidPayload>(
         outletId ? `outlet.${outletId}.kitchen` : '',
-        '.OrderPaid',
+        'OrderPaid',
         (e) => {
             const order = e.order;
 

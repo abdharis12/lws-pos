@@ -440,15 +440,15 @@ export default function AttendanceIndex({
         return () => navigator.geolocation.clearWatch(watchId);
     }, [outlet.latitude, outlet.longitude, outlet.geofence_radius_meters]);
 
-    async function getLocation() {
+    async function getLocation(): Promise<{ lat: number; lng: number } | null> {
         if (userPosition) {
             return {
-                lat: String(userPosition.lat),
-                lng: String(userPosition.lng),
+                lat: userPosition.lat,
+                lng: userPosition.lng,
             };
         }
 
-        return new Promise<{ lat: string; lng: string } | null>((resolve) => {
+        return new Promise<{ lat: number; lng: number } | null>((resolve) => {
             if (!navigator.geolocation) {
                 resolve(null);
 
@@ -459,8 +459,8 @@ export default function AttendanceIndex({
                 navigator.geolocation.getCurrentPosition(
                     (pos) =>
                         resolve({
-                            lat: String(pos.coords.latitude),
-                            lng: String(pos.coords.longitude),
+                            lat: pos.coords.latitude,
+                            lng: pos.coords.longitude,
                         }),
                     (err) => {
                         if (import.meta.env.DEV) {
@@ -491,12 +491,12 @@ export default function AttendanceIndex({
         });
     }
 
-    function submitClockIn(loc?: { lat: string; lng: string }) {
+    function submitClockIn(loc?: { lat: number; lng: number }) {
         setInFormData({
             employee_id: String(selectedEmployee),
             photo: photoFile,
-            latitude: loc?.lat ?? '',
-            longitude: loc?.lng ?? '',
+            latitude: loc ? String(loc.lat) : '',
+            longitude: loc ? String(loc.lng) : '',
         });
         postIn('/attendance/clock-in', {
             forceFormData: true,
@@ -560,13 +560,13 @@ export default function AttendanceIndex({
 
     function submitClockOut(
         employeeId: number,
-        loc?: { lat: string; lng: string },
+        loc?: { lat: number; lng: number },
     ) {
         setOutData({
             employee_id: String(employeeId),
             photo: outData.photo,
-            latitude: loc?.lat ?? '',
-            longitude: loc?.lng ?? '',
+            latitude: loc ? String(loc.lat) : '',
+            longitude: loc ? String(loc.lng) : '',
         });
         postOut('/attendance/clock-out', {
             forceFormData: true,

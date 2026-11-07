@@ -2,6 +2,7 @@ import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { History, LayoutGrid, Printer, Search, ShoppingBag, ShoppingCart, Trash2 } from 'lucide-react';
 import { useState, useMemo, useRef } from 'react';
 import { toast } from 'sonner';
+import { confirmQris } from '@/actions/App/Http/Controllers/PosController';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -85,9 +86,15 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder 
     const [editingProcessing, setEditingProcessing] = useState(false);
     const [deleteConfirmOrder, setDeleteConfirmOrder] = useState<PendingOrder | null>(null);
 
-    const subtotal = useMemo(() => calcSubtotal(cartItems), [cartItems]);
-    const tax = useMemo(() => Math.round(subtotal * 0.10), [subtotal]);
+    const selectedPendingOrder = pendingOrders.find(order => order.id === selectedPendingOrderId);
+    const isPrepaidQris = selectedPendingOrder?.status === 'pending_payment' && selectedPendingOrder.payment?.method === 'qris';
+    const subtotal = useMemo(() => isPrepaidQris ? Number(selectedPendingOrder.subtotal) : calcSubtotal(cartItems), [cartItems, isPrepaidQris, selectedPendingOrder]);
+    const tax = useMemo(() => isPrepaidQris ? Number(selectedPendingOrder.tax) : Math.round(subtotal * 0.10), [isPrepaidQris, selectedPendingOrder, subtotal]);
     const discountAmount = useMemo(() => {
+        if (isPrepaidQris) {
+            return Number(selectedPendingOrder?.discount ?? 0);
+        }
+
         if (!discountType || !discountValue) {
             return 0;
         }
@@ -95,10 +102,10 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder 
         return discountType === 'percentage'
             ? Math.min(subtotal * (discountValue / 100), subtotal)
             : Math.min(discountValue, subtotal);
-    }, [subtotal, discountType, discountValue]);
+    }, [isPrepaidQris, selectedPendingOrder, subtotal, discountType, discountValue]);
     const rawTotal = Math.max(0, subtotal + tax - discountAmount);
-    const roundingAmount = useMemo(() => computeRoundingAmount(rawTotal), [rawTotal]);
-    const total = useMemo(() => ceilTo500(rawTotal), [rawTotal]);
+    const roundingAmount = useMemo(() => isPrepaidQris ? Number(selectedPendingOrder.rounding_amount) : computeRoundingAmount(rawTotal), [isPrepaidQris, selectedPendingOrder, rawTotal]);
+    const total = useMemo(() => isPrepaidQris ? Number(selectedPendingOrder.total) : ceilTo500(rawTotal), [isPrepaidQris, selectedPendingOrder, rawTotal]);
 
     const isDineIn = orderType === 'dine_in';
 
@@ -203,14 +210,15 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder 
 
         return {
             items: [...cartItems],
-            discountType, discountValue,
+            discountType: isPrepaidQris ? pendingOrder?.discount_type ?? null : discountType,
+            discountValue: isPrepaidQris ? Number(pendingOrder?.discount_value ?? 0) : discountValue,
             subtotal,
             tax,
             serviceCharge: localServiceCharge,
             midtransCharge: localMidtransCharge,
             roundingAmount,
             total,
-            tableCode: selectedCodes || null,
+            tableCode: selectedCodes || pendingOrder?.table_session?.table?.code || null,
             kasir: cashierName,
             customerName: pendingOrder?.customer_name ?? customerName,
             cashAmount: cashAmount && cashAmount >= total ? cashAmount : undefined,
@@ -371,13 +379,13 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder 
     function handleSelectPendingOrder(order: PendingOrder) {
         setSelectedPendingOrderId(order.id);
         setCartItems(order.items.map(item => ({
-            menu: { ...item.menu, description: null, photo_path: null, option_groups: [], is_available: true } as MenuItem,
+            menu: { ...item.menu, price: item.base_price, description: null, photo_path: null, option_groups: [], is_available: true } as MenuItem,
             qty: item.qty,
             notes: item.notes || '',
             selectedOptions: item.options.map(o => ({
                 itemId: o.option_item.id,
                 name: o.option_item.name,
-                adjustment: Number(o.option_item.price_adjustment),
+                adjustment: Number(o.price_adjustment),
                 quantity: (o as { quantity?: number }).quantity ?? 1,
             })),
         })));
@@ -387,6 +395,38 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder 
         setPaymentDialogOpen(false);
         setIsPendingCashPayment(true);
         setCashDialogOpen(true);
+    }
+
+    async function handleConfirmPayClick() {
+        if (!isPrepaidQris || !selectedPendingOrderId) {
+            setPaymentDialogOpen(true);
+
+            return;
+        }
+
+        setConfirmPayProcessing(true);
+
+        try {
+            const { ok, data } = await posFetchJson<{ status?: string; message?: string }>(confirmQris.url(selectedPendingOrderId), {
+                method: 'POST',
+            });
+
+            if (!ok || data.status !== 'settlement') {
+                toast.error(data.message ?? 'Gagal mengonfirmasi pembayaran QRIS.');
+
+                return;
+            }
+
+            setPrintReceiptData(buildReceiptData());
+            resetAfterOrder();
+            setSuccessType('qris');
+            setSuccessChange(0);
+            setSuccessDialogOpen(true);
+        } catch {
+            toast.error('Terjadi kesalahan saat mengonfirmasi pembayaran QRIS.');
+        } finally {
+            setConfirmPayProcessing(false);
+        }
     }
 
     function handlePendingCashConfirm(amountGiven: number) {
@@ -590,6 +630,8 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder 
         items: cartItems,
         processing,
         pendingOrderId: selectedPendingOrderId,
+        pendingOrder: selectedPendingOrder ?? null,
+        prepaidQris: isPrepaidQris,
         confirmPayProcessing,
         saveProcessing: editingProcessing,
         onSaveEdits: handleSaveEdits,
@@ -602,7 +644,7 @@ export default function PosIndex({ categories, tables, pendingOrders, lastOrder 
         onUpdateQty: (i: number, q: number) => setCartItems(prev => q < 1 ? prev : prev.map((item, idx) => idx === i ? { ...item, qty: q } : item)),
         onRemove: (i: number) => setCartItems(prev => prev.filter((_, idx) => idx !== i)),
         onOrder: handleOrder,
-        onConfirmPay: () => setPaymentDialogOpen(true),
+        onConfirmPay: handleConfirmPayClick,
         discountType, discountValue, discountApprovedBy,
         onDiscountChange: handleDiscountChange,
         onOpenApproval: () => {

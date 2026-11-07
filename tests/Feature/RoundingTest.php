@@ -27,6 +27,7 @@ beforeEach(function () {
 
 test('self-order cash total is rounded up to nearest 500 and rounding_amount is stored', function () {
     $payload = [
+        'idempotency_key' => (string) Str::uuid(),
         'customer_name' => 'Pelanggan A',
         'items' => [
             ['menu_id' => $this->menu->id, 'qty' => 1, 'notes' => null, 'option_ids' => []],
@@ -64,6 +65,7 @@ test('self-order cash total on exact multiple of 500 has zero rounding', functio
     $this->menu->update(['price' => 24500]);
 
     $payload = [
+        'idempotency_key' => (string) Str::uuid(),
         'customer_name' => 'Pelanggan B',
         'items' => [
             ['menu_id' => $this->menu->id, 'qty' => 1, 'notes' => null, 'option_ids' => []],
@@ -86,7 +88,7 @@ test('self-order cash total on exact multiple of 500 has zero rounding', functio
         ->and(((int) $json['total'] % 500))->toBe(0);
 });
 
-test('self-order online does not apply rounding, only Midtrans charge on rawBeforeCharge', function () {
+test('self-order manual qris does not add rounding or a payment provider charge', function () {
     QrCode::query()->create([
         'label' => 'QRIS Utama',
         'image_path' => 'qr-codes/qris.png',
@@ -96,6 +98,7 @@ test('self-order online does not apply rounding, only Midtrans charge on rawBefo
     $this->menu->update(['price' => 22000]);
 
     $payload = [
+        'idempotency_key' => (string) Str::uuid(),
         'customer_name' => 'Pelanggan C',
         'items' => [
             ['menu_id' => $this->menu->id, 'qty' => 1, 'notes' => null, 'option_ids' => []],
@@ -114,19 +117,18 @@ test('self-order online does not apply rounding, only Midtrans charge on rawBefo
     $tax = round($subtotal * 0.10);
     $serviceCharge = 0;
     $rawBeforeCharge = $subtotal + $tax + $serviceCharge;
-    $expectedMidtransCharge = round($rawBeforeCharge * 2.5 / 100 / 100) * 100;
-    $expectedTotal = $rawBeforeCharge + $expectedMidtransCharge;
+    $expectedTotal = $rawBeforeCharge;
 
     expect((float) $json['total'])->toEqual($expectedTotal)
         ->and((float) $json['service_charge'])->toEqual(0.0)
         ->and((float) $json['rounding_amount'])->toEqual(0.0)
-        ->and((float) $json['midtrans_charge'])->toEqual($expectedMidtransCharge);
+        ->and((float) $json['midtrans_charge'])->toEqual(0.0);
 
     $order = Order::where('id', $json['order_id'])->first();
     expect($order)
         ->not->toBeNull()
         ->and((float) $order->total)->toEqual($expectedTotal)
         ->and((float) $order->service_charge)->toEqual(0.0)
-        ->and((float) $order->midtrans_charge)->toEqual($expectedMidtransCharge)
+        ->and((float) $order->midtrans_charge)->toEqual(0.0)
         ->and((float) $order->rounding_amount)->toEqual(0.0);
 });

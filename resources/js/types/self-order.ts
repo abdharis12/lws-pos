@@ -64,6 +64,8 @@ export interface MidtransResponse {
     biller_code?: string
     payment_code?: string
     store?: string
+    payment_expires_at?: string | null
+    status?: 'pending' | 'settlement'
 }
 
 export type PaymentStatus = 'idle' | 'pending' | 'settlement' | 'failed'

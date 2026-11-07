@@ -13,6 +13,7 @@ import {
     XCircle,
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
+import { thankYou } from '@/actions/App/Http/Controllers/SelfOrderController';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -40,6 +41,7 @@ interface Order {
 interface Props {
     table: { code: string };
     tableToken: string;
+    statusChannelToken: string;
     order: Order;
 }
 
@@ -130,17 +132,18 @@ const statusMeta: Record<
     },
 };
 
-export default function OrderStatus({ table, tableToken, order }: Props) {
+export default function OrderStatus({ table, tableToken, statusChannelToken, order }: Props) {
     const [currentOrder, setCurrentOrder] = useState(order);
     const [elapsed, setElapsed] = useState('0m');
     const [cancelling, setCancelling] = useState(false);
+    const [cancelError, setCancelError] = useState<string | null>(null);
 
     const redirectToThankYou = useCallback((orderId: number) => {
-        router.visit(`/t/${tableToken}/orders/${orderId}/thank-you`);
+        router.visit(thankYou.url([tableToken, orderId]));
     }, [tableToken]);
 
     useEffect(() => {
-        if (currentOrder.status === 'completed') {
+        if (['paid', 'processed', 'processing', 'ready', 'completed'].includes(currentOrder.status)) {
             redirectToThankYou(currentOrder.id);
         }
     }, [currentOrder.status, currentOrder.id, redirectToThankYou]);
@@ -163,7 +166,7 @@ export default function OrderStatus({ table, tableToken, order }: Props) {
     }, [currentOrder.created_at]);
 
     useEffect(() => {
-        const terminalStatuses = ['ready', 'completed', 'cancelled'];
+        const terminalStatuses = ['completed', 'cancelled'];
 
         if (terminalStatuses.includes(currentOrder.status)) {
             return;
@@ -195,7 +198,7 @@ export default function OrderStatus({ table, tableToken, order }: Props) {
             } catch {
                 // silent
             }
-        }, 15000);
+        }, 5000);
 
         return () => clearInterval(id);
     }, [tableToken, currentOrder.id, currentOrder.status]);
@@ -209,7 +212,7 @@ export default function OrderStatus({ table, tableToken, order }: Props) {
             tax: number;
             total: number;
         };
-    }>(`table.${tableToken}`, '.OrderStatusUpdated', (e) => {
+    }>(`self-order.${currentOrder.id}.${statusChannelToken}`, 'OrderStatusUpdated', (e) => {
         if (e.order.id === currentOrder.id) {
             setCurrentOrder((prev) => ({
                 ...prev,
@@ -238,21 +241,27 @@ export default function OrderStatus({ table, tableToken, order }: Props) {
         }
 
         setCancelling(true);
+        setCancelError(null);
 
         try {
             const res = await fetch(`/t/${tableToken}/orders/${currentOrder.id}/cancel`, {
                 method: 'POST',
                 headers: {
                     'Accept': 'application/json',
+                    'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '',
                 },
+                body: JSON.stringify({ access_token: currentOrder.access_token }),
             });
 
             if (res.ok) {
                 setCurrentOrder((prev) => ({ ...prev, status: 'cancelled' }));
+            } else {
+                const data = await res.json().catch(() => ({}));
+                setCancelError(data.message ?? 'Pesanan tidak dapat dibatalkan. Silakan coba lagi.');
             }
         } catch {
-            // silent
+            setCancelError('Koneksi bermasalah. Periksa jaringan lalu coba batalkan kembali.');
         } finally {
             setCancelling(false);
         }
@@ -546,6 +555,7 @@ export default function OrderStatus({ table, tableToken, order }: Props) {
                                 ?? itemStatusMeta.pending;
                             const showItemStatus = !isCancelled && (
                                 currentOrder.status === 'paid' ||
+                                currentOrder.status === 'processed' ||
                                 currentOrder.status === 'processing' ||
                                 currentOrder.status === 'ready' ||
                                 currentOrder.status === 'completed'
@@ -620,13 +630,16 @@ export default function OrderStatus({ table, tableToken, order }: Props) {
 
             <div className="mx-auto max-w-2xl px-4 pb-12 pt-6">
                 {canCancel && (
-                    <Button
-                        className="mb-3 h-12 w-full rounded-2xl border-2 border-red-500/30 bg-white font-body text-sm font-semibold text-red-500 shadow-sm transition-all hover:bg-red-50 active:scale-[0.98] disabled:opacity-60"
-                        onClick={handleCancel}
-                        disabled={cancelling}
-                    >
-                        {cancelling ? 'Membatalkan...' : 'Batalkan Pesanan'}
-                    </Button>
+                    <>
+                        {cancelError && <p className="mb-2 text-center font-body text-sm text-red-600">{cancelError}</p>}
+                        <Button
+                            className="mb-3 h-12 w-full rounded-2xl border-2 border-red-500/30 bg-white font-body text-sm font-semibold text-red-500 shadow-sm transition-all hover:bg-red-50 active:scale-[0.98] disabled:opacity-60"
+                            onClick={handleCancel}
+                            disabled={cancelling}
+                        >
+                            {cancelling ? 'Membatalkan...' : 'Batalkan Pesanan'}
+                        </Button>
+                    </>
                 )}
                 <Button
                     className="h-12 w-full rounded-2xl bg-[#4F6B6A] font-body text-sm font-semibold text-white shadow-lg shadow-[#4F6B6A]/20 transition-all hover:bg-[#3d5554] active:scale-[0.98]"

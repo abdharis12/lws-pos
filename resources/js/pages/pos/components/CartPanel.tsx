@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ceilTo500, roundingAmount as computeRoundingAmount } from '@/lib/currency';
 import { BORDER, CREAM, INK, MUTED, PRIMARY, SAND } from '../constants';
-import type { CartItem } from '../types';
+import type { CartItem, PendingOrder } from '../types';
 
 interface Props {
     items: CartItem[];
@@ -20,6 +20,8 @@ interface Props {
     onConfirmPay?: () => void;
     onSaveEdits?: () => void;
     pendingOrderId?: number | null;
+    pendingOrder?: PendingOrder | null;
+    prepaidQris?: boolean;
     confirmPayProcessing?: boolean;
     saveProcessing?: boolean;
     tableSelected?: boolean;
@@ -41,7 +43,7 @@ interface Props {
 
 export default function CartPanel({
     items, processing, onUpdateQty, onRemove, onOrder, onConfirmPay,
-    onSaveEdits, pendingOrderId, confirmPayProcessing, saveProcessing,
+    onSaveEdits, pendingOrderId, pendingOrder, prepaidQris = false, confirmPayProcessing, saveProcessing,
     tableSelected = true, selectedTableCodes = [], onOpenTablePicker,
     customerName = '', onCustomerNameChange, orderType = 'dine_in',
     discountType, discountValue, discountApprovedBy,
@@ -51,14 +53,21 @@ export default function CartPanel({
     const isTakeaway = orderType === 'takeaway';
     const takeawayNoName = isTakeaway && !customerName.trim();
     const [showDiscount, setShowDiscount] = useState(false);
-    const subtotal = useMemo(() => items.reduce((sum, item) => {
+    const calculatedSubtotal = useMemo(() => items.reduce((sum, item) => {
         const optAdj = item.selectedOptions.reduce((s, o) => s + o.adjustment * (o.quantity || 1), 0);
 
         return sum + (Number(item.menu.price) + optAdj) * item.qty;
     }, 0), [items]);
 
-    const tax = useMemo(() => Math.round(subtotal * 0.10), [subtotal]);
+    const subtotal = prepaidQris ? Number(pendingOrder?.subtotal ?? calculatedSubtotal) : calculatedSubtotal;
+
+    const calculatedTax = useMemo(() => Math.round(subtotal * 0.10), [subtotal]);
+    const tax = prepaidQris ? Number(pendingOrder?.tax ?? calculatedTax) : calculatedTax;
     const discountAmount = useMemo(() => {
+        if (prepaidQris) {
+            return Number(pendingOrder?.discount ?? 0);
+        }
+
         if (!discountType || !discountValue) {
             return 0;
         }
@@ -68,11 +77,11 @@ export default function CartPanel({
         }
 
         return Math.min(discountValue, subtotal);
-    }, [subtotal, discountType, discountValue]);
+    }, [prepaidQris, pendingOrder, subtotal, discountType, discountValue]);
 
     const rawTotal = Math.max(0, subtotal + tax - discountAmount);
-    const roundingAmount = computeRoundingAmount(rawTotal);
-    const total = ceilTo500(rawTotal);
+    const roundingAmount = prepaidQris ? Number(pendingOrder?.rounding_amount ?? 0) : computeRoundingAmount(rawTotal);
+    const total = prepaidQris ? Number(pendingOrder?.total ?? rawTotal) : ceilTo500(rawTotal);
     const isConfirmMode = !!pendingOrderId;
     const needsApproval = discountType === 'percentage' ? discountValue > 10 : discountValue > 50000;
 
@@ -126,9 +135,11 @@ export default function CartPanel({
                             <div key={i} className="rounded-xl p-3" style={{ border: `1px solid ${BORDER}`, backgroundColor: `color-mix(in srgb, ${CREAM} 38%, transparent)` }}>
                                 <div className="flex items-start justify-between">
                                     <span className="text-sm font-medium" style={{ color: INK }}>{item.menu.name}</span>
-                                    <Button variant="ghost" size="icon" className="size-6" onClick={() => onRemove(i)}>
-                                        <X className="size-3" style={{ color: MUTED }} />
-                                    </Button>
+                                    {!prepaidQris && (
+                                        <Button variant="ghost" size="icon" className="size-6" onClick={() => onRemove(i)}>
+                                            <X className="size-3" style={{ color: MUTED }} />
+                                        </Button>
+                                    )}
                                 </div>
                                 {item.selectedOptions.length > 0 && (
                                     <div className="mt-1 flex flex-wrap gap-1">
@@ -147,15 +158,19 @@ export default function CartPanel({
                                     <p className="text-xs" style={{ color: MUTED }}>Catatan: {item.notes}</p>
                                 )}
                                 <div className="mt-2 flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <Button variant="outline" size="icon" className="size-7" onClick={() => onUpdateQty(i, item.qty - 1)} style={{ borderColor: BORDER }}>
-                                            <Minus className="size-3" />
-                                        </Button>
-                                        <span className="w-6 text-center text-sm font-medium" style={{ color: INK }}>{item.qty}</span>
-                                        <Button variant="outline" size="icon" className="size-7" onClick={() => onUpdateQty(i, item.qty + 1)} style={{ borderColor: BORDER }}>
-                                            <Plus className="size-3" />
-                                        </Button>
-                                    </div>
+                                    {prepaidQris ? (
+                                        <span className="text-sm font-medium" style={{ color: INK }}>Qty: {item.qty}</span>
+                                    ) : (
+                                        <div className="flex items-center gap-2">
+                                            <Button variant="outline" size="icon" className="size-7" onClick={() => onUpdateQty(i, item.qty - 1)} style={{ borderColor: BORDER }}>
+                                                <Minus className="size-3" />
+                                            </Button>
+                                            <span className="w-6 text-center text-sm font-medium" style={{ color: INK }}>{item.qty}</span>
+                                            <Button variant="outline" size="icon" className="size-7" onClick={() => onUpdateQty(i, item.qty + 1)} style={{ borderColor: BORDER }}>
+                                                <Plus className="size-3" />
+                                            </Button>
+                                        </div>
+                                    )}
                                     <span className="text-sm font-semibold" style={{ color: PRIMARY }}>Rp {itemTotal.toLocaleString('id-ID')}</span>
                                 </div>
                             </div>
@@ -291,9 +306,11 @@ export default function CartPanel({
                 <div className="flex flex-col gap-2">
                     {isConfirmMode ? (
                         <>
+                            {!prepaidQris && (
                             <Button onClick={onSaveEdits} disabled={items.length === 0 || saveProcessing} variant="outline" className="w-full" size="lg" style={{ borderColor: BORDER }}>
                                 {saveProcessing ? 'Menyimpan...' : 'Simpan Perubahan'}
                             </Button>
+                            )}
                             <Button onClick={onConfirmPay} disabled={items.length === 0 || confirmPayProcessing || takeawayNoName} className="w-full" size="lg" style={{ backgroundColor: PRIMARY }}>
                                 {confirmPayProcessing ? 'Memproses...' : 'Konfirmasi & Bayar'}
                             </Button>

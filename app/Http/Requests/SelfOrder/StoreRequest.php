@@ -10,6 +10,7 @@ class StoreRequest extends FormRequest
     {
         return [
             'customer_name' => 'required|string|max:100',
+            'idempotency_key' => ['nullable', 'uuid'],
             'items' => 'required|array|min:1',
             'items.*.menu_id' => 'required|exists:menus,id',
             'items.*.qty' => 'required|integer|min:1',

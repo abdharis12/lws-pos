@@ -56,7 +56,12 @@ export interface PendingOrder {
     id: number;
     customer_name: string | null;
     subtotal: string;
+    tax: string;
     total: string;
+    rounding_amount: string;
+    discount: string;
+    discount_type: string | null;
+    discount_value: string | null;
     created_at: string;
     status: string;
     order_type: string;
@@ -158,6 +163,6 @@ export interface OrderData {
         base_price: number;
         total_price: number;
         notes: string | null;
-        options: { price_adjustment: number; option_item: { name: string; price_adjustment: number } }[];
+        options: { price_adjustment: number; quantity: number; option_item: { name: string; price_adjustment: number } }[];
     }[];
 }

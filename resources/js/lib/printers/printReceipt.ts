@@ -43,7 +43,11 @@ export async function pairPrinter(kind: 'bluetooth' | 'usb' | 'native'): Promise
         });
     } else if (kind === 'native') {
         const info = await pairNativePrinter();
-        setPairedDeviceInfo(info);
+        setPairedDeviceInfo({
+            ...info,
+            kind: 'native',
+            pairedAt: Date.now(),
+        });
     }
 }
 

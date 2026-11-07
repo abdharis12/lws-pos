@@ -84,6 +84,7 @@ export default function PendingOrdersInbox({
                 >
                     {orders.map((order) => {
                         const isOnline = order.status === 'pending_payment';
+                        const isManualQris = isOnline && order.payment?.method === 'qris';
 
                         return (
                             <div
@@ -120,11 +121,11 @@ export default function PendingOrdersInbox({
                                         className="mt-1.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
                                         style={{ backgroundColor: 'rgba(245,158,11,0.15)', color: '#b45309' }}
                                     >
-                                        Menunggu Bayar · {paymentLabel(order.payment?.method)}
+                                        {isManualQris ? 'QRIS · Sudah Dibayar — Konfirmasi Kasir' : `Menunggu Bayar · ${paymentLabel(order.payment?.method)}`}
                                     </span>
                                 )}
 
-                                {isOnline ? (
+                                {isOnline && !isManualQris ? (
                                     <div className="mt-2 flex gap-1.5">
                                         <button
                                             type="button"

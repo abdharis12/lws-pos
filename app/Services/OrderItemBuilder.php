@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Menu;
 use App\Models\OptionItem;
 use Illuminate\Support\Collection;
+use Illuminate\Validation\ValidationException;
 
 class OrderItemBuilder
 {
@@ -21,6 +22,61 @@ class OrderItemBuilder
         $optionsByItem = $optionIds
             ? OptionItem::whereIn('id', $optionIds)->get()->keyBy('id')
             : collect();
+
+        return array_map(
+            fn (array $item) => $this->buildSingle($item, $menus, $optionsByItem),
+            $items,
+        );
+    }
+
+    public function buildForOutlet(array $items, int $outletId): array
+    {
+        $menuIds = array_unique(array_column($items, 'menu_id'));
+        $menus = Menu::query()
+            ->whereIn('id', $menuIds)
+            ->where('is_available', true)
+            ->whereHas('category', fn ($query) => $query
+                ->where('outlet_id', $outletId)
+                ->where('is_active', true))
+            ->with('optionGroups:id,outlet_id')
+            ->get()
+            ->keyBy('id');
+
+        if ($menus->count() !== count($menuIds)) {
+            throw ValidationException::withMessages([
+                'items' => 'Satu atau lebih menu sudah tidak tersedia di outlet ini.',
+            ]);
+        }
+
+        $optionIds = array_unique(array_merge(...array_map(
+            fn (array $item) => $item['option_ids'] ?? [],
+            $items,
+        )));
+        $optionsByItem = $optionIds
+            ? OptionItem::query()
+                ->whereIn('id', $optionIds)
+                ->where('is_available', true)
+                ->whereHas('optionGroup', fn ($query) => $query
+                    ->where('outlet_id', $outletId)
+                    ->where('is_active', true))
+                ->get()
+                ->keyBy('id')
+            : collect();
+
+        foreach ($items as $item) {
+            $menu = $menus->get($item['menu_id']);
+            $allowedGroupIds = $menu->optionGroups->pluck('id');
+
+            foreach ($item['option_ids'] ?? [] as $optionId) {
+                $option = $optionsByItem->get($optionId);
+
+                if (! $option || ! $allowedGroupIds->contains($option->option_group_id)) {
+                    throw ValidationException::withMessages([
+                        'items' => 'Satu atau lebih opsi tidak tersedia untuk menu ini.',
+                    ]);
+                }
+            }
+        }
 
         return array_map(
             fn (array $item) => $this->buildSingle($item, $menus, $optionsByItem),

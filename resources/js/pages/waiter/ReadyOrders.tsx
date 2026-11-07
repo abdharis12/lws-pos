@@ -104,7 +104,7 @@ export default function WaiterReadyOrders({ readyOrders, leaderboard }: Props) {
 
     useEcho<{ order: { id: number; status: string } }>(
         outletId ? `outlet.${outletId}.pos` : '',
-        '.OrderStatusUpdated',
+        'OrderStatusUpdated',
         (e) => {
             if (e.order.status === 'ready') {
                 playBeep();

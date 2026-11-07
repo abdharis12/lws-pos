@@ -1,5 +1,7 @@
 import { Head, router } from '@inertiajs/react';
+import { useEchoPublic } from '@laravel/echo-react';
 import { HandHeart, Heart, Sparkles, Store, User } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 
 interface OrderItem {
@@ -25,6 +27,7 @@ interface Order {
 interface Props {
     table: { code: string };
     tableToken: string;
+    statusChannelToken: string;
     order: Order;
 }
 
@@ -41,8 +44,79 @@ function fmt(price: number) {
     return _fmt.format(price);
 }
 
-export default function SelfOrderThankYou({ table, tableToken, order }: Props) {
+export default function SelfOrderThankYou({ table, tableToken, statusChannelToken, order }: Props) {
     const firstParty = order.customer_name?.trim();
+    const [currentStatus, setCurrentStatus] = useState(order.status);
+    const statusMessage = {
+        pending_payment: {
+            label: 'Menunggu Pembayaran',
+            description: 'Selesaikan pembayaran agar pesanan bisa segera diproses.',
+        },
+        pending: {
+            label: 'Pesanan Diterima',
+            description: 'Pesanan diterima dan sedang menunggu untuk disiapkan.',
+        },
+        paid: {
+            label: 'Pembayaran Dikonfirmasi',
+            description: 'Kasir telah mengonfirmasi pembayaran QRIS. Pesanan segera disiapkan.',
+        },
+        processed: {
+            label: 'Pesanan Sedang Disiapkan',
+            description: 'Pembayaran telah dikonfirmasi dan pesanan sedang disiapkan.',
+        },
+        processing: {
+            label: 'Pesanan Sedang Disiapkan',
+            description: 'Pembayaran telah dikonfirmasi dan pesanan sedang disiapkan.',
+        },
+        ready: {
+            label: 'Pesanan Siap',
+            description: 'Pesanan siap disajikan. Selamat menikmati!',
+        },
+        completed: {
+            label: 'Pesanan Selesai',
+            description: 'Pesanan kamu sudah diantar. Selamat menikmati!',
+        },
+        cancelled: {
+            label: 'Pesanan Dibatalkan',
+            description: 'Pesanan ini telah dibatalkan. Silakan hubungi kasir jika perlu bantuan.',
+        },
+    }[currentStatus] ?? {
+        label: 'Terima Kasih',
+        description: 'Pesanan kamu sedang diperbarui.',
+    };
+
+    useEchoPublic<{ order: { id: number; status: string } }>(
+        `self-order.${order.id}.${statusChannelToken}`,
+        'OrderStatusUpdated',
+        (event) => {
+            if (event.order.id === order.id) {
+                setCurrentStatus(event.order.status);
+            }
+        },
+    );
+
+    useEffect(() => {
+        if (['completed', 'cancelled'].includes(currentStatus)) {
+            return;
+        }
+
+        const interval = window.setInterval(async () => {
+            try {
+                const response = await fetch(`/t/${tableToken}/orders/${order.id}/poll-status`, {
+                    headers: { Accept: 'application/json' },
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    setCurrentStatus(data.status);
+                }
+            } catch {
+                // Realtime updates and the next poll provide another chance to refresh.
+            }
+        }, 5000);
+
+        return () => window.clearInterval(interval);
+    }, [currentStatus, order.id, tableToken]);
 
     return (
         <div className="font-body min-h-screen bg-[#F6F2E9]">
@@ -114,7 +188,7 @@ export default function SelfOrderThankYou({ table, tableToken, order }: Props) {
                     <div className="flex items-center justify-center gap-2 text-[#D9A441]">
                         <Sparkles className="h-3.5 w-3.5" />
                         <span className="font-body text-[11px] font-semibold uppercase tracking-[0.14em]">
-                            Pesanan Selesai
+                            {statusMessage.label}
                         </span>
                     </div>
 
@@ -159,7 +233,7 @@ export default function SelfOrderThankYou({ table, tableToken, order }: Props) {
                         Terima Kasih{firstParty ? `, ${firstParty}` : ''}!
                     </h1>
                     <p className="font-body mt-2 text-sm text-[#CFC0A4]">
-                        Pesanan kamu sudah diantar. Selamat menikmati!
+                        {statusMessage.description}
                     </p>
 
                     <div className="mt-4 flex flex-wrap items-center justify-center gap-2">

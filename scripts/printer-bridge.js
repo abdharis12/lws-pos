@@ -13,11 +13,11 @@
  * Run with: npm run printer:bridge
  */
 
-const WebSocket = require('ws');
-const BTSerial = require('bluetooth-serial-port');
+import { WebSocketServer } from 'ws';
+import { BluetoothSerialPort as BTSerial } from 'bluetooth-serial-port';
 
 const PORT = 12345;
-const wss = new WebSocket.Server({ port: PORT });
+const wss = new WebSocketServer({ port: PORT });
 
 /** @type {{ address: string, name: string } | null} */
 let pairedDevice = null;

@@ -30,6 +30,11 @@ class SelfOrderService
         return $this->itemBuilder->build($items);
     }
 
+    public function buildOrderItemsForOutlet(array $items, int $outletId): array
+    {
+        return $this->itemBuilder->buildForOutlet($items, $outletId);
+    }
+
     public function attachOrderItems(Order $order, array $orderItems): void
     {
         $this->itemBuilder->attach($order, $orderItems);
@@ -44,15 +49,13 @@ class SelfOrderService
         $subtotal = array_sum(array_column($builtItems, 'total_price'));
 
         $taxRate = (float) config('pos.tax_rate', 0.10);
-        $chargePercent = (float) config('pos.midtrans.charge_percentage', 2.5);
-
         $tax = round($subtotal * $taxRate);
 
         if ($paymentMethod === 'online') {
             $serviceCharge = 0;
             $rawBeforeCharge = $subtotal + $tax;
-            $midtransCharge = round($rawBeforeCharge * $chargePercent / 100 / 100) * 100;
-            $total = $rawBeforeCharge + $midtransCharge;
+            $midtransCharge = 0;
+            $total = $rawBeforeCharge;
             $roundingAmount = 0;
         } else {
             $serviceCharge = 0;

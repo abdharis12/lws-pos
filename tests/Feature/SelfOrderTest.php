@@ -91,6 +91,31 @@ test('self-order only shows available menus', function () {
     );
 });
 
+test('self-order rejects unavailable menus and menus from another outlet', function () {
+    $unavailableMenu = Menu::factory()->create([
+        'category_id' => $this->category->id,
+        'is_available' => false,
+    ]);
+    $otherOutlet = Outlet::factory()->create();
+    $otherCategory = MenuCategory::factory()->create([
+        'outlet_id' => $otherOutlet->id,
+        'is_active' => true,
+    ]);
+    $otherOutletMenu = Menu::factory()->create([
+        'category_id' => $otherCategory->id,
+        'is_available' => true,
+    ]);
+
+    foreach ([$unavailableMenu, $otherOutletMenu] as $menu) {
+        $this->postJson(route('self-order.orders.store', $this->table->table_token), [
+            'customer_name' => 'Budi',
+            'items' => [
+                ['menu_id' => $menu->id, 'qty' => 1, 'option_ids' => []],
+            ],
+        ])->assertUnprocessable();
+    }
+});
+
 test('self-order shows table info', function () {
     $this->get(route('self-order.show', $this->table->table_token))
         ->assertOk()
@@ -367,7 +392,8 @@ test('completed order shows thank-you page', function () {
         'status' => 'ready',
     ]);
 
-    $this->get(route('self-order.thank-you', [$this->table->table_token, $order]))
+    $this->withSession(['self_order' => ['authorized_orders' => [$order->id => true]]])
+        ->get(route('self-order.thank-you', [$this->table->table_token, $order]))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('self-order/ThankYou')
@@ -395,4 +421,29 @@ test('thank-you page rejects foreign table', function () {
 
     $this->get(route('self-order.thank-you', [$this->table->table_token, $order]))
         ->assertNotFound();
+});
+
+test('self-order status pages reject requests without the order session grant', function () {
+    $session = TableSession::factory()->create([
+        'table_id' => $this->table->id,
+        'status' => 'active',
+    ]);
+    $order = Order::factory()->create([
+        'table_session_id' => $session->id,
+        'status' => 'paid',
+        'order_type' => 'dine_in_qr',
+        'access_token' => Str::random(40),
+    ]);
+
+    $this->get(route('self-order.thank-you', [$this->table->table_token, $order]))
+        ->assertNotFound();
+
+    $this->withSession(['self_order' => ['authorized_orders' => [$order->id => true]]])
+        ->get(route('self-order.thank-you', [$this->table->table_token, $order]))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('self-order/ThankYou')
+            ->where('order.status', 'paid')
+            ->has('statusChannelToken')
+        );
 });

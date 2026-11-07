@@ -13,7 +13,6 @@ interface Props {
     onBack: () => void
     onRetry: () => void
     onCancel: () => void
-    onConfirmManual: () => void
 }
 
 function CopyButton({ text, copied, onCopy }: { text: string; copied: boolean; onCopy: (v: boolean) => void }) {
@@ -46,7 +45,6 @@ export function PaymentStatusModal({
     onBack,
     onRetry,
     onCancel,
-    onConfirmManual,
 }: Props) {
     return (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm animate-fade-in sm:items-center sm:p-4">
@@ -56,6 +54,7 @@ export function PaymentStatusModal({
                     <button
                         className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-gray-500 shadow-sm ring-1 ring-[#CFC0A4]/40"
                         onClick={onBack}
+                        disabled={payProcessing}
                     >
                         <ChevronLeft className="h-4 w-4" />
                     </button>
@@ -95,7 +94,7 @@ export function PaymentStatusModal({
                         </div>
                     )}
 
-                    {payStatus === 'failed' && (
+                    {payStatus === 'failed' && !payError && (
                         <div className="flex flex-col items-center gap-3 py-4">
                             <AlertCircle className="size-12 text-red-500" />
                             <p className="font-semibold text-red-500">Pembayaran Gagal</p>
@@ -150,6 +149,13 @@ export function PaymentStatusModal({
                                         Scan QR code di atas menggunakan GoPay, OVO, atau LinkAja
                                     </p>
                                 </>
+                            )}
+
+                            {midtransResponse.payment_expires_at && (
+                                <p className="text-xs text-center text-amber-700">
+                                    QRIS berlaku sampai {new Date(midtransResponse.payment_expires_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}.
+                                    Jika waktu habis, buat pembayaran baru.
+                                </p>
                             )}
 
                             {midtransResponse.va_number && (
@@ -218,13 +224,10 @@ export function PaymentStatusModal({
                             )}
 
                             {midtransResponse.manual_qr ? (
-                                <Button
-                                    onClick={onConfirmManual}
-                                    className="w-full rounded-xl"
-                                    style={{ backgroundColor: '#4F6B6A', color: '#fff' }}
-                                >
-                                    Konfirmasi Pembayaran Diterima
-                                </Button>
+                                <div className="flex items-center gap-2 text-xs text-gray-500">
+                                    <LoaderCircle className="size-3 animate-spin" />
+                                    <span>Menunggu konfirmasi kasir setelah pembayaran QRIS diperiksa.</span>
+                                </div>
                             ) : (
                                 <div className="flex items-center gap-2 text-xs text-gray-500">
                                     <LoaderCircle className="size-3 animate-spin" />
@@ -237,6 +240,7 @@ export function PaymentStatusModal({
                                 variant="outline"
                                 className="w-full rounded-xl"
                                 style={{ borderColor: '#CFC0A4', color: '#4F6B6A' }}
+                                disabled={payProcessing}
                             >
                                 Ganti Metode
                             </Button>
@@ -246,6 +250,7 @@ export function PaymentStatusModal({
                                 variant="outline"
                                 className="w-full rounded-xl"
                                 style={{ borderColor: '#E11D48', color: '#E11D48' }}
+                                disabled={payProcessing}
                             >
                                 Batalkan Pembayaran
                             </Button>

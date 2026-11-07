@@ -192,7 +192,6 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({ isOpen, onCl
                                                 }`}
                                         >
                                             <p className="text-xs font-semibold">{area.name}</p>
-                                            <p className="text-[10px] opacity-80 mt-0.5">{area.desc}</p>
                                         </button>
                                     ))}
                                 </div>

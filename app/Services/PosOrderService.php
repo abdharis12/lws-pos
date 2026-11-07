@@ -100,13 +100,6 @@ class PosOrderService
         return round($subtotal * $this->getTaxRate());
     }
 
-    public function calculateMidtransCharge(float $amount): float
-    {
-        $chargePercent = (float) config('pos.midtrans.charge_percentage', 2.5);
-
-        return round($amount * $chargePercent / 100 / 100) * 100;
-    }
-
     public function createSplitOrders(
         User $user,
         array $validated,
@@ -433,7 +426,7 @@ class PosOrderService
         $tax = $this->calculateTax($subtotal);
         $serviceCharge = 0;
         $rawTotalBeforeCharge = max(0, $subtotal + $tax - $discountAmount);
-        $midtransCharge = $this->calculateMidtransCharge($rawTotalBeforeCharge);
+        $midtransCharge = 0;
 
         return [
             'tax' => $tax,

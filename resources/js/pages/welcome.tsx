@@ -1,7 +1,7 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { Hero } from '@/components/template/hero';
-import { MenuSection } from '@/components/template/menu';
+import { MenuSection, type MenuCategory } from '@/components/template/menu';
 import { ReservationModal } from '@/components/template/reservation';
 import { Button } from '@/components/ui/button';
 import { dashboard, login } from '@/routes';
@@ -58,7 +58,7 @@ const steps = [
 
 
 
-export default function Welcome() {
+export default function Welcome({ menuCategories = [] }: { menuCategories?: MenuCategory[] }) {
     const { auth } = usePage().props;
     const [isReservationOpen, setIsReservationOpen] = useState(false);
 
@@ -253,7 +253,7 @@ export default function Welcome() {
 
                     {/* CTA */}
                     <section>
-                        <MenuSection />
+                        <MenuSection menuCategories={menuCategories} />
                     </section>
                 </main>
 

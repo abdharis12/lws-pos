@@ -17,7 +17,6 @@ use App\Http\Controllers\KitchenDisplayController;
 use App\Http\Controllers\MenuCategoryController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\MenuRecipeController;
-use App\Http\Controllers\MidtransWebhookController;
 use App\Http\Controllers\OptionGroupController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\OutletController;
@@ -44,11 +43,10 @@ use App\Http\Controllers\TableController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TaxReportController;
 use App\Http\Controllers\WaiterController;
-use App\Http\Middleware\VerifyMidtransIp;
-use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
+use App\Http\Controllers\WelcomeController;
 use Illuminate\Support\Facades\Route;
 
-Route::inertia('/', 'welcome')->name('home');
+Route::get('/', WelcomeController::class)->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -310,13 +308,7 @@ Route::post('t/{tableToken}/orders', [SelfOrderController::class, 'store'])
     ->name('self-order.orders.store');
 Route::post('t/{tableToken}/pay', [SelfOrderController::class, 'pay'])->middleware('throttle:5,1')->name('self-order.pay');
 Route::get('t/{tableToken}/orders/{order}/payment-status', [SelfOrderController::class, 'paymentStatus'])->middleware('throttle:self-order')->name('self-order.payment-status');
-Route::post('t/{tableToken}/orders/{order}/confirm-qris', [SelfOrderController::class, 'confirmQris'])->middleware('throttle:5,1')->name('self-order.confirm-qris');
 Route::post('t/{tableToken}/orders/{order}/cancel', [SelfOrderController::class, 'cancel'])->middleware('throttle:5,1')->name('self-order.cancel');
-
-Route::post('webhooks/midtrans/notification', [MidtransWebhookController::class, 'notification'])
-    ->withoutMiddleware([VerifyCsrfToken::class])
-    ->middleware(['throttle:20,1', VerifyMidtransIp::class])
-    ->name('webhooks.midtrans.notification');
 
 Route::inertia('offline', 'welcome')->name('offline');
 

@@ -1,5 +1,6 @@
 import { router } from '@inertiajs/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { thankYou } from '@/actions/App/Http/Controllers/SelfOrderController'
 import type { CartItem, MidtransResponse, PaymentStatus } from '@/types/self-order'
 
 export function useSelfOrderPayment(tableToken: string) {
@@ -13,6 +14,48 @@ export function useSelfOrderPayment(tableToken: string) {
     const [payError, setPayError] = useState<string | null>(null)
     const [copied, setCopied] = useState(false)
     const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+    const payRequestInFlightRef = useRef(false)
+    const cashRequestInFlightRef = useRef(false)
+    const activeIdempotencyStorageKeyRef = useRef<string | null>(null)
+    const idempotencyStoragePrefix = `self-order:${tableToken}:checkout`
+
+    const checkoutFingerprint = useCallback(async (cart: CartItem[], customerName: string, paymentMethod: string, paymentType?: string) => {
+        const payload = JSON.stringify({
+            customerName: customerName.trim(),
+            paymentMethod,
+            paymentType: paymentType ?? null,
+            items: cart.map(item => ({
+                menuId: item.menuId,
+                quantity: item.quantity,
+                notes: item.notes,
+                optionIds: item.options.flatMap(option => Array.from({ length: option.quantity }, () => option.id)),
+            })),
+        })
+        const digest = await window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(payload))
+
+        return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('')
+    }, [])
+
+    const getIdempotencyKey = useCallback((fingerprint: string) => {
+        const storageKey = `${idempotencyStoragePrefix}:${fingerprint}`
+        const existingKey = window.sessionStorage.getItem(storageKey)
+        const key = existingKey ?? window.crypto.randomUUID()
+
+        if (!existingKey) {
+            window.sessionStorage.setItem(storageKey, key)
+        }
+
+        activeIdempotencyStorageKeyRef.current = storageKey
+
+        return key
+    }, [idempotencyStoragePrefix])
+
+    const clearActiveIdempotencyKey = useCallback(() => {
+        if (activeIdempotencyStorageKeyRef.current) {
+            window.sessionStorage.removeItem(activeIdempotencyStorageKeyRef.current)
+            activeIdempotencyStorageKeyRef.current = null
+        }
+    }, [])
 
     const clearPoll = useCallback(() => {
         if (pollRef.current) {
@@ -23,6 +66,8 @@ export function useSelfOrderPayment(tableToken: string) {
 
     const resetPayment = useCallback(() => {
         clearPoll()
+        payRequestInFlightRef.current = false
+        clearActiveIdempotencyKey()
         setPaymentMethod(null)
         setMidtransStep('select')
         setMidtransResponse(null)
@@ -32,7 +77,7 @@ export function useSelfOrderPayment(tableToken: string) {
         setPayProcessing(false)
         setPayError(null)
         setCopied(false)
-    }, [clearPoll])
+    }, [clearActiveIdempotencyKey, clearPoll])
 
     const commonHeaders = (): Record<string, string> => ({
         'Content-Type': 'application/json',
@@ -41,116 +86,123 @@ export function useSelfOrderPayment(tableToken: string) {
     })
 
     const handleCashPay = useCallback(
-        (cart: CartItem[], customerName: string) => {
-            fetch(`/t/${tableToken}/pay`, {
-                method: 'POST',
-                headers: commonHeaders(),
-                body: JSON.stringify({
-                    customer_name: customerName,
-                    payment_method: 'cash',
-                    items: cart.map(i => ({
-                        menu_id: i.menuId,
-                        qty: i.quantity,
-                        notes: i.notes,
-                        option_ids: i.options.flatMap(o => Array.from({ length: o.quantity }, () => o.id)),
-                    })),
-                }),
-            })
-                .then(res => res.json().then(data => ({ ok: res.ok, data })))
-                .then(({ ok, data }) => {
-                    if (!ok) {
-                        return
-                    }
+        async (cart: CartItem[], customerName: string, onComplete: (error: string | null) => void) => {
+            if (cashRequestInFlightRef.current) {
+                return
+            }
 
-                    router.visit(`/t/${tableToken}/orders/${data.order_id}/status`)
+            cashRequestInFlightRef.current = true
+
+            try {
+                const fingerprint = await checkoutFingerprint(cart, customerName, 'cash')
+                const storageKey = `${idempotencyStoragePrefix}:${fingerprint}`
+                const response = await fetch(`/t/${tableToken}/pay`, {
+                    method: 'POST',
+                    headers: commonHeaders(),
+                    body: JSON.stringify({
+                        customer_name: customerName,
+                        payment_method: 'cash',
+                        idempotency_key: getIdempotencyKey(fingerprint),
+                        items: cart.map(i => ({
+                            menu_id: i.menuId,
+                            qty: i.quantity,
+                            notes: i.notes,
+                            option_ids: i.options.flatMap(o => Array.from({ length: o.quantity }, () => o.id)),
+                        })),
+                    }),
                 })
-                .catch(() => { })
+                const data = await response.json()
+
+                if (!response.ok) {
+                    throw new Error(data.message ?? 'Pesanan gagal dikirim. Silakan coba lagi.')
+                }
+
+                onComplete(null)
+                router.visit(`/t/${tableToken}/orders/${data.order_id}/status`, {
+                    onSuccess: () => window.sessionStorage.removeItem(storageKey),
+                })
+            } catch (error) {
+                onComplete(error instanceof Error ? error.message : 'Jaringan bermasalah. Silakan coba lagi.')
+            } finally {
+                cashRequestInFlightRef.current = false
+            }
         },
-        [tableToken],
+        [checkoutFingerprint, getIdempotencyKey, idempotencyStoragePrefix, tableToken],
     )
 
     const handleOnlinePay = useCallback(
-        (cart: CartItem[], customerName: string, paymentType: string) => {
+        async (cart: CartItem[], customerName: string, paymentType: string) => {
+            if (payRequestInFlightRef.current) {
+                return
+            }
+
+            if (midtransOrderId && midtransResponse) {
+                setPayError(null)
+                setMidtransStep('pay')
+
+                return
+            }
+
+            payRequestInFlightRef.current = true
             setPayProcessing(true)
             setPayError(null)
             setMidtransStep('pay')
 
-            fetch(`/t/${tableToken}/pay`, {
-                method: 'POST',
-                headers: commonHeaders(),
-                body: JSON.stringify({
-                    customer_name: customerName,
-                    payment_method: 'online',
-                    payment_type: paymentType,
-                    items: cart.map(i => ({
-                        menu_id: i.menuId,
-                        qty: i.quantity,
-                        notes: i.notes,
-                        option_ids: i.options.flatMap(o => Array.from({ length: o.quantity }, () => o.id)),
-                    })),
-                }),
-            })
-                .then(res => res.json().then(data => ({ ok: res.ok, data })))
-                .then(({ ok, data }) => {
-                    setPayProcessing(false)
+            try {
+                const fingerprint = await checkoutFingerprint(cart, customerName, 'online', paymentType)
+                const storageKey = `${idempotencyStoragePrefix}:${fingerprint}`
+                const response = await fetch(`/t/${tableToken}/pay`, {
+                    method: 'POST',
+                    headers: commonHeaders(),
+                    body: JSON.stringify({
+                        customer_name: customerName,
+                        payment_method: 'online',
+                        payment_type: paymentType,
+                        idempotency_key: getIdempotencyKey(fingerprint),
+                        items: cart.map(i => ({
+                            menu_id: i.menuId,
+                            qty: i.quantity,
+                            notes: i.notes,
+                            option_ids: i.options.flatMap(o => Array.from({ length: o.quantity }, () => o.id)),
+                        })),
+                    }),
+                })
+                const data = await response.json()
 
-                    if (!ok) {
-                        setPayError(data.message ?? 'Gagal memproses pembayaran')
-
-                        return
+                if (!response.ok) {
+                    if (['payment_expired', 'order_cancelled'].includes(data.code)) {
+                        window.sessionStorage.removeItem(storageKey)
+                        activeIdempotencyStorageKeyRef.current = null
+                        setPayStatus('failed')
                     }
 
-                    setMidtransResponse(data as MidtransResponse)
-                    setMidtransOrderId(data.order_id)
-                    setMidtransAccessToken(data.access_token ?? null)
-                    setPayStatus('pending')
-                })
-                .catch(() => {
-                    setPayProcessing(false)
-                    setPayError('Terjadi kesalahan jaringan')
-                })
-        },
-        [tableToken],
-    )
-
-    const handleConfirmManualPay = useCallback(() => {
-        if (!midtransOrderId) {
-            return
-        }
-
-        setPayProcessing(true)
-        setPayError(null)
-
-        fetch(`/t/${tableToken}/orders/${midtransOrderId}/confirm-qris`, {
-            method: 'POST',
-            headers: commonHeaders(),
-            body: JSON.stringify({ access_token: midtransAccessToken }),
-        })
-            .then(res => res.json().then(data => ({ ok: res.ok, data })))
-            .then(({ ok, data }) => {
-                setPayProcessing(false)
-
-                if (!ok || data.status !== 'settlement') {
-                    setPayError(data.message ?? 'Gagal mengonfirmasi pembayaran')
+                    setPayError(data.message ?? 'Gagal memproses pembayaran')
 
                     return
                 }
 
-                setPayStatus('settlement')
-                clearPoll()
+                setMidtransResponse(data as MidtransResponse)
+                setMidtransOrderId(data.order_id)
+                setMidtransAccessToken(data.access_token ?? null)
+                setPayStatus(data.status === 'settlement' ? 'settlement' : 'pending')
 
-                setTimeout(() => {
-                    router.visit(`/t/${tableToken}/orders/${midtransOrderId}/status`)
-                }, 1500)
-            })
-            .catch(() => {
+                if (data.status === 'settlement') {
+                    router.visit(thankYou.url([tableToken, data.order_id]), {
+                        onSuccess: () => window.sessionStorage.removeItem(storageKey),
+                    })
+                }
+            } catch {
+                setPayError('Koneksi bermasalah. QRIS belum dapat diproses. Silakan coba lagi.')
+            } finally {
                 setPayProcessing(false)
-                setPayError('Terjadi kesalahan jaringan')
-            })
-    }, [midtransOrderId, midtransAccessToken, tableToken, clearPoll])
+                payRequestInFlightRef.current = false
+            }
+        },
+        [checkoutFingerprint, getIdempotencyKey, idempotencyStoragePrefix, midtransOrderId, midtransResponse, tableToken],
+    )
 
     useEffect(() => {
-        if (!midtransOrderId || payStatus !== 'pending' || midtransResponse?.manual_qr) {
+        if (!midtransOrderId || payStatus !== 'pending') {
             return
         }
 
@@ -165,10 +217,18 @@ export function useSelfOrderPayment(tableToken: string) {
                         clearPoll()
 
                         setTimeout(() => {
-                            router.visit(`/t/${tableToken}/orders/${midtransOrderId}/status`)
+                            const storageKey = activeIdempotencyStorageKeyRef.current
+                            router.visit(thankYou.url([tableToken, midtransOrderId]), {
+                                onSuccess: () => {
+                                    if (storageKey) {
+                                        window.sessionStorage.removeItem(storageKey)
+                                    }
+                                },
+                            })
                         }, 1500)
                     } else if (data.status === 'failed') {
                         setPayStatus('failed')
+                        clearActiveIdempotencyKey()
                         clearPoll()
                     }
                 })
@@ -176,7 +236,7 @@ export function useSelfOrderPayment(tableToken: string) {
         }, 3000)
 
         return clearPoll
-    }, [midtransOrderId, payStatus, tableToken, clearPoll, midtransResponse])
+    }, [midtransOrderId, payStatus, tableToken, clearActiveIdempotencyKey, clearPoll, midtransResponse])
 
     return {
         paymentMethod,
@@ -196,6 +256,5 @@ export function useSelfOrderPayment(tableToken: string) {
         resetPayment,
         handleCashPay,
         handleOnlinePay,
-        handleConfirmManualPay,
     }
 }
