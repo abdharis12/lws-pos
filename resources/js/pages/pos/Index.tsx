@@ -1,4 +1,4 @@
-import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
+import { Head, Link, router, useForm, usePage, usePoll } from '@inertiajs/react';
 import { History, LayoutGrid, Printer, Search, ShoppingBag, ShoppingCart, Trash2 } from 'lucide-react';
 import { useState, useMemo, useRef } from 'react';
 import { toast } from 'sonner';
@@ -41,6 +41,8 @@ const MUTED = 'var(--muted)';
 export default function PosIndex({ categories, tables, pendingOrders, lastOrder }: PosPageProps) {
     const { auth } = usePage().props as { auth: { user: { id: number; name: string } | null } };
     const cashierName = auth?.user?.name ?? '';
+
+    usePoll(10000, { only: ['pendingOrders'] });
 
     const [selectedTableIds, setSelectedTableIds] = useState<number[]>([]);
     const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(

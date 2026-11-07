@@ -1,5 +1,5 @@
 import { ChevronDown, ChevronUp, Inbox, RefreshCw, Trash2, XCircle } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BORDER, CREAM, INK, MUTED, PRIMARY } from '../constants';
 import type { PendingOrder } from '../types';
 
@@ -48,6 +48,12 @@ export default function PendingOrdersInbox({
 }: Props) {
     const [expanded, setExpanded] = useState(() => orders.length > 0);
     const hasOrders = orders.length > 0;
+
+    useEffect(() => {
+        if (orders.length > 0) {
+            setExpanded(true);
+        }
+    }, [orders.length]);
 
     return (
         <div style={{ borderBottom: `1px solid ${BORDER}`, backgroundColor: CREAM }}>

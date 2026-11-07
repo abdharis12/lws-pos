@@ -1,4 +1,4 @@
-import { Head, router, usePage } from '@inertiajs/react';
+import { Head, router, usePage, usePoll } from '@inertiajs/react';
 import { useEcho } from '@laravel/echo-react';
 import { Award, BellRing, Check, Crown, HandPlatter, MapPin, Timer, User } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -77,6 +77,8 @@ export default function WaiterReadyOrders({ readyOrders, leaderboard }: Props) {
     const [processing, setProcessing] = useState(false);
     const [now, setNow] = useState(() => Date.now());
     const [checkedItems, setCheckedItems] = useState<Record<number, Set<number>>>({});
+
+    usePoll(5000, { only: ['readyOrders', 'leaderboard'] });
 
     useEffect(() => {
         const id = setInterval(() => setNow(Date.now()), 30000);
