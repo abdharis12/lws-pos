@@ -1,0 +1,44 @@
+; Copy these program blocks into your Supervisor configuration and replace:
+; - /home/CPANEL_USER/path/to/lws-pos with the absolute Laravel project path
+; - /usr/local/bin/ea-php84 with the PHP 8.4 CLI path reported by Rumahweb
+;
+; Run Supervisor as the cPanel account that owns the project. If the host
+; manages a system-wide Supervisor, ask Rumahweb to install these programs
+; under your cPanel user rather than running Laravel as root.
+
+[program:lws-pos-queue]
+process_name=%(program_name)s_%(process_num)02d
+command=/usr/local/bin/ea-php84 /home/CPANEL_USER/path/to/lws-pos/artisan queue:work database --queue=default --sleep=3 --tries=3 --timeout=60 --max-time=3600
+directory=/home/CPANEL_USER/path/to/lws-pos
+autostart=true
+autorestart=true
+startsecs=5
+startretries=3
+numprocs=1
+stopasgroup=true
+killasgroup=true
+stopwaitsecs=70
+redirect_stderr=true
+stdout_logfile=/home/CPANEL_USER/path/to/lws-pos/storage/logs/queue-worker.log
+stdout_logfile_maxbytes=20MB
+stdout_logfile_backups=5
+
+[program:lws-pos-reverb]
+process_name=%(program_name)s_%(process_num)02d
+command=/usr/local/bin/ea-php84 /home/CPANEL_USER/path/to/lws-pos/artisan reverb:start --host=127.0.0.1 --port=8080
+directory=/home/CPANEL_USER/path/to/lws-pos
+autostart=true
+autorestart=true
+startsecs=5
+startretries=3
+numprocs=1
+stopasgroup=true
+killasgroup=true
+stopwaitsecs=15
+redirect_stderr=true
+stdout_logfile=/home/CPANEL_USER/path/to/lws-pos/storage/logs/reverb.log
+stdout_logfile_maxbytes=20MB
+stdout_logfile_backups=5
+
+; For a system-wide Supervisor, its administrator should set minfds=10000
+; in the main [supervisord] section, as recommended by Laravel Reverb.

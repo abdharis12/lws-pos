@@ -24,14 +24,24 @@ const broadcastConnection =
     import.meta.env.VITE_BROADCAST_CONNECTION ??
     (import.meta.env.VITE_REVERB_APP_KEY ? 'reverb' : 'null');
 
-const reverbEnabled =
-    broadcastConnection === 'reverb' && Boolean(import.meta.env.VITE_REVERB_APP_KEY);
-
-const reverbScheme = import.meta.env.VITE_REVERB_SCHEME ?? 'https';
-const useTLS = reverbScheme === 'https';
+const broadcastKey =
+    broadcastConnection === 'reverb'
+        ? import.meta.env.VITE_REVERB_APP_KEY
+        : broadcastConnection === 'pusher'
+          ? import.meta.env.VITE_PUSHER_APP_KEY
+          : undefined;
+const broadcaster =
+    broadcastKey && (broadcastConnection === 'reverb' || broadcastConnection === 'pusher')
+        ? broadcastConnection
+        : 'null';
+const broadcastScheme =
+    broadcastConnection === 'pusher'
+        ? 'https'
+        : (import.meta.env.VITE_REVERB_SCHEME ?? 'https');
+const useTLS = broadcastScheme === 'https';
 
 configureEcho({
-    broadcaster: reverbEnabled ? 'reverb' : 'null',
+    broadcaster,
     forceTLS: useTLS,
     enabledTransports: useTLS ? ['wss'] : ['ws'],
 });

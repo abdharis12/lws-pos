@@ -17,7 +17,7 @@ import { WebSocketServer } from 'ws';
 import { BluetoothSerialPort as BTSerial } from 'bluetooth-serial-port';
 
 const PORT = 12345;
-const wss = new WebSocketServer({ port: PORT });
+const wss = new WebSocketServer({ host: '127.0.0.1', port: PORT });
 
 /** @type {{ address: string, name: string } | null} */
 let pairedDevice = null;
