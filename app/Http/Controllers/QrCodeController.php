@@ -28,7 +28,7 @@ class QrCodeController extends Controller
     {
         $validated = $request->validate([
             'label' => ['nullable', 'string', 'max:255'],
-            'image' => ['required', 'image', 'mimes:png,jpg,jpeg,webp', 'max:2048'],
+            'image' => ['required', 'image', 'mimes:png,jpg,jpeg,webp', 'dimensions:max_width=4096,max_height=4096', 'max:2048'],
         ]);
 
         $path = $request->file('image')->store('qr-codes', 'public');

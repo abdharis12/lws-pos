@@ -14,7 +14,8 @@ class MenuPolicy
 
     public function view(User $user, Menu $menu): bool
     {
-        return $user->hasAnyRole(['Owner', 'Admin', 'Cashier', 'Kitchen Staff', 'Waiter']);
+        return $user->hasAnyRole(['Owner', 'Admin', 'Cashier', 'Kitchen Staff', 'Waiter'])
+            && $this->belongsToUserOutlet($user, $menu);
     }
 
     public function create(User $user): bool
@@ -24,7 +25,8 @@ class MenuPolicy
 
     public function update(User $user, Menu $menu): bool
     {
-        return $user->hasAnyRole(['Owner', 'Admin']);
+        return $user->hasRole('Owner')
+            || ($user->hasRole('Admin') && $this->belongsToUserOutlet($user, $menu));
     }
 
     public function delete(User $user, Menu $menu): bool
@@ -35,5 +37,17 @@ class MenuPolicy
     public function toggleAvailability(User $user): bool
     {
         return $user->hasAnyRole(['Owner', 'Admin', 'Cashier']);
+    }
+
+    private function belongsToUserOutlet(User $user, Menu $menu): bool
+    {
+        if ($user->hasRole('Owner')) {
+            return true;
+        }
+
+        $userOutletId = $user->employee?->outlet_id;
+
+        return $userOutletId !== null
+            && (int) $menu->category?->outlet_id === (int) $userOutletId;
     }
 }

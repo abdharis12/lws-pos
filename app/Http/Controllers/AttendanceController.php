@@ -214,7 +214,7 @@ class AttendanceController extends Controller
             'employee_id' => 'required|exists:employees,id',
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
-            'photo' => 'nullable|image|max:2048',
+            'photo' => 'nullable|image|dimensions:max_width=4096,max_height=4096|max:2048',
         ]);
     }
 
@@ -225,7 +225,22 @@ class AttendanceController extends Controller
 
     protected function authorizeAttendance(Request $request, int $requestedId, Employee $employee): void
     {
+        $this->authorizeEmployeeOutlet($request, $employee);
+
         if (! $this->isAdmin($request) && $requestedId !== $employee->id) {
+            abort(403);
+        }
+    }
+
+    protected function authorizeEmployeeOutlet(Request $request, Employee $employee): void
+    {
+        if ($request->user()->hasRole('Owner')) {
+            return;
+        }
+
+        $userOutletId = $request->user()->employee?->outlet_id;
+
+        if (! $userOutletId || (int) $employee->outlet_id !== (int) $userOutletId) {
             abort(403);
         }
     }
@@ -301,6 +316,11 @@ class AttendanceController extends Controller
 
     protected function authorizeClockOut(Request $request, int $requestedId, ?int $employeeId): void
     {
+        abort_if(! $employeeId, 403);
+
+        $employee = Employee::findOrFail($employeeId);
+        $this->authorizeEmployeeOutlet($request, $employee);
+
         if (! $this->isAdmin($request) && $requestedId !== $employeeId) {
             abort(403);
         }

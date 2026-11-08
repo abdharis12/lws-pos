@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -93,12 +94,18 @@ class MenuController extends Controller
     {
         $this->authorize('update', $menu);
         $validated = $this->validateMenu($request);
+        $oldPhotoPath = $menu->photo_path;
 
         if ($request->hasFile('photo')) {
             $menu->photo_path = $request->file('photo')->store('menus', 'public');
         }
 
         $menu->update($this->menuPayload($validated, $menu->photo_path));
+
+        if ($oldPhotoPath && $oldPhotoPath !== $menu->photo_path) {
+            Storage::disk('public')->delete($oldPhotoPath);
+        }
+
         if (isset($validated['option_group_ids'])) {
             $menu->optionGroups()->sync($validated['option_group_ids']);
         }
@@ -114,7 +121,12 @@ class MenuController extends Controller
     {
         $this->authorize('delete', $menu);
         $this->menuChanged($request->user(), $menu, 'menu.deleted', "Menu {$menu->name} dihapus");
+        $photoPath = $menu->photo_path;
         $menu->delete();
+
+        if ($photoPath) {
+            Storage::disk('public')->delete($photoPath);
+        }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Menu berhasil dihapus.']);
 
@@ -161,16 +173,27 @@ class MenuController extends Controller
 
     protected function validateMenu(Request $request): array
     {
+        $categoryRule = 'required|exists:menu_categories,id';
+        $optionGroupRule = 'exists:option_groups,id';
+
+        if (! $request->user()->hasRole('Owner')) {
+            $outletId = $this->outletId();
+            abort_if(! $outletId, 403);
+
+            $categoryRule .= ',outlet_id,'.$outletId;
+            $optionGroupRule .= ',outlet_id,'.$outletId;
+        }
+
         return $request->validate([
-            'category_id' => 'required|exists:menu_categories,id',
+            'category_id' => $categoryRule,
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'price' => 'required|numeric|min:0',
-            'photo' => 'nullable|image|max:2048',
+            'photo' => 'nullable|image|dimensions:max_width=4096,max_height=4096|max:2048',
             'is_available' => 'boolean',
             'station' => 'nullable|string|max:100',
             'option_group_ids' => 'nullable|array',
-            'option_group_ids.*' => 'exists:option_groups,id',
+            'option_group_ids.*' => $optionGroupRule,
         ]);
     }
 
