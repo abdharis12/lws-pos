@@ -10,6 +10,7 @@ use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -110,7 +111,7 @@ class AttendanceController extends Controller
             return redirect()->back()->withErrors(['employee_id' => 'Sudah melakukan clock-in hari ini.']);
         }
 
-        $photoPath = $this->storePhoto($request, 'private');
+        $photoPath = $this->storePhoto($request, $employee);
         $attendance = $this->createAttendance($employee, $validated, $photoPath);
 
         AttendanceUpdated::dispatch($attendance);
@@ -134,7 +135,7 @@ class AttendanceController extends Controller
             $this->validateGeofence($request, $outlet);
         }
 
-        $this->finishClockOut($attendance, $validated, $this->storePhoto($request, 'private'));
+        $this->finishClockOut($attendance, $validated, $this->storePhoto($request, $attendance->employee));
 
         AttendanceUpdated::dispatch($attendance);
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Clock-out berhasil.']);
@@ -254,9 +255,19 @@ class AttendanceController extends Controller
             ->first();
     }
 
-    protected function storePhoto(Request $request, string $visibility): ?string
+    protected function storePhoto(Request $request, Employee $employee): ?string
     {
-        return $request->hasFile('photo') ? $request->file('photo')->store('attendance/photos', $visibility) : null;
+        if (! $request->hasFile('photo')) {
+            return null;
+        }
+
+        $photo = $request->file('photo');
+        $userName = Str::slug($employee->user->name, '_');
+        $uploadDate = now()->format('Y-m-d');
+        $uniqueId = (string) Str::ulid();
+        $filename = "{$userName}_{$uploadDate}_{$uniqueId}.{$photo->extension()}";
+
+        return $photo->storeAs('attendance/photos', $filename, 'attendance_private');
     }
 
     protected function createAttendance(Employee $employee, array $validated, ?string $photoPath): Attendance
